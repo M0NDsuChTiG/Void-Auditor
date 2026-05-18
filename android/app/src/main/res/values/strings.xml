@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ADB Studio Client</string>
+    <string name="title_activity_main">ADB Studio Client</string>
+    <string name="package_name">com.kuzyamond.adbstudio</string>
+    <string name="custom_url_scheme">com.kuzyamond.adbstudio</string>
+</resources>
