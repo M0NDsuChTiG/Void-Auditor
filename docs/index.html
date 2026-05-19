@@ -3,45 +3,449 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VOID Auditor — CyberHack Edition</title>
+  <title>VOID Auditor — CyberHack Edition v12.6</title>
   <style>
-    body { background:#0A0F0A; color:#B3FFBD; font-family:'Courier New',monospace; margin:0; padding:40px; line-height:1.6; }
-    .container { max-width:960px; margin:auto; }
-    h1 { color:#39FF14; font-size:42px; text-shadow:0 0 20px #39FF14; }
-    .badge { display:inline-block; padding:6px 16px; border:1px solid #39FF14; color:#39FF14; font-size:12px; letter-spacing:2px; margin:20px 0; }
-    .features { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin:40px 0; }
-    .card { background:#121712; border:1px solid #1E3A2F; padding:20px; }
-    .tag { padding:2px 8px; font-size:10px; border:1px solid; }
-    .tag-critical { color:#FF2D55; border-color:#FF2D55; }
-    .tag-high { color:#FF9500; border-color:#FF9500; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#080C08;
+      color:#C0F0C0;
+      font-family:'Courier New',monospace;
+      line-height:1.7;
+    }
+    .container { max-width:1100px; margin:auto; padding:0 20px; }
+    ::selection { background:#39FF14; color:#000; }
+    ::-webkit-scrollbar { width:8px; }
+    ::-webkit-scrollbar-track { background:#0A0F0A; }
+    ::-webkit-scrollbar-thumb { background:#1E3A2F; border-radius:4px; }
+    ::-webkit-scrollbar-thumb:hover { background:#39FF14; }
+
+    /* Hero */
+    .hero {
+      text-align:center;
+      padding:80px 20px 60px;
+      border-bottom:1px solid #1A2A1A;
+      position:relative;
+      overflow:hidden;
+    }
+    .hero::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; bottom:0;
+      background:radial-gradient(ellipse at 50% 0%, rgba(57,255,20,0.04) 0%, transparent 70%);
+      pointer-events:none;
+    }
+    .hero h1 {
+      font-size:52px;
+      color:#39FF14;
+      text-shadow:0 0 30px rgba(57,255,20,0.4), 0 0 60px rgba(57,255,20,0.15);
+      letter-spacing:6px;
+      position:relative;
+    }
+    .hero .subtitle {
+      font-size:14px;
+      color:#4A8A4A;
+      letter-spacing:8px;
+      text-transform:uppercase;
+      margin-top:8px;
+      border:1px solid #1A3A1A;
+      display:inline-block;
+      padding:6px 24px;
+      position:relative;
+    }
+    .hero .tagline {
+      margin-top:20px;
+      font-size:18px;
+      color:#8ABA8A;
+      max-width:600px;
+      margin-left:auto;
+      margin-right:auto;
+    }
+    .hero .badge-row {
+      margin-top:24px;
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .hero .badge {
+      padding:4px 16px;
+      font-size:11px;
+      border:1px solid #1E3A2F;
+      color:#6AAA6A;
+      letter-spacing:1px;
+    }
+
+    /* Sections */
+    section { padding:50px 0; border-bottom:1px solid #111811; }
+    section:last-of-type { border-bottom:none; }
+    h2 {
+      font-size:22px;
+      color:#39FF14;
+      margin-bottom:28px;
+      letter-spacing:4px;
+      text-transform:uppercase;
+    }
+    h2::before { content:'# '; color:#1E5A1E; }
+
+    /* Features grid */
+    .features-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+      gap:20px;
+    }
+    .feature-card {
+      background:#0D140D;
+      border:1px solid #152215;
+      padding:24px;
+      border-radius:4px;
+      transition:border-color 0.3s, box-shadow 0.3s;
+    }
+    .feature-card:hover {
+      border-color:#1E4A1E;
+      box-shadow:0 0 20px rgba(57,255,20,0.05);
+    }
+    .feature-card .icon { font-size:28px; margin-bottom:10px; }
+    .feature-card h3 { color:#39FF14; font-size:16px; letter-spacing:2px; margin-bottom:8px; }
+    .feature-card p { color:#8A9A8A; font-size:13px; }
+    .feature-card ul { list-style:none; margin-top:10px; }
+    .feature-card ul li {
+      color:#6A8A6A;
+      font-size:12px;
+      padding:3px 0 3px 16px;
+      position:relative;
+    }
+    .feature-card ul li::before { content:'>'; color:#39FF14; position:absolute; left:0; }
+
+    /* Screenshots */
+    .screenshots-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+      gap:12px;
+    }
+    .screenshots-grid a {
+      display:block;
+      border:1px solid #152215;
+      border-radius:4px;
+      overflow:hidden;
+      transition:border-color 0.3s;
+    }
+    .screenshots-grid a:hover { border-color:#39FF14; }
+    .screenshots-grid img {
+      width:100%;
+      height:auto;
+      display:block;
+      background:#0A0F0A;
+    }
+
+    /* Commands */
+    .cmd-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:10px;
+    }
+    .cmd-item {
+      background:#0D140D;
+      border:1px solid #152215;
+      padding:12px 16px;
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .cmd-item code {
+      color:#39FF14;
+      font-size:12px;
+      flex-shrink:0;
+    }
+    .cmd-item span { color:#8A9A8A; font-size:12px; }
+
+    /* Install */
+    .install-steps {
+      background:#0D140D;
+      border:1px solid #152215;
+      padding:24px;
+      border-radius:4px;
+    }
+    .install-steps ol {
+      list-style:none;
+      counter-reset:step;
+    }
+    .install-steps ol li {
+      counter-increment:step;
+      padding:8px 0 8px 36px;
+      position:relative;
+      color:#8ABA8A;
+      font-size:14px;
+    }
+    .install-steps ol li::before {
+      content:counter(step);
+      position:absolute;
+      left:0;
+      color:#39FF14;
+      font-weight:bold;
+      font-size:14px;
+    }
+    .install-steps code {
+      color:#39FF14;
+      background:#0A0F0A;
+      padding:2px 8px;
+      font-size:12px;
+      border:1px solid #152215;
+    }
+    .install-steps .note {
+      margin-top:16px;
+      padding:12px;
+      border:1px solid #1E3A2F;
+      color:#6AAA6A;
+      font-size:12px;
+    }
+
+    /* Tech */
+    .tech-list {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+    .tech-list span {
+      padding:6px 16px;
+      border:1px solid #152215;
+      font-size:12px;
+      color:#6A9A6A;
+      transition:border-color 0.3s, color 0.3s;
+    }
+    .tech-list span:hover {
+      border-color:#39FF14;
+      color:#39FF14;
+    }
+
+    /* Footer */
+    footer {
+      text-align:center;
+      padding:30px;
+      border-top:1px solid #111811;
+      color:#3A5A3A;
+      font-size:12px;
+    }
+    footer a { color:#4A8A4A; text-decoration:none; }
+    footer a:hover { color:#39FF14; }
+
+    /* Links */
+    a.cta-button {
+      display:inline-block;
+      padding:12px 32px;
+      background:transparent;
+      border:1px solid #39FF14;
+      color:#39FF14;
+      font-family:inherit;
+      font-size:14px;
+      letter-spacing:3px;
+      text-decoration:none;
+      transition:background 0.3s, box-shadow 0.3s;
+      margin:8px;
+    }
+    a.cta-button:hover {
+      background:rgba(57,255,20,0.08);
+      box-shadow:0 0 25px rgba(57,255,20,0.15);
+    }
+    a.cta-button.secondary {
+      border-color:#1E3A2F;
+      color:#4A8A4A;
+    }
+    a.cta-button.secondary:hover {
+      border-color:#39FF14;
+      color:#39FF14;
+    }
+
+    /* Animations */
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+    .cursor { animation:blink 1.2s step-end infinite; }
+    @media (max-width:600px) {
+      .hero h1 { font-size:32px; letter-spacing:3px; }
+      .hero .subtitle { font-size:11px; letter-spacing:4px; }
+      .features-grid { grid-template-columns:1fr; }
+      .screenshots-grid { grid-template-columns:repeat(2,1fr); }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>☣ VOID AUDITOR</h1>
-    <div class="badge">CYBERHACK EDITION • V12.6</div>
-    <p><strong>Профессиональный Android Forensics & Red Team инструмент</strong></p>
-    
-    <div class="features">
-      <div class="card">
-        <h3>Security Dashboard</h3>
-        <p>Визуальная оценка рисков + Risk Aggregator</p>
+
+    <!-- Hero -->
+    <div class="hero">
+      <h1>VOID AUDITOR</h1>
+      <div class="subtitle">CYBERHACK EDITION v12.6</div>
+      <p class="tagline">Professional Android Forensics &amp; Red Team framework with AI-powered security analysis and Shizuku-based command execution.</p>
+      <div class="badge-row">
+        <span class="badge">#AndroidForensics</span>
+        <span class="badge">#RedTeam</span>
+        <span class="badge">#Shizuku</span>
+        <span class="badge">#GeminiAI</span>
+        <span class="badge">#Kotlin</span>
+        <span class="badge">#Compose</span>
       </div>
-      <div class="card">
-        <h3>AI Forensics Assistant</h3>
-        <p>Gemini 2.0 + анализ IOC</p>
-      </div>
-      <div class="card">
-        <h3>Banking Deep Scan</h3>
-        <p>Анализ финансовых приложений</p>
-      </div>
-      <div class="card">
-        <h3>Shizuku Executor</h3>
-        <p>Batch-команды, логирование, таймауты</p>
+      <div style="margin-top:28px;">
+        <a href="#install" class="cta-button">GET APK</a>
+        <a href="https://github.com/M0NDsuChTiG/Void-Auditor" class="cta-button secondary">SOURCE</a>
+        <a href="#screenshots" class="cta-button secondary">SCREENSHOTS</a>
       </div>
     </div>
 
-    <p><a href="https://github.com/YOUR_USERNAME/void-auditor/releases" style="color:#39FF14; font-weight:bold;">Скачать APK →</a></p>
+    <!-- Features -->
+    <section id="features">
+      <h2>Capabilities</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="icon">&#x2622;</div>
+          <h3>Security Dashboard</h3>
+          <p>Real-time visual risk assessment with Risk Aggregator engine. Scans ADB WiFi, Accessibility Services, SELinux, Unknown Sources, Device Administrators, Overlay permissions, and Azeri banking apps.</p>
+          <ul>
+            <li>Risk score 0-100 with color-coded meter</li>
+            <li>Auto-fix commands for each issue</li>
+            <li>Persistent scan history</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <div class="icon">&#x1F916;</div>
+          <h3>AI Forensics Assistant</h3>
+          <p>Gemini-powered chat with device context awareness. Supports 2.0 Flash-Lite, 2.0 Flash, and 1.5 Flash models with auto-retry and quota management.</p>
+          <ul>
+            <li>Device audit with 11 Shizuku commands</li>
+            <li>IOC analysis from system logs</li>
+            <li>Banking app deep scan</li>
+            <li>Exportable audit reports to /sdcard/</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <div class="icon">&#x1F3E6;</div>
+          <h3>Banking Deep Scan</h3>
+          <p>Scans for financial apps (Unibank, Sima, LeoPay, etc.), checks dangerous permissions, and identifies over-privileged applications with payment access.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">&#x2699;</div>
+          <h3>Shizuku Executor</h3>
+          <p>High-level adapter over the Shizuku API with batch command execution, timeouts, full logging, and structured CommandResult output.</p>
+          <ul>
+            <li>Batch execution with parallel support</li>
+            <li>Execution time tracking</li>
+            <li>Global log bridge for traceability</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <div class="icon">&#x1F4E6;</div>
+          <h3>APK Manager</h3>
+          <p>Full application management suite with batch operations, backup/restore, and activity launcher.</p>
+          <ul>
+            <li>List all packages with icons</li>
+            <li>Batch uninstall / disable / clear data</li>
+            <li>Backup APKs to device storage</li>
+            <li>Launch any activity by package</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <div class="icon">&#x1F4BB;</div>
+          <h3>Terminal &amp; Scripts</h3>
+          <p>Built-in terminal with Shizuku-powered execution, plus 8 script presets across 5 categories.</p>
+          <ul>
+            <li>AUDIT: Security audit dump</li>
+            <li>LOCKDOWN: Disable risky services</li>
+            <li>CONTROL: Device admin tools</li>
+            <li>CLEANUP: Remove bloatware</li>
+            <li>NETWORK: WiFi &amp; connectivity</li>
+          </ul>
+        </div>
+        <div class="feature-card">
+          <div class="icon">&#x1F4F6;</div>
+          <h3>Connection Manager</h3>
+          <p>WiFi ADB pairing, device info, connectivity testing — all in one place.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">&#x1F4C2;</div>
+          <h3>File Manager</h3>
+          <p>Browse, upload, download, delete, and rename files via Shizuku with root-level access to the full filesystem.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screenshots -->
+    <section id="screenshots">
+      <h2>Screenshots</h2>
+      <div class="screenshots-grid">
+        <a href="screenshots/Screenshot_20260519-041357.jpg"><img src="screenshots/Screenshot_20260519-041357.jpg" alt="Security Dashboard" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041404.jpg"><img src="screenshots/Screenshot_20260519-041404.jpg" alt="AI Assistant" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041422.jpg"><img src="screenshots/Screenshot_20260519-041422.jpg" alt="App Manager" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041450.jpg"><img src="screenshots/Screenshot_20260519-041450.jpg" alt="Backup" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041507.jpg"><img src="screenshots/Screenshot_20260519-041507.jpg" alt="Activity Launcher" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041514.jpg"><img src="screenshots/Screenshot_20260519-041514.jpg" alt="Connection" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041532.jpg"><img src="screenshots/Screenshot_20260519-041532.jpg" alt="File Manager" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041559.jpg"><img src="screenshots/Screenshot_20260519-041559.jpg" alt="Scripts" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041614.jpg"><img src="screenshots/Screenshot_20260519-041614.jpg" alt="Terminal" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041632.jpg"><img src="screenshots/Screenshot_20260519-041632.jpg" alt="Settings" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-041713.jpg"><img src="screenshots/Screenshot_20260519-041713.jpg" alt="Banking Deep Scan" loading="lazy"></a>
+        <a href="screenshots/Screenshot_20260519-065255.jpg"><img src="screenshots/Screenshot_20260519-065255.jpg" alt="Scripts Categories" loading="lazy"></a>
+      </div>
+    </section>
+
+    <!-- Quick Commands -->
+    <section id="commands">
+      <h2>Quick Commands</h2>
+      <div class="cmd-grid">
+        <div class="cmd-item"><code>audit</code><span>Run full device security audit</span></div>
+        <div class="cmd-item"><code>logs</code><span>Analyze system logs for IOCs</span></div>
+        <div class="cmd-item"><code>bankscan</code><span>Deep scan banking apps</span></div>
+        <div class="cmd-item"><code>export</code><span>Export current audit report</span></div>
+        <div class="cmd-item"><code>adb wifi</code><span>Enable/disable ADB over WiFi</span></div>
+        <div class="cmd-item"><code>selinux</code><span>Check SELinux enforcement status</span></div>
+        <div class="cmd-item"><code>packages</code><span>List all installed packages</span></div>
+        <div class="cmd-item"><code>backup</code><span>Backup APK to device storage</span></div>
+        <div class="cmd-item"><code>scripts</code><span>Run preset audit/cleanup scripts</span></div>
+        <div class="cmd-item"><code>summary</code><span>Generate security risk summary</span></div>
+      </div>
+    </section>
+
+    <!-- Installation -->
+    <section id="install">
+      <h2>Installation</h2>
+      <div class="install-steps">
+        <ol>
+          <li>Clone the repository: <code>git clone https://github.com/M0NDsuChTiG/Void-Auditor.git</code></li>
+          <li>Open in Android Studio and sync Gradle</li>
+          <li>Connect your device via USB (ADB debugging enabled)</li>
+          <li>Grant Shizuku permission (requires Shizuku app v13+)</li>
+          <li>Run <code>./gradlew installDebug</code> or build APK from Android Studio</li>
+        </ol>
+        <div class="note">
+          <strong>Requirements:</strong> Android 7.0+ (API 24), Shizuku v13+, ADB debugging enabled, Internet for AI features (Gemini API key required in Settings).
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section id="tech">
+      <h2>Tech Stack</h2>
+      <div class="tech-list">
+        <span>Kotlin</span>
+        <span>Jetpack Compose</span>
+        <span>Shizuku API 13.1.5</span>
+        <span>Gemini 2.0/1.5</span>
+        <span>Material3</span>
+        <span>Navigation Compose</span>
+        <span>SharedPreferences</span>
+        <span>org.json</span>
+        <span>Gradle 8.2</span>
+        <span>minSdk 24</span>
+        <span>targetSdk 33</span>
+        <span>compileSdk 35</span>
+        <span>Android Studio</span>
+        <span>GitHub Pages</span>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p>VOID Auditor &mdash; CyberHack Edition v12.6</p>
+      <p><a href="https://github.com/M0NDsuChTiG/Void-Auditor">GitHub</a> &middot; <a href="https://github.com/M0NDsuChTiG/Void-Auditor/issues">Issues</a> &middot; <a href="https://github.com/M0NDsuChTiG/Void-Auditor/releases">Releases</a></p>
+      <p style="margin-top:8px;">MIT License &middot; 2026</p>
+    </footer>
+
   </div>
 </body>
 </html>
