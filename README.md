@@ -235,10 +235,10 @@ adb logcat | grep -i adbstudio
     Разработано с ❤️ для сообщества Android Security Researchers
   </p>
   <p>
-    <a href="https://github.com/YOUR_USERNAME/void-auditor/issues">Сообщить об ошибке</a>
+    <a href="https://github.com/M0NDsuChTiG/Void-Auditor/issues">Сообщить об ошибке</a>
     ·
-    <a href="https://github.com/YOUR_USERNAME/void-auditor/discussions">Обсуждения</a>
+    <a href="https://github.com/M0NDsuChTiG/Void-Auditor/discussions">Обсуждения</a>
     ·
-    <a href="https://t.me/adbstudio">Telegram</a>
+    <a href="https://t.me/+26NV_KkOTkE0ZmE6">Telegram</a>
   </p>
 </div>
