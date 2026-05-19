@@ -263,6 +263,83 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         """.trimIndent())
     }
 
+    // ====================== BANKING DEEP SCAN ======================
+    // ====================== BANKING DEEP SCAN v2.0 ======================
+    suspend fun performBankingDeepScan() {
+        isProcessing = true
+        messages = messages + ChatMessage("user", "🔴 BANKING DEEP SCAN v2.0 — Extended Threat Analysis")
+
+        val bankingPackages = listOf(
+            "az.unibank.mbanking",
+            "az.dpc.sima",
+            "az.gov.my",
+            "iba.mobilbank",
+            "ch.protonmail.android",
+            "ch.protonvpn.android"
+        )
+
+        val scanReport = buildString {
+            appendLine("=== BANKING DEEP SCAN v2.0 ===")
+            appendLine("Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
+            appendLine("Target: High-Value Financial & Secure Apps\n")
+
+            bankingPackages.forEach { pkg ->
+                appendLine("[$pkg]")
+                val result = ShizukuExecutor.executeCommand("dumpsys package $pkg")
+
+                if (result.isSuccessful) {
+                    val output = result.output
+
+                    // Basic info
+                    val version = output.lines().firstOrNull { it.contains("versionName") }?.substringAfter("versionName=") ?: "N/A"
+                    val installer = output.lines().firstOrNull { it.contains("installerPackageName") }?.substringAfter("installerPackageName=") ?: "N/A"
+                    
+                    appendLine("• Version     : $version")
+                    appendLine("• Installer   : $installer")
+
+                    // Dangerous permissions
+                    val dangerousPerms = listOf("SMS", "CALL_LOG", "CONTACTS", "ACCESSIBILITY", "SYSTEM_ALERT_WINDOW", "READ_PHONE_STATE", "CAMERA", "RECORD_AUDIO")
+                    val foundPerms = dangerousPerms.filter { output.contains(it, ignoreCase = true) }
+                    appendLine("• Dangerous Permissions : ${if (foundPerms.isNotEmpty()) foundPerms.joinToString(", ") + " ⚠" else "None"}")
+
+                    // Exported components
+                    if (output.contains("exported=true")) {
+                        appendLine("• Exported Activities/Services : FOUND (High Attack Surface)")
+                    }
+
+                    // WebView check
+                    if (output.contains("WebView", ignoreCase = true)) {
+                        appendLine("• WebView detected — check for mixed content / JS enabled")
+                    }
+
+                    // Deep Links / Schemes
+                    if (output.contains("android.intent.category.BROWSABLE") || output.contains("scheme")) {
+                        appendLine("• Deep Links / Custom Schemes : DETECTED")
+                    }
+
+                    // Background services
+                    if (output.contains("Service") && output.contains("persistent")) {
+                        appendLine("• Persistent background services found")
+                    }
+                } else {
+                    appendLine("• Package not found or permission denied")
+                }
+                appendLine("─".repeat(70))
+            }
+        }
+
+        val prompt = """
+            BANKING DEEP SCAN v2.0 — Extended Threat Analysis
+            
+            $scanReport
+            
+            Проанализируй риски, найди IOC и дай конкретные рекомендации по защите.
+        """.trimIndent()
+
+        askGemini(prompt)
+        showSaveDialog = true
+    }
+
     // ====================== EXPORT REPORT ======================
     // ====================== EXPORT REPORT (FIXED) ======================
     fun exportCurrentReport() {
@@ -491,6 +568,14 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
             ) { Icon(Icons.Default.Shield, null, modifier = Modifier.size(12.dp)); Spacer(Modifier.width(4.dp)); Text("AUDIT", fontSize = 8.sp, fontWeight = FontWeight.Bold) }
 
             Button(
+                onClick = { scope.launch { performBankingDeepScan() } }, enabled = !isProcessing,
+                modifier = Modifier.weight(1f).height(30.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = CyberWarning.copy(alpha = 0.15f), contentColor = CyberWarning),
+                shape = RoundedCornerShape(2.dp), contentPadding = PaddingValues(0.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, CyberWarning.copy(alpha = 0.5f))
+            ) { Icon(Icons.Default.Security, null, modifier = Modifier.size(12.dp)); Spacer(Modifier.width(4.dp)); Text("BANK SCAN", fontSize = 8.sp, fontWeight = FontWeight.Bold) }
+
+            Button(
                 onClick = { scope.launch { analyzeLogs() } }, enabled = !isProcessing,
                 modifier = Modifier.weight(1f).height(30.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = CyberInfo.copy(alpha = 0.15f), contentColor = CyberInfo),
@@ -539,4 +624,81 @@ fun loadMessages(prefs: android.content.SharedPreferences): List<ChatMessage> {
             ChatMessage(obj.getString("r"), obj.getString("t"), obj.optString("rl", null))
         }
     } catch (_: Exception) { emptyList() }
+}
+
+// ====================== RISK AGGREGATOR ======================
+data class SecurityIssue(val title: String, val severity: RiskLevel, val fix: String)
+data class SecuritySummary(val level: RiskLevel, val score: Int, val issues: List<SecurityIssue>)
+
+fun generateSecuritySummary(auditReport: String, bankingReport: String = ""): SecuritySummary {
+    val issues = mutableListOf<SecurityIssue>()
+    var score = 0
+
+    fun add(condition: Boolean, title: String, sev: RiskLevel, fix: String) {
+        if (condition) {
+            issues.add(SecurityIssue(title, sev, fix))
+            score += when(sev) {
+                RiskLevel.CRITICAL -> 40
+                RiskLevel.HIGH -> 25
+                RiskLevel.MEDIUM -> 15
+                RiskLevel.LOW -> 5
+                RiskLevel.UNKNOWN -> 0
+            }
+        }
+    }
+
+    val report = auditReport.uppercase()
+
+    add(report.contains("ADB_WIFI_ENABLED=1"), "ADB Wi-Fi включён", RiskLevel.HIGH,
+        "Настройки → Для разработчиков → Отладка по Wi-Fi → ВЫКЛ")
+    add(report.contains("ADB_WIFI_ENABLED=0").not() && report.contains("ADB_WIFI_ENABLED"),
+        "ADB Wi-Fi статус не определён", RiskLevel.LOW,
+        "Проверь: settings get global adb_wifi_enabled")
+
+    add(report.contains("ACCESSIBILITY") && (report.contains("SERVICE") || report.contains("SERVICES")),
+        "Активны Accessibility-сервисы", RiskLevel.CRITICAL,
+        "Настройки → Спец. возможности → Отключи ненужные сервисы")
+
+    add(report.contains("ENFORCING").not() && report.contains("SELINUX"),
+        "SELinux не в Enforcing mode", RiskLevel.CRITICAL,
+        "Выполни: setenforce 1 (требуется root)")
+
+    add(report.contains("UNIBANK") || report.contains("SIMA") || report.contains("AZ."),
+        "Обнаружены банковские приложения Азербайджана", RiskLevel.HIGH,
+        "Запусти BANK SCAN для полной проверки разрешений")
+
+    add(report.contains("INSTALL_NON_MARKET_APPS=1"),
+        "Установка из неизвестных источников разрешена", RiskLevel.HIGH,
+        "Настройки → Безопасность → Неизвестные источники → ЗАПРЕТИТЬ")
+
+    add(report.contains("WHITELIST") && report.contains("IO.ELEMENT"),
+        "Element X в белом списе DeviceIdle", RiskLevel.LOW,
+        "ОК — приложение не будет заморожено системой")
+
+    add(report.contains("DEVICE_ADMIN") || report.contains("ADMIN="),
+        "Активны Device Administrators", RiskLevel.MEDIUM,
+        "Настройки → Безопасность → Администраторы устройства → Проверь список")
+
+    add(report.contains("TOP") && report.contains("CPU"),
+        "Фоновые процессы не проверены", RiskLevel.LOW,
+        "Выполни top -n 1 -b для анализа нагрузки")
+
+    if (bankingReport.isNotBlank()) {
+        val bankUpper = bankingReport.uppercase()
+        add(bankUpper.contains("DANGEROUS") || bankUpper.contains("HIGH RISK"),
+            "Банковские приложения имеют опасные разрешения", RiskLevel.CRITICAL,
+            "Отзови разрешения: pm revoke <pkg> android.permission.READ_SMS и др.")
+        add(bankUpper.contains("OVERLAY") || bankUpper.contains("SYSTEM_ALERT_WINDOW"),
+            "Банковские приложения имеют SYSTEM_ALERT_WINDOW", RiskLevel.HIGH,
+            "Отзови: pm revoke <pkg> android.permission.SYSTEM_ALERT_WINDOW")
+    }
+
+    val level = when {
+        score >= 70 -> RiskLevel.CRITICAL
+        score >= 40 -> RiskLevel.HIGH
+        score >= 20 -> RiskLevel.MEDIUM
+        else -> RiskLevel.LOW
+    }
+
+    return SecuritySummary(level = level, score = score.coerceAtMost(100), issues = issues)
 }

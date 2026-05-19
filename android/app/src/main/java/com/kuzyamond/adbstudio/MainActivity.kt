@@ -147,6 +147,7 @@ fun MainLayout() {
             Header(status, onInfoClick = { showInfoDialog = true })
 
             Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).background(Color(0xFF090F1A)).border(1.dp, CyberBorder).horizontalScroll(rememberScrollState())) {
+                 NavTab("SEC", Icons.Default.Security, activeTab == "SEC") { activeTab = "SEC" }
                  NavTab("AUDIT", Icons.Default.Shield, activeTab == "AUDIT") { activeTab = "AUDIT" }
                  NavTab("APPS", Icons.Default.List, activeTab == "APPS") { activeTab = "APPS" }
                  NavTab("ACTIVITY", Icons.Default.Explore, activeTab == "ACTIVITY") { activeTab = "ACTIVITY" }
@@ -160,6 +161,7 @@ fun MainLayout() {
 
             Box(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 when (activeTab) {
+                    "SEC" -> SecurityDashboardScreen()
                     "AUDIT" -> DashboardScreen()
                     "APPS" -> AppManagerScreen()
                     "ACTIVITY" -> ActivityLauncherScreen()

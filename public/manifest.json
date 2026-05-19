@@ -1,0 +1,21 @@
+{
+  "name": "ADB Script Studio",
+  "short_name": "ADB Studio",
+  "description": "Professional ADB Script Generator",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0C0C0C",
+  "theme_color": "#00FF41",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/adb/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/adb/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -11,7 +11,6 @@ build/
 *.apk.idsig
 *.aab
 *.aar
-*.ap_
 *.dex
 *.class
 *.hprof
@@ -33,12 +32,6 @@ Thumbs.db
 .env.*.local
 !.env.example
 
-# --- Logs ---
-*.log
-full_audit_*
-Audit.txt
-server_*.log
-
 # --- Android ---
 android/.gradle/
 android/build/
@@ -56,58 +49,39 @@ android/app/src/main/res/xml/config.xml
 # --- Capacitor ---
 capacitor-cordova-android-plugins/
 
-# --- Project artifacts ---
-*.pdf
-*.pptx
-*.mp4
-*.m4a
-*.png
-*.json
-!package.json
-!tsconfig.json
-!metadata.json
-*.txt
-!package-lock.txt
+# --- Root scripts (clutter from ~/.Scripts/) ---
+*.sh
+!android/gradlew
 
-# --- Screenshots (keep if user adds) ---
-# !screenshots/
-
-# --- Temp ---
-tmp/
-temp/
-*.idsig
-
-# --- Old docs & dev logs ---
+# --- Old dev docs ---
 ADB_STUDIO_DOCUMENTATION*.md
 DEVELOPMENT_LOG.md
 PROGRESS.md
 GROK.md
 README_STANDALONE.md
 GitHub.md
-
-# --- Audit reports & logs ---
-full_audit_*.txt
-Audit_Report_*.txt
-Audit.txt
 *GeminiLog.txt
 
-# --- Old APKs ---
-ADB*.apk
-ADB*.apk.idsig
-
-# --- PDF/PPTX/MP4 ---
+# --- Media & docs (not part of source) ---
 *.pdf
 *.pptx
 *.mp4
 *.m4a
+*.txt
 
-# --- Debug screenshots ---
+# --- Debug images (by name, not extension) ---
 files_debug.png
-final_check_*.png
-screen_*.png
+final_check_2.png
+final_check.png
+screen_check.png
+screen_v83.png
+screen_v84.png
 v101_check.png
 
-# --- Dev scripts ---
-batch_install.sh
-dev_helper.sh
-run_me.sh
+# --- Keystore ---
+*.jks
+*.keystore
+
+# --- Temp ---
+tmp/
+temp/
