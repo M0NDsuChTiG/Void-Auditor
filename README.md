@@ -79,11 +79,13 @@
 
 ## Скриншоты
 
-> _(добавьте скриншоты в папку `screenshots/`)_
-
-| Главный экран | Ассистент | Управление приложениями |
+| Dashboard | AI Assistant | App Manager |
 |---|---|---|
-| `screenshots/dashboard.png` | `screenshots/ai_assistant.png` | `screenshots/app_manager.png` |
+| ![Dashboard](screenshots/Screenshot_20260519-041357.jpg) | ![AI](screenshots/Screenshot_20260519-041614.jpg) | ![Apps](screenshots/Screenshot_20260519-041422.jpg) |
+
+| Activity Launcher | Backup | Terminal | Scripts |
+|---|---|---|---|
+| ![Activity](screenshots/Screenshot_20260519-041450.jpg) | ![Backup](screenshots/Screenshot_20260519-041507.jpg) | ![Terminal](screenshots/Screenshot_20260519-041532.jpg) | ![Scripts](screenshots/Screenshot_20260519-041559.jpg) |
 
 ---
 
