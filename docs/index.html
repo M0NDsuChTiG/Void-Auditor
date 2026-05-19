@@ -1,148 +1,47 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADB Studio — Mobile Security Audit Tool</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Courier New', monospace;
-            background: #0A0F0A;
-            color: #B3FFBD;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .container { max-width: 800px; padding: 40px 20px; }
-        .logo { font-size: 48px; color: #39FF14; font-weight: bold; letter-spacing: 4px; }
-        .badge { display: inline-block; padding: 4px 12px; border: 1px solid #39FF14; color: #39FF14; font-size: 11px; margin: 20px 0; letter-spacing: 2px; }
-        h1 { font-size: 28px; color: #39FF14; margin-bottom: 16px; }
-        h2 { font-size: 16px; color: #00FF9F; margin: 30px 0 12px; letter-spacing: 2px; }
-        p { font-size: 13px; line-height: 1.8; color: #B3FFBD; margin-bottom: 12px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
-        .card { border: 1px solid #1E293B; padding: 16px; background: #121712; }
-        .card h3 { color: #39FF14; font-size: 12px; margin-bottom: 8px; letter-spacing: 1px; }
-        .card p { font-size: 11px; color: #94A3B8; margin: 0; }
-        .feature {
-            border: 1px solid #1E293B; padding: 12px 16px; margin-bottom: 8px;
-            display: flex; align-items: center; gap: 12px;
-        }
-        .feature .icon { color: #00FF9F; font-size: 16px; }
-        .feature .text { font-size: 12px; }
-        .feature .tag {
-            margin-left: auto; padding: 2px 8px; font-size: 9px; font-weight: bold;
-            border: 1px solid; flex-shrink: 0;
-        }
-        .tag-green { color: #39FF14; border-color: #39FF14; }
-        .tag-amber { color: #FF9500; border-color: #FF9500; }
-        .tag-red { color: #FF2D55; border-color: #FF2D55; }
-        .tag-cyan { color: #00E5FF; border-color: #00E5FF; }
-        hr { border: none; border-top: 1px solid #1E293B; margin: 30px 0; }
-        .footer { font-size: 11px; color: #475569; text-align: center; padding: 20px 0; }
-        a { color: #39FF14; }
-        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VOID Auditor — CyberHack Edition</title>
+  <style>
+    body { background:#0A0F0A; color:#B3FFBD; font-family:'Courier New',monospace; margin:0; padding:40px; line-height:1.6; }
+    .container { max-width:960px; margin:auto; }
+    h1 { color:#39FF14; font-size:42px; text-shadow:0 0 20px #39FF14; }
+    .badge { display:inline-block; padding:6px 16px; border:1px solid #39FF14; color:#39FF14; font-size:12px; letter-spacing:2px; margin:20px 0; }
+    .features { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin:40px 0; }
+    .card { background:#121712; border:1px solid #1E3A2F; padding:20px; }
+    .tag { padding:2px 8px; font-size:10px; border:1px solid; }
+    .tag-critical { color:#FF2D55; border-color:#FF2D55; }
+    .tag-high { color:#FF9500; border-color:#FF9500; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">ADB STUDIO</div>
-        <div class="badge">v1.0 · KOTLIN · JETPACK COMPOSE · SHIZUKU</div>
-
-        <h1>Mobile Security Audit &amp; Device Management Tool</h1>
-        <p>Профессиональный инструмент для аудита безопасности Android-устройств непосредственно с телефона. Работает через Shizuku API, не требует root-прав или подключения к ПК.</p>
-
-        <h2>// FEATURES</h2>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">Device Security Audit — 11 diagnostic checks</span>
-            <span class="tag tag-green">AUDIT</span>
-        </div>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">AI Assistant (Gemini) — automated log analysis &amp; IOC search</span>
-            <span class="tag tag-cyan">AI</span>
-        </div>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">Risk Aggregator — overall security score with fix instructions</span>
-            <span class="tag tag-amber">RISK</span>
-        </div>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">App Manager — batch freeze, force-stop, clear data</span>
-            <span class="tag tag-green">APPS</span>
-        </div>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">Banking App Deep Scan — detect dangerous permissions</span>
-            <span class="tag tag-red">BANK</span>
-        </div>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">Activity Launcher — browse &amp; launch any package activity</span>
-            <span class="tag tag-cyan">ACTIVITY</span>
-        </div>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">APK Backup &amp; Restore — save and reinstall apps</span>
-            <span class="tag tag-amber">BACKUP</span>
-        </div>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">Script Executor — 8 built-in audit/cleanup/lockdown presets</span>
-            <span class="tag tag-green">SCRIPTS</span>
-        </div>
-        <div class="feature">
-            <span class="icon">◆</span>
-            <span class="text">Shell Terminal — Shizuku-powered command execution</span>
-            <span class="tag tag-cyan">SHELL</span>
-        </div>
-
-        <h2>// TECH STACK</h2>
-        <div class="grid">
-            <div class="card"><h3>Kotlin 1.9.20</h3><p>Jetpack Compose + Material 3</p></div>
-            <div class="card"><h3>Shizuku API 13.1.5</h3><p>System-level privileges without root</p></div>
-            <div class="card"><h3>Gemini API</h3><p>AI-powered security analysis</p></div>
-            <div class="card"><h3>Capacitor</h3><p>React/TypeScript web bridge</p></div>
-            <div class="card"><h3>minSdk 24</h3><p>Android 7.0+ compatibility</p></div>
-            <div class="card"><h3>targetSdk 33</h3><p>Optimized for modern Android</p></div>
-        </div>
-
-        <h2>// SCREENSHOTS</h2>
-        <div class="grid">
-            <div class="card">
-                <h3>SEC Dashboard</h3>
-                <p style="color:#475569;font-size:10px;">(screenshots/ — add your images)</p>
-            </div>
-            <div class="card">
-                <h3>AI Assistant</h3>
-                <p style="color:#475569;font-size:10px;">(screenshots/ — add your images)</p>
-            </div>
-        </div>
-
-        <hr>
-
-        <h2>// QUICK START</h2>
-        <p style="font-size:12px;">
-            1. Install <a href="https://shizuku.rikka.app/">Shizuku</a> and activate it<br>
-            2. Download the latest APK from <a href="https://github.com/kuzyamond/adbstudio/releases">Releases</a><br>
-            3. Install and launch ADB Studio<br>
-            4. (Optional) Add Gemini API key for AI features
-        </p>
-
-        <h2>// BUILD FROM SOURCE</h2>
-        <p style="font-size:12px;">
-            git clone https://github.com/kuzyamond/adbstudio.git<br>
-            cd adbstudio/android<br>
-            ./gradlew assembleDebug
-        </p>
-
-        <div class="footer">
-            <a href="https://github.com/kuzyamond/adbstudio">GitHub</a> &middot;
-            MIT License &middot; 2026
-        </div>
+  <div class="container">
+    <h1>☣ VOID AUDITOR</h1>
+    <div class="badge">CYBERHACK EDITION • V12.6</div>
+    <p><strong>Профессиональный Android Forensics & Red Team инструмент</strong></p>
+    
+    <div class="features">
+      <div class="card">
+        <h3>Security Dashboard</h3>
+        <p>Визуальная оценка рисков + Risk Aggregator</p>
+      </div>
+      <div class="card">
+        <h3>AI Forensics Assistant</h3>
+        <p>Gemini 2.0 + анализ IOC</p>
+      </div>
+      <div class="card">
+        <h3>Banking Deep Scan</h3>
+        <p>Анализ финансовых приложений</p>
+      </div>
+      <div class="card">
+        <h3>Shizuku Executor</h3>
+        <p>Batch-команды, логирование, таймауты</p>
+      </div>
     </div>
+
+    <p><a href="https://github.com/YOUR_USERNAME/void-auditor/releases" style="color:#39FF14; font-weight:bold;">Скачать APK →</a></p>
+  </div>
 </body>
 </html>

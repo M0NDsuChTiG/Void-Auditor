@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="120" alt="ADB Studio Logo"/>
-  <h1>ADB Studio</h1>
-  <p><b>Mobile Security Audit & Device Management Tool</b></p>
+  <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="120" alt="VOID Auditor Logo"/>
+  <h1>☣ VOID AUDITOR</h1>
+  <p><b>CyberHack Edition • Android Forensics & Red Team Tool</b></p>
   <p>
     <img src="https://img.shields.io/badge/Android-34DD22?style=flat&logo=android&logoColor=white" alt="Android"/>
     <img src="https://img.shields.io/badge/Kotlin-7F52FF?style=flat&logo=kotlin&logoColor=white" alt="Kotlin"/>
@@ -10,6 +10,7 @@
     <img src="https://img.shields.io/badge/minSdk-24-FF6D00?style=flat" alt="minSdk 24"/>
     <img src="https://img.shields.io/badge/targetSdk-33-018786?style=flat" alt="targetSdk 33"/>
     <img src="https://img.shields.io/badge/license-MIT-yellow?style=flat" alt="License"/>
+    <img src="https://img.shields.io/badge/version-12.6-39FF14?style=flat" alt="v12.6"/>
   </p>
 </div>
 
@@ -32,7 +33,7 @@
 
 ## О проекте
 
-**ADB Studio** — профессиональный инструмент для аудита безопасности Android-устройств непосредственно с телефона. Работает через **Shizuku API**, не требует root-прав или подключения к ПК.
+**VOID Auditor** — профессиональный Android Forensics & Red Team инструмент для аудита безопасности устройств непосредственно с телефона. Работает через **Shizuku API**, не требует root-прав или подключения к ПК.
 
 Основная цель проекта — предоставить специалистам по безопасности, пентестерам и продвинутым пользователям полный набор инструментов для анализа и управления устройством: от проверки разрешений и Accessibility-сервисов до заморозки приложений и экспорта отчётов.
 
@@ -114,7 +115,7 @@
 ### Быстрый старт
 1. Установите **Shizuku** из [официального источника](https://github.com/RikkaApps/Shizuku/releases)
 2. Активируйте Shizuku: **Настройки → Shizuku → Запустить**
-3. Скачайте последний APK из [Releases](https://github.com/kuzyamond/adbstudio/releases)
+3. Скачайте последний APK из [Releases](https://github.com/YOUR_USERNAME/void-auditor/releases)
 4. Установите и запустите
 5. При первом входе в AI Assistant введите Gemini API ключ
 
@@ -124,7 +125,7 @@
 
 ```bash
 # Клонирование
-git clone https://github.com/kuzyamond/adbstudio.git
+git clone https://github.com/YOUR_USERNAME/void-auditor.git
 cd adbstudio
 
 # Установка Node зависимостей (веб-часть Capacitor)
@@ -234,9 +235,9 @@ adb logcat | grep -i adbstudio
     Разработано с ❤️ для сообщества Android Security Researchers
   </p>
   <p>
-    <a href="https://github.com/kuzyamond/adbstudio/issues">Сообщить об ошибке</a>
+    <a href="https://github.com/YOUR_USERNAME/void-auditor/issues">Сообщить об ошибке</a>
     ·
-    <a href="https://github.com/kuzyamond/adbstudio/discussions">Обсуждения</a>
+    <a href="https://github.com/YOUR_USERNAME/void-auditor/discussions">Обсуждения</a>
     ·
     <a href="https://t.me/adbstudio">Telegram</a>
   </p>
