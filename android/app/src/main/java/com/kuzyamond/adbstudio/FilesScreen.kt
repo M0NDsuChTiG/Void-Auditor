@@ -23,16 +23,16 @@ fun FilesScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScop
     var filePath by remember { mutableStateOf("/sdcard/") }
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(15.dp)) {
-        CyberCard(title = "LOCAL_FS_CONTROL", color = CyberAmber) {
+        CyberCard(title = "LOCAL_FS_CONTROL", color = CyberAccent2) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = filePath,
                         onValueChange = { filePath = it },
                         modifier = Modifier.weight(1f),
-                        textStyle = TextStyle(color = CyberAmber, fontSize = 11.sp),
+                        textStyle = TextStyle(color = CyberAccent2, fontSize = 11.sp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = CyberAmber,
+                            focusedBorderColor = CyberAccent2,
                             unfocusedBorderColor = Color(0xFF78350F),
                             focusedContainerColor = CyberBackground,
                             unfocusedContainerColor = CyberBackground
@@ -51,9 +51,9 @@ fun FilesScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScop
                                 .onFailure { GlobalLog.log("FS_ERR: ${it.message}", "crit", "FS") }
                             }
                         },
-                        modifier = Modifier.border(1.dp, CyberAmber).background(CyberSurface)
+                        modifier = Modifier.border(1.dp, CyberAccent2).background(CyberSurface)
                     ) {
-                        Icon(Icons.Default.Refresh, null, tint = CyberAmber)
+                        Icon(Icons.Default.Refresh, null, tint = CyberAccent2)
                     }
                 }
 
@@ -76,7 +76,7 @@ fun FilesScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScop
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = CyberAmber, contentColor = CyberBackground),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberAccent2, contentColor = CyberBackground),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                     ) {
                         Text("CALCULATE_STORAGE_USE", fontWeight = FontWeight.Bold, fontSize = 11.sp)
@@ -99,7 +99,7 @@ fun FilesScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScop
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = CyberBackground),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberInfo, contentColor = CyberBackground),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                     ) {
                         Text("READ_FILE_CONTENT", fontWeight = FontWeight.Bold, fontSize = 11.sp)

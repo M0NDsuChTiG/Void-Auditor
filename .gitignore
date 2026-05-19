@@ -76,3 +76,38 @@ capacitor-cordova-android-plugins/
 tmp/
 temp/
 *.idsig
+
+# --- Old docs & dev logs ---
+ADB_STUDIO_DOCUMENTATION*.md
+DEVELOPMENT_LOG.md
+PROGRESS.md
+GROK.md
+README_STANDALONE.md
+GitHub.md
+
+# --- Audit reports & logs ---
+full_audit_*.txt
+Audit_Report_*.txt
+Audit.txt
+*GeminiLog.txt
+
+# --- Old APKs ---
+ADB*.apk
+ADB*.apk.idsig
+
+# --- PDF/PPTX/MP4 ---
+*.pdf
+*.pptx
+*.mp4
+*.m4a
+
+# --- Debug screenshots ---
+files_debug.png
+final_check_*.png
+screen_*.png
+v101_check.png
+
+# --- Dev scripts ---
+batch_install.sh
+dev_helper.sh
+run_me.sh

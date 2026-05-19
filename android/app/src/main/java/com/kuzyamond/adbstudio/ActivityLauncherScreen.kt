@@ -82,9 +82,9 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
                 onValueChange = { filter = it },
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("FILTER_PACKAGES...", color = Color.Gray, fontSize = 11.sp) },
-                textStyle = TextStyle(color = CyberCyan, fontSize = 11.sp),
+                textStyle = TextStyle(color = CyberInfo, fontSize = 11.sp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = CyberCyan,
+                    focusedBorderColor = CyberInfo,
                     unfocusedBorderColor = CyberBorder,
                     focusedContainerColor = CyberBackground,
                     unfocusedContainerColor = CyberBackground
@@ -93,12 +93,12 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = { loadPackages() },
-                modifier = Modifier.size(48.dp).border(1.dp, CyberCyan).background(CyberSurface)
+                modifier = Modifier.size(48.dp).border(1.dp, CyberInfo).background(CyberSurface)
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = CyberCyan, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = CyberInfo, strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Refresh, null, tint = CyberCyan)
+                    Icon(Icons.Default.Refresh, null, tint = CyberInfo)
                 }
             }
         }
@@ -110,7 +110,7 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
             ) {
                 val filtered = packages.filter { it.contains(filter, true) }
                 item {
-                    Text("PACKAGES [${filtered.size}]", color = CyberCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold,
+                    Text("PACKAGES [${filtered.size}]", color = CyberInfo, fontSize = 9.sp, fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace, modifier = Modifier.padding(8.dp))
                 }
                 items(filtered) { pkg ->
@@ -125,14 +125,14 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
                     ) {
                         Text(
                             text = if (isSelected) ">" else " ",
-                            color = CyberCyan,
+                            color = CyberInfo,
                             fontSize = 10.sp,
                             fontFamily = FontFamily.Monospace
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
                             text = pkg,
-                            color = if (isSelected) CyberCyan else Color(0xFFCBD5E1),
+                            color = if (isSelected) CyberInfo else Color(0xFFCBD5E1),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1
@@ -146,7 +146,7 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
                 modifier = Modifier.weight(1f).fillMaxHeight().border(1.dp, CyberBorder)
             ) {
                 item {
-                    Text("ACTIVITIES", color = CyberAmber, fontSize = 9.sp, fontWeight = FontWeight.Bold,
+                    Text("ACTIVITIES", color = CyberAccent2, fontSize = 9.sp, fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace, modifier = Modifier.padding(8.dp))
                 }
                 if (selectedPackage == null) {
@@ -158,7 +158,7 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
                     item {
                         CircularProgressIndicator(
                             modifier = Modifier.padding(16.dp).size(18.dp),
-                            color = CyberAmber, strokeWidth = 2.dp
+                            color = CyberAccent2, strokeWidth = 2.dp
                         )
                     }
                 } else if (activities.isEmpty()) {
@@ -176,7 +176,7 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
                                 .padding(horizontal = 8.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.PlayArrow, null, tint = CyberAmber, modifier = Modifier.size(12.dp))
+                            Icon(Icons.Default.PlayArrow, null, tint = CyberAccent2, modifier = Modifier.size(12.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 text = shortName,

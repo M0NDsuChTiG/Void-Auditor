@@ -23,9 +23,9 @@ fun ConnectScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSc
     var port by remember { mutableStateOf("5555") }
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(15.dp)) {
-        CyberCard(title = "REMOTE_CONNECT", color = CyberCyan) {
+        CyberCard(title = "REMOTE_CONNECT", color = CyberInfo) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("WIFI_ADB_LINK", color = CyberCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("WIFI_ADB_LINK", color = CyberInfo, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -35,7 +35,7 @@ fun ConnectScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSc
                         placeholder = { Text("DEVICE_IP", color = Color.Gray, fontSize = 11.sp) },
                         textStyle = TextStyle(color = Color.White, fontSize = 11.sp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = CyberCyan,
+                            focusedBorderColor = CyberInfo,
                             unfocusedBorderColor = CyberBorder
                         )
                     )
@@ -46,7 +46,7 @@ fun ConnectScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSc
                         placeholder = { Text("PORT", color = Color.Gray, fontSize = 11.sp) },
                         textStyle = TextStyle(color = Color.White, fontSize = 11.sp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = CyberCyan,
+                            focusedBorderColor = CyberInfo,
                             unfocusedBorderColor = CyberBorder
                         )
                     )
@@ -62,7 +62,7 @@ fun ConnectScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSc
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = CyberBackground),
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberInfo, contentColor = CyberBackground),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                 ) {
                     Icon(Icons.Default.Wifi, null, modifier = Modifier.size(16.dp))
@@ -72,7 +72,7 @@ fun ConnectScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSc
             }
         }
 
-        CyberCard(title = "USB_DEBUG", color = CyberAmber) {
+        CyberCard(title = "USB_DEBUG", color = CyberAccent2) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("DETECT_LOCAL_DEVICES_VIA_USB", color = Color(0xFF94A3B8), fontSize = 10.sp)
                 
@@ -86,7 +86,7 @@ fun ConnectScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSc
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = CyberAmber, contentColor = CyberBackground),
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberAccent2, contentColor = CyberBackground),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                 ) {
                     Icon(Icons.Default.Usb, null, modifier = Modifier.size(16.dp))

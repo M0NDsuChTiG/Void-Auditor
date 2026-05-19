@@ -42,7 +42,7 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
 
     val hasSelection = selectedPackages.any { it.value }
 
-    val batchActions = listOf("STOP" to CyberAmber, "OFF" to CyberDanger, "ON" to CyberEmerald, "DEL" to Color.White)
+    val batchActions = listOf("STOP" to CyberAccent2, "OFF" to CyberWarning, "ON" to CyberAccent2, "DEL" to Color.White)
 
     val refresh: () -> Unit = {
         scope.launch {
@@ -82,9 +82,9 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
                 onValueChange = { filter = it },
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("FILTER...", color = Color.Gray, fontSize = 11.sp) },
-                textStyle = TextStyle(color = CyberCyan, fontSize = 11.sp),
+                textStyle = TextStyle(color = CyberInfo, fontSize = 11.sp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = CyberCyan,
+                    focusedBorderColor = CyberInfo,
                     unfocusedBorderColor = CyberBorder,
                     focusedContainerColor = CyberBackground,
                     unfocusedContainerColor = CyberBackground
@@ -93,12 +93,12 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = { refresh() }, 
-                modifier = Modifier.size(54.dp).border(1.dp, CyberCyan).background(CyberSurface)
+                modifier = Modifier.size(54.dp).border(1.dp, CyberInfo).background(CyberSurface)
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = CyberCyan, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = CyberInfo, strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Refresh, null, tint = CyberCyan)
+                    Icon(Icons.Default.Refresh, null, tint = CyberInfo)
                 }
             }
         }
@@ -107,11 +107,11 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
         if (hasSelection) {
             val selectedCount = selectedPackages.count { it.value }
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).border(1.dp, CyberCyan).background(CyberSurface.copy(alpha = 0.8f)).padding(horizontal = 8.dp, vertical = 6.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).border(1.dp, CyberInfo).background(CyberSurface.copy(alpha = 0.8f)).padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("BATCH [$selectedCount]", color = CyberCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                Text("BATCH [$selectedCount]", color = CyberInfo, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     batchActions.forEach { (label, color) ->
                         AppActionButton(label, color, Modifier.width(48.dp)) {
@@ -163,9 +163,9 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
                     item {
                         val isExpanded = expandedSections[groupName] == true || filter.isNotEmpty()
                         val color = when (groupName) {
-                            "RUNNING" -> CyberEmerald
-                            "DISABLED" -> CyberDanger
-                            else -> CyberAmber
+                            "RUNNING" -> CyberAccent2
+                            "DISABLED" -> CyberWarning
+                            else -> CyberAccent2
                         }
                         
                         AppSectionHeader(groupName, list.size, descriptions[groupName] ?: "", color, isExpanded) {
@@ -252,7 +252,7 @@ fun AppSectionHeader(title: String, count: Int, description: String, color: Colo
 
 @Composable
 fun AppItem(pkg: AppInfo, isSelected: Boolean = false, onToggle: () -> Unit = {}, onAction: (String) -> Unit) {
-    val borderColor = if (isSelected) CyberCyan else CyberBorder
+    val borderColor = if (isSelected) CyberInfo else CyberBorder
     Column(
         modifier = Modifier
             .padding(horizontal = 4.dp, vertical = 2.dp)
@@ -264,7 +264,7 @@ fun AppItem(pkg: AppInfo, isSelected: Boolean = false, onToggle: () -> Unit = {}
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = if (isSelected) "[*] " else "[ ] ",
-                color = CyberCyan,
+                color = CyberInfo,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace
@@ -279,11 +279,11 @@ fun AppItem(pkg: AppInfo, isSelected: Boolean = false, onToggle: () -> Unit = {}
         }
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            AppActionButton("STOP", CyberAmber, Modifier.weight(1f)) { onAction("STOP") }
+            AppActionButton("STOP", CyberAccent2, Modifier.weight(1f)) { onAction("STOP") }
             if (pkg.status == AppStatus.WORKING) {
-                AppActionButton("OFF", CyberDanger, Modifier.weight(1f)) { onAction("OFF") }
+                AppActionButton("OFF", CyberWarning, Modifier.weight(1f)) { onAction("OFF") }
             } else {
-                AppActionButton("ON", CyberEmerald, Modifier.weight(1f)) { onAction("ON") }
+                AppActionButton("ON", CyberAccent2, Modifier.weight(1f)) { onAction("ON") }
             }
             AppActionButton("DEL", Color.White, Modifier.weight(1f)) { onAction("DEL") }
         }

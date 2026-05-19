@@ -261,15 +261,15 @@ echo "==========================================="""), "NETWORK"),
     }
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        CyberCard(title = "SCRIPT_EXECUTOR", color = CyberLime) {
+        CyberCard(title = "SCRIPT_EXECUTOR", color = CyberAccent) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = { scriptType = "BASH" },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (scriptType == "BASH") CyberLime else CyberSurface,
-                            contentColor = if (scriptType == "BASH") CyberBackground else CyberLime
+                            containerColor = if (scriptType == "BASH") CyberAccent else CyberSurface,
+                            contentColor = if (scriptType == "BASH") CyberBackground else CyberAccent
                         ),
                         shape = RoundedCornerShape(2.dp)
                     ) { Text("BASH", fontWeight = FontWeight.Bold) }
@@ -277,8 +277,8 @@ echo "==========================================="""), "NETWORK"),
                         onClick = { scriptType = "PYTHON" },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (scriptType == "PYTHON") CyberLime else CyberSurface,
-                            contentColor = if (scriptType == "PYTHON") CyberBackground else CyberLime
+                            containerColor = if (scriptType == "PYTHON") CyberAccent else CyberSurface,
+                            contentColor = if (scriptType == "PYTHON") CyberBackground else CyberAccent
                         ),
                         shape = RoundedCornerShape(2.dp)
                     ) { Text("PYTHON", fontWeight = FontWeight.Bold) }
@@ -290,7 +290,7 @@ echo "==========================================="""), "NETWORK"),
                     modifier = Modifier.fillMaxWidth().height(160.dp),
                     textStyle = TextStyle(color = Color.White, fontSize = 10.sp, fontFamily = FontFamily.Monospace),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = CyberLime, unfocusedBorderColor = CyberBorder,
+                        focusedBorderColor = CyberAccent, unfocusedBorderColor = CyberBorder,
                         focusedContainerColor = CyberBackground, unfocusedContainerColor = CyberBackground
                     )
                 )
@@ -308,7 +308,7 @@ echo "==========================================="""), "NETWORK"),
                             }
                         },
                         modifier = Modifier.weight(2f).height(44.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CyberLime, contentColor = CyberBackground),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberAccent, contentColor = CyberBackground),
                         shape = RoundedCornerShape(2.dp)
                     ) {
                         Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
@@ -320,8 +320,8 @@ echo "==========================================="""), "NETWORK"),
                             prefs.edit().putString("last_script", scriptContent).putString("last_type", scriptType).apply()
                             GlobalLog.log("SCRIPT_SAVED", "ok", "SCRIPTS")
                         },
-                        modifier = Modifier.size(44.dp).border(1.dp, CyberLime).background(CyberSurface)
-                    ) { Icon(Icons.Default.Save, null, tint = CyberLime) }
+                        modifier = Modifier.size(44.dp).border(1.dp, CyberAccent).background(CyberSurface)
+                    ) { Icon(Icons.Default.Save, null, tint = CyberAccent) }
                     IconButton(
                         onClick = {
                             scope.launch {
@@ -332,8 +332,8 @@ echo "==========================================="""), "NETWORK"),
                                 else GlobalLog.log("EXPORT_ERR: ${res.error}", "crit", "SCRIPTS")
                             }
                         },
-                        modifier = Modifier.size(44.dp).border(1.dp, CyberCyan).background(CyberSurface)
-                    ) { Icon(Icons.Default.Share, null, tint = CyberCyan) }
+                        modifier = Modifier.size(44.dp).border(1.dp, CyberInfo).background(CyberSurface)
+                    ) { Icon(Icons.Default.Share, null, tint = CyberInfo) }
                 }
             }
         }
@@ -341,11 +341,11 @@ echo "==========================================="""), "NETWORK"),
         val categories = presets.groupBy { it.category }
         val categoryOrder = listOf("AUDIT", "LOCKDOWN", "CONTROL", "CLEANUP", "NETWORK")
         val categoryColors = mapOf(
-            "AUDIT" to CyberAmber,
-            "LOCKDOWN" to CyberDanger,
-            "CONTROL" to CyberCyan,
-            "CLEANUP" to CyberEmerald,
-            "NETWORK" to CyberLime
+            "AUDIT" to CyberAccent2,
+            "LOCKDOWN" to CyberWarning,
+            "CONTROL" to CyberInfo,
+            "CLEANUP" to CyberAccent2,
+            "NETWORK" to CyberAccent
         )
 
         LazyColumn(
@@ -355,12 +355,12 @@ echo "==========================================="""), "NETWORK"),
             categoryOrder.forEach { cat ->
                 val items = categories[cat] ?: return@forEach
                 item {
-                    Text("> ${cat}_SCRIPTS", color = categoryColors[cat] ?: CyberCyan,
+                    Text("> ${cat}_SCRIPTS", color = categoryColors[cat] ?: CyberInfo,
                         fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace,
                         modifier = Modifier.padding(vertical = 2.dp))
                 }
                 items(items) { preset ->
-                    QuickScriptButton(preset.label, color = categoryColors[cat] ?: CyberCyan) {
+                    QuickScriptButton(preset.label, color = categoryColors[cat] ?: CyberInfo) {
                         scriptType = "BASH"
                         scriptContent = preset.content
                     }
@@ -371,7 +371,7 @@ echo "==========================================="""), "NETWORK"),
 }
 
 @Composable
-fun QuickScriptButton(label: String, color: Color = CyberCyan, onClick: () -> Unit) {
+fun QuickScriptButton(label: String, color: Color = CyberInfo, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),

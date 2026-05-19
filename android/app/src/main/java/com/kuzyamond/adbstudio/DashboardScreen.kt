@@ -18,10 +18,10 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         // --- БАЗОВЫЙ АУДИТ ---
-        CyberCard(title = "LOCAL_AUDIT", color = CyberLime) {
+        CyberCard(title = "LOCAL_AUDIT", color = CyberAccent) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AuditButton("BUILD_PROP", CyberLime, Modifier.weight(1f)) {
+                    AuditButton("BUILD_PROP", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("FETCHING BUILD_PROP...", "warn", "AUDIT")
                             val res = ShizukuManager.executeCommand("getprop ro.build.type")
@@ -29,7 +29,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                                .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
                         }
                     }
-                    AuditButton("HW_MAP", CyberLime, Modifier.weight(1f)) {
+                    AuditButton("HW_MAP", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("MAPPING HARDWARE...", "warn", "AUDIT")
                             val res = ShizukuManager.executeCommand("pm list features")
@@ -42,7 +42,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AuditButton("BATTERY", CyberLime, Modifier.weight(1f)) {
+                    AuditButton("BATTERY", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("DUMPING BATTERY...", "warn", "AUDIT")
                             val res = ShizukuManager.executeCommand("dumpsys battery")
@@ -50,7 +50,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                                .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
                         }
                     }
-                    AuditButton("LOCAL_UID", CyberLime, Modifier.weight(1f)) {
+                    AuditButton("LOCAL_UID", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("GETTING UID...", "warn", "AUDIT")
                             val res = ShizukuManager.executeCommand("id")
@@ -63,10 +63,10 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
         }
 
         // --- УМНЫЙ МОНИТОРИНГ (на основе кейса с Bluetooth) ---
-        CyberCard(title = "SMART_FORENSICS", color = CyberAmber) {
+        CyberCard(title = "SMART_FORENSICS", color = CyberAccent2) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AuditButton("BT_LOG", CyberAmber, Modifier.weight(1f)) {
+                    AuditButton("BT_LOG", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("ANALYZING BT_HISTORY...", "warn", "AUDIT")
                             val res = ShizukuManager.executeCommand("dumpsys bluetooth_manager | grep -A 15 \"Enable log:\"")
@@ -74,7 +74,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                                .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
                         }
                     }
-                    AuditButton("DANGEROUS_OPS", CyberAmber, Modifier.weight(1f)) {
+                    AuditButton("DANGEROUS_OPS", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("CHECKING BT_PERMISSIONS...", "warn", "AUDIT")
                             val res = ShizukuManager.executeCommand("appops query-op BLUETOOTH_SCAN allow")
@@ -83,7 +83,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                         }
                     }
                 }
-                AuditButton("GEO_PRECISION_CHECK", CyberAmber, Modifier.fillMaxWidth()) {
+                AuditButton("GEO_PRECISION_CHECK", CyberAccent2, Modifier.fillMaxWidth()) {
                     scope.launch {
                         GlobalLog.log("CHECKING GOOGLE_LOC_PRECISION...", "warn", "AUDIT")
                         val res = ShizukuManager.executeCommand("settings get secure location_precision_state")
@@ -97,7 +97,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
             }
         }
 
-        CyberCard(title = "STANDALONE_MODE", color = CyberCyan) {
+        CyberCard(title = "STANDALONE_MODE", color = CyberInfo) {
             Text(
                 "Работает через Shizuku. Компьютер и сервер больше не нужны. Все команды исполняются локально.",
                 color = Color(0xFF94A3B8),
@@ -109,7 +109,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
         Button(
             onClick = { ShizukuManager.requestPermission() },
             modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = CyberBackground),
+            colors = ButtonDefaults.buttonColors(containerColor = CyberInfo, contentColor = CyberBackground),
             shape = RoundedCornerShape(2.dp)
         ) {
             Text("FORCE_AUTHORIZE", fontWeight = FontWeight.Bold)

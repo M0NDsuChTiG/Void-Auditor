@@ -41,25 +41,26 @@ import kotlinx.coroutines.flow.StateFlow
 import java.util.*
 
 // --- ТЕМА И ЦВЕТА ---
-val CyberCyan = Color(0xFF22D3EE)
-val CyberLime = Color(0xFF84CC16)
-val CyberAmber = Color(0xFFF59E0B)
-val CyberEmerald = Color(0xFF10B981)
-val CyberDanger = Color(0xFFEF4444)
-val CyberPurple = Color(0xFFA855F7) // Новый акцент
-val CyberBackground = Color(0xFF020617)
-val CyberSurface = Color(0xFF0F172A)
-val CyberBorder = Color(0xFF1E293B)
+val CyberBackground = Color(0xFF0A0F0A)     // Очень тёмный зелёный
+val CyberSurface   = Color(0xFF121712)
+val CyberAccent    = Color(0xFF39FF14)     // Кислотный Lime Green
+val CyberAccent2   = Color(0xFF00FF9F)     // Мятный
+val CyberText      = Color(0xFFB3FFBD)
+val CyberWarning   = Color(0xFFFF2D55)
+val CyberInfo      = Color(0xFF00E5FF)
+val CyberBorder    = Color(0xFF1E293B) // Оставляем темную границу для контраста
 
 @Composable
 fun ADBStudioTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
-            primary = CyberPurple,
+            primary = CyberAccent,
             background = CyberBackground,
             surface = CyberSurface,
-            error = CyberDanger,
-            secondary = CyberCyan
+            error = CyberWarning,
+            secondary = CyberAccent2,
+            onBackground = CyberText,
+            onSurface = CyberText
         ),
         content = content
     )
@@ -111,7 +112,7 @@ object GlobalLog {
     }
 
     fun clear(tab: String) {
-        _entries.value = _entries.value.filter { it.tab != tab }
+        _entries.value = _entries.value.filter { it.tab != tab && it.tab != "GLOBAL" }
     }
 }
 
@@ -190,9 +191,9 @@ fun Header(isOnline: Boolean, onInfoClick: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("⚡", color = CyberPurple, fontSize = 20.sp, modifier = Modifier.cyberClickable(onInfoClick))
+            Text("☣", color = CyberAccent, fontSize = 20.sp, modifier = Modifier.cyberClickable(onInfoClick))
             Spacer(Modifier.width(10.dp))
-            Text("NEON AUDITOR", 
+            Text("VOID AUDITOR", 
                 fontWeight = FontWeight.ExtraBold, 
                 color = Color.White,
                 letterSpacing = 2.sp,
@@ -201,11 +202,11 @@ fun Header(isOnline: Boolean, onInfoClick: () -> Unit) {
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val color = if (isOnline) CyberEmerald else CyberDanger
+            val color = if (isOnline) CyberAccent2 else CyberWarning
             Box(modifier = Modifier.size(6.dp).clip(RoundedCornerShape(percent = 50)).background(color))
             Spacer(Modifier.width(6.dp))
             Text(
-                text = if (isOnline) "ONLINE" else "OFFLINE",
+                text = if (isOnline) "SYSTEM_ACTIVE" else "SYSTEM_OFFLINE",
                 color = color,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
@@ -214,7 +215,7 @@ fun Header(isOnline: Boolean, onInfoClick: () -> Unit) {
             Icon(
                 Icons.Default.Info, 
                 null, 
-                tint = CyberPurple, 
+                tint = CyberAccent, 
                 modifier = Modifier.size(20.dp).cyberClickable(onInfoClick)
             )
         }
@@ -226,30 +227,31 @@ fun InfoDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = CyberSurface,
-        titleContentColor = CyberPurple,
-        textContentColor = Color.White,
-        title = { Text("> SYSTEM_INFO", fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace) },
+        titleContentColor = CyberAccent,
+        textContentColor = CyberText,
+        title = { Text("> VOID_SYSTEM_INFO", fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace) },
         text = {
             Column {
-                Text("APP: NEON Auditor — Android Forensics Toolkit", color = CyberPurple, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text("VERSION: V12.0 [NEON]", color = CyberAmber, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                Text("APP: VOID Auditor — CyberHack Edition", color = CyberAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text("VERSION: V12.5 [LIME_SHOCK]", color = CyberAccent2, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 Spacer(Modifier.height(15.dp))
                 Text(
-                    "Автономный комплекс для криминалистического анализа и управления Android-устройствами через Shizuku API.",
+                    "Автономный хакерский комплекс для глубокого аудита и управления Android-системами. " +
+                    "Использует Shizuku API и нейронные сети для анализа угроз.",
                     fontSize = 12.sp,
                     lineHeight = 18.sp
                 )
                 Spacer(Modifier.height(10.dp))
-                Text("DEVELOPER: Gemini CLI", color = Color.Gray, fontSize = 10.sp)
+                Text("DEVELOPER: Gemini CLI [CORE_SYNC]", color = Color.Gray, fontSize = 10.sp)
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("OK", color = CyberPurple, fontWeight = FontWeight.Bold)
+                Text("DISMISS", color = CyberAccent, fontWeight = FontWeight.Bold)
             }
         },
         shape = RoundedCornerShape(2.dp),
-        modifier = Modifier.border(1.dp, CyberPurple)
+        modifier = Modifier.border(1.dp, CyberAccent)
     )
 }
 
@@ -258,12 +260,12 @@ fun RowScope.NavTab(label: String, icon: ImageVector, selected: Boolean, onClick
     Column(
         modifier = Modifier.widthIn(min = 64.dp).padding(vertical = 10.dp).drawBehind {
             if (selected) {
-                drawLine(CyberPurple, Offset(0f, size.height), Offset(size.width, size.height), 4f)
+                drawLine(CyberAccent, Offset(0f, size.height), Offset(size.width, size.height), 4f)
             }
         }.cyberClickable(onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val iconColor = if (selected) CyberPurple else Color(0xFF475569)
+        val iconColor = if (selected) CyberAccent else Color(0xFF475569)
         Icon(icon, null, tint = iconColor, modifier = Modifier.size(16.dp))
         Text(label, color = iconColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
     }
@@ -274,7 +276,7 @@ fun LogStream(entries: List<String>, currentTab: String, isExpanded: Boolean) {
     val height by animateDpAsState(if (isExpanded) 280.dp else 36.dp, label = "logHeight")
     val clipboardManager = LocalClipboardManager.current
     
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).height(height).fillMaxWidth().border(1.dp, CyberPurple).background(Color(0xFF020617))) {
+    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).height(height).fillMaxWidth().border(1.dp, CyberAccent).background(CyberBackground)) {
         Row(
             modifier = Modifier.fillMaxWidth().background(CyberSurface).clickable { GlobalLog.setExpanded(!isExpanded) }.padding(8.dp), 
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -284,11 +286,11 @@ fun LogStream(entries: List<String>, currentTab: String, isExpanded: Boolean) {
                 Icon(
                     if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ExpandLess, 
                     null, 
-                    tint = CyberPurple, 
+                    tint = CyberAccent, 
                     modifier = Modifier.size(14.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("> ${currentTab}_LOG_STREAM", color = CyberPurple, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text("> ${currentTab}_HACK_STREAM", color = CyberAccent, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("[COPY]", color = Color(0xFF64748B), fontSize = 9.sp, modifier = Modifier.cyberClickable { 
@@ -321,7 +323,7 @@ fun ScanlineAnimation() {
     )
     Canvas(modifier = Modifier.fillMaxSize()) {
         drawLine(
-            color = CyberPurple.copy(alpha = 0.08f),
+            color = CyberAccent.copy(alpha = 0.08f),
             start = Offset(0f, yOffset),
             end = Offset(size.width, yOffset),
             strokeWidth = 2.dp.toPx()
@@ -330,7 +332,7 @@ fun ScanlineAnimation() {
 }
 
 @Composable
-fun CyberCard(modifier: Modifier = Modifier, title: String? = null, color: Color = CyberCyan, content: @Composable () -> Unit) {
+fun CyberCard(modifier: Modifier = Modifier, title: String? = null, color: Color = CyberAccent, content: @Composable () -> Unit) {
     Column(modifier = modifier.border(1.dp, CyberBorder).background(CyberSurface.copy(alpha = 0.4f)).padding(15.dp)) {
         if (title != null) {
             Text("> $title", color = color, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 15.dp))

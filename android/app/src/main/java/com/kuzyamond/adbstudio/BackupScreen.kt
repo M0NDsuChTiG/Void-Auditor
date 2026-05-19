@@ -153,8 +153,8 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                 onClick = { mode = "BACKUP"; loadBackupPackages() },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (mode == "BACKUP") CyberCyan else CyberSurface,
-                    contentColor = if (mode == "BACKUP") CyberBackground else CyberCyan
+                    containerColor = if (mode == "BACKUP") CyberInfo else CyberSurface,
+                    contentColor = if (mode == "BACKUP") CyberBackground else CyberInfo
                 ),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
             ) { Icon(Icons.Default.Download, null, modifier = Modifier.size(14.dp))
@@ -164,8 +164,8 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                 onClick = { mode = "RESTORE"; loadRestoreFiles() },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (mode == "RESTORE") CyberAmber else CyberSurface,
-                    contentColor = if (mode == "RESTORE") CyberBackground else CyberAmber
+                    containerColor = if (mode == "RESTORE") CyberAccent2 else CyberSurface,
+                    contentColor = if (mode == "RESTORE") CyberBackground else CyberAccent2
                 ),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
             ) { Icon(Icons.Default.Upload, null, modifier = Modifier.size(14.dp))
@@ -179,9 +179,9 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                 onValueChange = { filter = it },
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("FILTER...", color = Color.Gray, fontSize = 11.sp) },
-                textStyle = TextStyle(color = CyberCyan, fontSize = 11.sp),
+                textStyle = TextStyle(color = CyberInfo, fontSize = 11.sp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = CyberCyan,
+                    focusedBorderColor = CyberInfo,
                     unfocusedBorderColor = CyberBorder,
                     focusedContainerColor = CyberBackground,
                     unfocusedContainerColor = CyberBackground
@@ -190,12 +190,12 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick = { if (mode == "BACKUP") loadBackupPackages() else loadRestoreFiles() },
-                modifier = Modifier.size(48.dp).border(1.dp, CyberCyan).background(CyberSurface)
+                modifier = Modifier.size(48.dp).border(1.dp, CyberInfo).background(CyberSurface)
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = CyberCyan, strokeWidth = 2.dp)
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = CyberInfo, strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Refresh, null, tint = CyberCyan)
+                    Icon(Icons.Default.Refresh, null, tint = CyberInfo)
                 }
             }
         }
@@ -206,7 +206,7 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                     onClick = { backupAll() },
                     modifier = Modifier.weight(1f),
                     enabled = packages.isNotEmpty() && !isBackingUp,
-                    colors = ButtonDefaults.buttonColors(containerColor = CyberEmerald, contentColor = CyberBackground),
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberAccent2, contentColor = CyberBackground),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                 ) {
                     if (isBackingUp) {
@@ -216,7 +216,7 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                     Text("BACKUP_ALL", fontWeight = FontWeight.Bold, fontSize = 10.sp)
                 }
                 val doneCount = packages.count { it.status == "DONE" }
-                Text("$doneCount/${packages.size}", color = CyberCyan, fontSize = 10.sp, fontFamily = FontFamily.Monospace,
+                Text("$doneCount/${packages.size}", color = CyberInfo, fontSize = 10.sp, fontFamily = FontFamily.Monospace,
                     modifier = Modifier.align(Alignment.CenterVertically))
             }
 
@@ -224,9 +224,9 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                 val filtered = packages.filter { it.packageName.contains(filter, true) }
                 items(filtered) { entry ->
                     val statusColor = when (entry.status) {
-                        "DONE" -> CyberEmerald
-                        "FAIL" -> CyberDanger
-                        "NO_PATH" -> CyberAmber
+                        "DONE" -> CyberAccent2
+                        "FAIL" -> CyberWarning
+                        "NO_PATH" -> CyberAccent2
                         else -> Color(0xFF64748B)
                     }
                     Row(
@@ -245,7 +245,7 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                                 Icon(Icons.Default.Download, null, tint = statusColor, modifier = Modifier.size(16.dp))
                             }
                         } else {
-                            Text("OK", color = CyberEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text("OK", color = CyberAccent2, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                         }
                     }
                 }
@@ -261,10 +261,10 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                 }
                 items(filtered) { entry ->
                     val statusColor = when (entry.status) {
-                        "DONE" -> CyberEmerald
-                        "FAIL" -> CyberDanger
-                        "INSTALLING" -> CyberAmber
-                        else -> CyberCyan
+                        "DONE" -> CyberAccent2
+                        "FAIL" -> CyberWarning
+                        "INSTALLING" -> CyberAccent2
+                        else -> CyberInfo
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth().border(1.dp, CyberBorder).background(CyberBackground).padding(8.dp),
@@ -280,14 +280,14 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                                 onClick = { restoreApk(entry) },
                                 modifier = Modifier.height(32.dp),
                                 contentPadding = PaddingValues(horizontal = 10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = CyberAmber.copy(alpha = 0.2f), contentColor = CyberAmber),
+                                colors = ButtonDefaults.buttonColors(containerColor = CyberAccent2.copy(alpha = 0.2f), contentColor = CyberAccent2),
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, CyberAmber)
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CyberAccent2)
                             ) { Text("INSTALL", fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace) }
                         } else if (entry.status == "INSTALLING") {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = CyberAmber, strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = CyberAccent2, strokeWidth = 2.dp)
                         } else {
-                            Text("OK", color = CyberEmerald, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text("OK", color = CyberAccent2, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                         }
                     }
                 }

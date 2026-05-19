@@ -3,6 +3,7 @@ package com.kuzyamond.adbstudio
 import android.content.Context
 import android.os.Environment
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,6 +44,31 @@ import java.util.*
 
 data class ChatMessage(val role: String, val text: String, val riskLevel: String? = null)
 
+enum class RiskLevel {
+    LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN
+}
+
+fun parseRiskLevel(text: String): RiskLevel {
+    val upper = text.uppercase()
+    return when {
+        upper.contains("CRITICAL") || upper.contains("КРИТИЧЕСКИЙ") -> RiskLevel.CRITICAL
+        upper.contains("HIGH") || upper.contains("ВЫСОКИЙ") -> RiskLevel.HIGH
+        upper.contains("MEDIUM") || upper.contains("СРЕДНИЙ") -> RiskLevel.MEDIUM
+        upper.contains("LOW") || upper.contains("НИЗКИЙ") -> RiskLevel.LOW
+        else -> RiskLevel.UNKNOWN
+    }
+}
+
+fun getRiskColor(level: RiskLevel): Color {
+    return when (level) {
+        RiskLevel.CRITICAL -> Color(0xFFFF2D55)   // Красный
+        RiskLevel.HIGH     -> Color(0xFFFF9500)   // Оранжевый
+        RiskLevel.MEDIUM   -> Color(0xFFFFCC00)   // Жёлтый
+        RiskLevel.LOW      -> CyberAccent         // Кислотный лайм
+        else               -> CyberText
+    }
+}
+
 val availableModels = listOf(
     "gemini-2.0-flash-lite" to "FLASH_LITE",
     "gemini-2.0-flash" to "FLASH",
@@ -74,6 +100,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
     var messages by remember { mutableStateOf(loadMessages(prefs)) }
     var isProcessing by remember { mutableStateOf(false) }
     var retryCooldown by remember { mutableStateOf(0) }
+    var showSaveDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
@@ -220,6 +247,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         }
 
         askGemini(prompt)
+        showSaveDialog = true
     }
 
     suspend fun analyzeLogs() {
@@ -293,25 +321,53 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
     }
 
     // ====================== UI ======================
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false },
+            containerColor = CyberSurface,
+            titleContentColor = CyberAccent,
+            textContentColor = CyberText,
+            title = { Text("СОХРАНИТЬ ОТЧЕТ?", fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace) },
+            text = { Text("Аудит успешно завершен. Хотите экспортировать полный отчет в файл?", fontSize = 12.sp) },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        exportCurrentReport()
+                        showSaveDialog = false 
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberAccent, contentColor = CyberBackground),
+                    shape = RoundedCornerShape(2.dp)
+                ) { Text("ДА", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveDialog = false }) {
+                    Text("НЕТ", color = Color.Gray, fontWeight = FontWeight.Bold)
+                }
+            },
+            shape = RoundedCornerShape(2.dp),
+            modifier = Modifier.border(1.dp, CyberAccent)
+        )
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (showKeyInput) {
-            CyberCard(title = "GEMINI_API_SETUP", color = CyberLime, modifier = Modifier.padding(bottom = 10.dp)) {
+            CyberCard(title = "GEMINI_API_SETUP", color = CyberAccent, modifier = Modifier.padding(bottom = 10.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Gemini API key (get at aistudio.google.com):", color = Color(0xFF94A3B8), fontSize = 10.sp)
                     OutlinedTextField(
                         value = apiKey, onValueChange = { apiKey = it },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("AIza...", color = Color.Gray, fontSize = 11.sp) },
-                        textStyle = TextStyle(color = CyberCyan, fontSize = 11.sp, fontFamily = FontFamily.Monospace),
+                        textStyle = TextStyle(color = CyberInfo, fontSize = 11.sp, fontFamily = FontFamily.Monospace),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = CyberLime, unfocusedBorderColor = CyberBorder,
+                            focusedBorderColor = CyberAccent, unfocusedBorderColor = CyberBorder,
                             focusedContainerColor = CyberBackground, unfocusedContainerColor = CyberBackground
                         )
                     )
                     Button(
                         onClick = { saveKey(apiKey); showKeyInput = false },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = CyberLime, contentColor = CyberBackground),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberAccent, contentColor = CyberBackground),
                         shape = RoundedCornerShape(2.dp)
                     ) { Text("SAVE_KEY", fontWeight = FontWeight.Bold) }
                 }
@@ -329,11 +385,11 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
                 availableModels.forEach { (model, label) ->
                     val active = selectedModel == model
                     Surface(
-                        modifier = Modifier.height(24.dp).border(1.dp, if (active) CyberLime else CyberBorder).clickable { selectedModel = model; saveModel(model) },
-                        color = if (active) CyberLime.copy(alpha = 0.15f) else Color.Transparent, shape = RoundedCornerShape(2.dp)
+                        modifier = Modifier.height(24.dp).border(1.dp, if (active) CyberAccent else CyberBorder).clickable { selectedModel = model; saveModel(model) },
+                        color = if (active) CyberAccent.copy(alpha = 0.15f) else Color.Transparent, shape = RoundedCornerShape(2.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 6.dp)) {
-                            Text(label, color = if (active) CyberLime else Color(0xFF64748B), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                            Text(label, color = if (active) CyberAccent else Color(0xFF64748B), fontSize = 7.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -352,7 +408,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         ) {
             if (messages.isEmpty()) {
                 item {
-                    Text("AI_DEVICE_ASSISTANT", color = CyberCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                    Text("AI_DEVICE_ASSISTANT", color = CyberInfo, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
                     Spacer(Modifier.height(4.dp))
                     Text("Ask about device issues, app optimization, ADB commands.\nExample: \"why isn't Element X getting notifications?\"",
                         color = Color.Gray, fontSize = 10.sp, lineHeight = 16.sp)
@@ -360,46 +416,67 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
             }
             items(messages) { msg ->
                 val isUser = msg.role == "user"
-                Column(modifier = Modifier.fillMaxWidth().border(1.dp, if (isUser) CyberCyan.copy(alpha = 0.5f) else CyberBorder)
-                    .background(if (isUser) CyberSurface else CyberBackground).padding(8.dp).clickable {
+                val riskLevel = if (!isUser) parseRiskLevel(msg.text) else RiskLevel.UNKNOWN
+                val bgColor = if (isUser) CyberSurface else CyberBackground
+                val accentColor = if (isUser) CyberInfo else getRiskColor(riskLevel)
+
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable {
                         clipboardManager.setText(AnnotatedString(msg.text))
-                    }) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(if (isUser) "YOU" else "AI", color = if (isUser) CyberCyan else CyberLime, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
-                            if (!isUser && msg.riskLevel != null) {
-                                val riskColor = when (msg.riskLevel.lowercase()) {
-                                    "critical" -> Color(0xFFEF4444)
-                                    "high" -> Color(0xFFF59E0B)
-                                    "medium" -> Color(0xFFEAB308)
-                                    "low" -> Color(0xFF22C55E)
-                                    else -> Color(0xFF64748B)
-                                }
-                                Surface(
-                                    color = riskColor.copy(alpha = 0.2f),
-                                    shape = RoundedCornerShape(2.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, riskColor.copy(alpha = 0.5f))
-                                ) {
-                                    Text(msg.riskLevel.uppercase(), color = riskColor, fontSize = 7.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                    },
+                    colors = CardDefaults.cardColors(containerColor = bgColor),
+                    border = BorderStroke(1.dp, accentColor.copy(alpha = 0.6f)),
+                    shape = RoundedCornerShape(2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (isUser) "YOU" else "VOID AI",
+                                    color = accentColor,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                                if (!isUser && riskLevel != RiskLevel.UNKNOWN) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = when(riskLevel) {
+                                            RiskLevel.CRITICAL -> "☢ CRITICAL"
+                                            RiskLevel.HIGH -> "⚠ HIGH"
+                                            RiskLevel.MEDIUM -> "⚡ MEDIUM"
+                                            else -> "✓ LOW"
+                                        },
+                                        color = accentColor,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
                                 }
                             }
+                            Text("COPY", color = Color(0xFF475569), fontSize = 7.sp, fontFamily = FontFamily.Monospace)
                         }
-                        Text("COPY", color = Color(0xFF475569), fontSize = 7.sp, fontFamily = FontFamily.Monospace)
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = msg.text,
+                            color = CyberText,
+                            fontSize = 10.sp,
+                            lineHeight = 15.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
                     }
-                    Spacer(Modifier.height(4.dp))
-                    Text(msg.text, color = Color(0xFFCBD5E1), fontSize = 10.sp, lineHeight = 14.sp, fontFamily = FontFamily.Monospace)
                 }
             }
             if (isProcessing) {
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
-                        CircularProgressIndicator(modifier = Modifier.size(12.dp), color = CyberAmber, strokeWidth = 2.dp)
-                        Spacer(Modifier.width(8.dp)); Text("AI_THINKING...", color = CyberAmber, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
+                        CircularProgressIndicator(modifier = Modifier.size(12.dp), color = CyberAccent2, strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp)); Text("AI_THINKING...", color = CyberAccent2, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
                     }
                 }
             }
             if (retryCooldown > 0) {
-                item { Text("⏳ RETRY_IN ${retryCooldown}s", color = CyberAmber, fontSize = 9.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(8.dp)) }
+                item { Text("⏳ RETRY_IN ${retryCooldown}s", color = CyberAccent2, fontSize = 9.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.padding(8.dp)) }
             }
         }
 
@@ -408,25 +485,25 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
             Button(
                 onClick = { scope.launch { performDeviceAudit() } }, enabled = !isProcessing,
                 modifier = Modifier.weight(1f).height(30.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CyberAmber.copy(alpha = 0.15f), contentColor = CyberAmber),
+                colors = ButtonDefaults.buttonColors(containerColor = CyberAccent2.copy(alpha = 0.15f), contentColor = CyberAccent2),
                 shape = RoundedCornerShape(2.dp), contentPadding = PaddingValues(0.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CyberAmber.copy(alpha = 0.5f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, CyberAccent2.copy(alpha = 0.5f))
             ) { Icon(Icons.Default.Shield, null, modifier = Modifier.size(12.dp)); Spacer(Modifier.width(4.dp)); Text("AUDIT", fontSize = 8.sp, fontWeight = FontWeight.Bold) }
 
             Button(
                 onClick = { scope.launch { analyzeLogs() } }, enabled = !isProcessing,
                 modifier = Modifier.weight(1f).height(30.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CyberCyan.copy(alpha = 0.15f), contentColor = CyberCyan),
+                colors = ButtonDefaults.buttonColors(containerColor = CyberInfo.copy(alpha = 0.15f), contentColor = CyberInfo),
                 shape = RoundedCornerShape(2.dp), contentPadding = PaddingValues(0.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CyberCyan.copy(alpha = 0.5f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, CyberInfo.copy(alpha = 0.5f))
             ) { Icon(Icons.Default.Analytics, null, modifier = Modifier.size(12.dp)); Spacer(Modifier.width(4.dp)); Text("LOGS", fontSize = 8.sp, fontWeight = FontWeight.Bold) }
 
             Button(
                 onClick = { exportCurrentReport() }, enabled = messages.isNotEmpty(),
                 modifier = Modifier.weight(1f).height(30.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = CyberEmerald.copy(alpha = 0.15f), contentColor = CyberEmerald),
+                colors = ButtonDefaults.buttonColors(containerColor = CyberAccent2.copy(alpha = 0.15f), contentColor = CyberAccent2),
                 shape = RoundedCornerShape(2.dp), contentPadding = PaddingValues(0.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CyberEmerald.copy(alpha = 0.5f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, CyberAccent2.copy(alpha = 0.5f))
             ) { Icon(Icons.Default.Save, null, modifier = Modifier.size(12.dp)); Spacer(Modifier.width(4.dp)); Text("EXPORT", fontSize = 8.sp, fontWeight = FontWeight.Bold) }
         }
 
@@ -437,16 +514,16 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("ASK_AI...", color = Color.Gray, fontSize = 11.sp) },
                 textStyle = TextStyle(color = Color.White, fontSize = 11.sp),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CyberLime, unfocusedBorderColor = CyberBorder, focusedContainerColor = CyberBackground, unfocusedContainerColor = CyberBackground),
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CyberAccent, unfocusedBorderColor = CyberBorder, focusedContainerColor = CyberBackground, unfocusedContainerColor = CyberBackground),
                 enabled = !isProcessing && retryCooldown == 0
             )
             IconButton(
                 onClick = { scope.launch { askGemini(inputText.trim()) } },
-                modifier = Modifier.size(48.dp).border(1.dp, if (retryCooldown > 0) CyberAmber else CyberLime).background(CyberSurface),
+                modifier = Modifier.size(48.dp).border(1.dp, if (retryCooldown > 0) CyberAccent2 else CyberAccent).background(CyberSurface),
                 enabled = !isProcessing && apiKey.isNotBlank() && retryCooldown == 0
             ) {
-                if (retryCooldown > 0) Text("$retryCooldown", color = CyberAmber, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                else Icon(Icons.Default.Send, null, tint = if (isProcessing) Color.Gray else CyberLime)
+                if (retryCooldown > 0) Text("$retryCooldown", color = CyberAccent2, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                else Icon(Icons.Default.Send, null, tint = if (isProcessing) Color.Gray else CyberAccent)
             }
         }
     }

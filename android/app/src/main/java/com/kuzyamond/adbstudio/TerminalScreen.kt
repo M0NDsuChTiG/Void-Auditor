@@ -40,7 +40,7 @@ fun TerminalScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineS
     )
 
     Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        CyberCard(title = "LOCAL_SHELL", color = CyberCyan, modifier = Modifier.fillMaxWidth()) {
+        CyberCard(title = "LOCAL_SHELL", color = CyberInfo, modifier = Modifier.fillMaxWidth()) {
             Column {
                 OutlinedTextField(
                     value = commandText,
@@ -67,9 +67,9 @@ fun TerminalScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineS
                         }
                     }),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = CyberCyan,
+                        focusedBorderColor = CyberInfo,
                         unfocusedBorderColor = CyberBorder,
-                        cursorColor = CyberCyan,
+                        cursorColor = CyberInfo,
                         focusedContainerColor = CyberBackground,
                         unfocusedContainerColor = CyberBackground
                     )
@@ -92,7 +92,7 @@ fun TerminalScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineS
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = CyberCyan, contentColor = CyberBackground),
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberInfo, contentColor = CyberBackground),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                 ) {
                     Icon(Icons.Default.Send, null, modifier = Modifier.size(14.dp))
@@ -118,10 +118,10 @@ fun TerminalScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineS
                                 .padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Info, null, tint = CyberCyan, modifier = Modifier.size(12.dp))
+                            Icon(Icons.Default.Info, null, tint = CyberInfo, modifier = Modifier.size(12.dp))
                             Spacer(Modifier.width(8.dp))
                             Column {
-                                Text(cmd, color = CyberCyan, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                                Text(cmd, color = CyberInfo, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                                 Text(desc, color = Color.Gray, fontSize = 8.sp)
                             }
                         }
