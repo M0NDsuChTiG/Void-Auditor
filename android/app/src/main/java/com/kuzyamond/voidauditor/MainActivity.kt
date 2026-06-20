@@ -1,10 +1,12 @@
 package com.kuzyamond.voidauditor
 
-import androidx.fragment.app.FragmentActivity
+import android.app.Activity
+import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Context
 import android.os.Bundle
 import java.io.File
-import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -144,19 +146,34 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainLayout() {
     val context = LocalContext.current
-    val activity = remember { context as? FragmentActivity }
     var isAuthenticated by remember { mutableStateOf(false) }
     var authError by remember { mutableStateOf<String?>(null) }
     var authAttempts by remember { mutableStateOf(0) }
 
+    val authLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            isAuthenticated = true
+        } else {
+            authError = "Аутентификация не выполнена"
+        }
+    }
+
     if (authAttempts >= 0) {
         LaunchedEffect(authAttempts) {
+            val activity = context as? Activity
             if (!isAuthenticated && activity != null && authError == null) {
-                SecurityModule.authenticate(
-                    activity = activity,
-                    onSuccess = { isAuthenticated = true },
-                    onError = { authError = it }
-                )
+                if (SecurityModule.canAuthenticate(context)) {
+                    val intent = SecurityModule.createCredentialIntent(activity)
+                    if (intent != null) {
+                        authLauncher.launch(intent)
+                    } else {
+                        authError = "Устройство не поддерживает аутентификацию"
+                    }
+                } else {
+                    authError = "Не настроен экран блокировки или биометрия"
+                }
             }
         }
     }
