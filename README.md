@@ -95,6 +95,6 @@ android/app/src/main/java/com/kuzyamond/voidauditor/
 
 Разработано с ❤️ для Android Security Researchers
 
-[GitHub Issues](https://github.com/M0NDsuChTiG/Void-Auditor/issues) · [Telegram](https://t.me/kuzyamond)
+[GitHub Issues](https://github.com/M0NDsuChTiG/Void-Auditor/issues) · [Telegram](https://t.me/EthicalHackingCS)
 
 </div>
