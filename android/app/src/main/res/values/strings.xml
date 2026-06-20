@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VOID Auditor</string>
+    <string name="title_activity_main">VOID Auditor</string>
+    <string name="package_name">com.kuzyamond.voidauditor</string>
+    <string name="custom_url_scheme">com.kuzyamond.voidauditor</string>
+</resources>
