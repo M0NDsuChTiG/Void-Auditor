@@ -1,18 +1,363 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0C0C0C" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="theme-color" content="#0A0F0A" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>ADB Script Studio</title>
-    <link rel="manifest" href="/manifest.json" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+    <title>VOID Auditor — CyberHack Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0A0F0A;
+            color: #c9d1d9;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
 
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 4rem 0 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #39FF14, transparent);
+        }
+        .hero .version {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #39FF14;
+            opacity: 0.6;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: #39FF14;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+        }
+        .hero .subtitle {
+            font-size: 1.15rem;
+            color: #8b949e;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .badges {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 2rem 0;
+        }
+        .badge {
+            background: #121712;
+            border: 1px solid #1a3a1a;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #39FF14;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 1px;
+        }
+
+        /* Download */
+        .download-section {
+            text-align: center;
+            margin: 2.5rem 0;
+        }
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: #39FF14;
+            color: #0A0F0A;
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .download-btn:hover {
+            background: #2ecc11;
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.3);
+            transform: translateY(-2px);
+        }
+        .download-sub {
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            color: #8b949e;
+        }
+        .download-sub code {
+            background: #121712;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #39FF14;
+        }
+
+        /* Cards */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 3rem 0;
+        }
+        .info-card {
+            background: #121712;
+            border: 1px solid #1a3a1a;
+            border-radius: 4px;
+            padding: 1.5rem;
+            transition: border-color 0.3s;
+        }
+        .info-card:hover {
+            border-color: #39FF14;
+        }
+        .info-card .icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.75rem;
+        }
+        .info-card h3 {
+            font-size: 0.9rem;
+            color: #39FF14;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        .info-card p {
+            font-size: 0.85rem;
+            color: #8b949e;
+            line-height: 1.5;
+        }
+
+        /* Features table */
+        .features {
+            margin: 3rem 0;
+        }
+        .features h2 {
+            text-align: center;
+            font-size: 1rem;
+            color: #39FF14;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 2px;
+            margin-bottom: 1.5rem;
+        }
+        .feature-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #1a3a1a;
+            font-size: 0.85rem;
+        }
+        .feature-row:last-child {
+            border-bottom: none;
+        }
+        .feature-row .name {
+            color: #f0f6fc;
+            font-weight: 600;
+        }
+        .feature-row .desc {
+            color: #8b949e;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        /* Security */
+        .security-section {
+            margin: 3rem 0;
+            padding: 2rem;
+            border: 1px solid #1a3a1a;
+            background: #121712;
+            border-radius: 4px;
+        }
+        .security-section h2 {
+            text-align: center;
+            font-size: 1rem;
+            color: #39FF14;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+        }
+        .security-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+        }
+        .security-list li {
+            font-size: 0.85rem;
+            color: #8b949e;
+            padding-left: 1.2rem;
+            position: relative;
+        }
+        .security-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #39FF14;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            border-top: 1px solid #1a3a1a;
+            margin-top: 3rem;
+        }
+        .footer p {
+            font-size: 0.8rem;
+            color: #484f58;
+            margin-bottom: 0.25rem;
+        }
+        .footer a {
+            color: #39FF14;
+            text-decoration: none;
+            opacity: 0.7;
+        }
+        .footer a:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 1.8rem; }
+            .hero .version { font-size: 0.7rem; }
+            .info-grid { grid-template-columns: 1fr; }
+            .feature-row { flex-direction: column; gap: 0.25rem; }
+            .feature-row .desc { text-align: left; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="hero">
+        <div class="version">CYBERHACK EDITION • V12.6</div>
+        <h1>⬡ VOID AUDITOR</h1>
+        <p class="subtitle">Android Forensics &amp; Red Team Toolkit<br/>Автономный аудит безопасности, криминалистика и hardening через Shizuku</p>
+        <div class="badges">
+            <span class="badge">Shizuku API</span>
+            <span class="badge">Gemini AI</span>
+            <span class="badge">Risk Aggregator</span>
+            <span class="badge">EncryptedPrefs</span>
+            <span class="badge">minSdk 26</span>
+            <span class="badge">CompileSdk 35</span>
+        </div>
+    </div>
+
+    <div class="download-section">
+        <a class="download-btn" href="https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest">
+            <span>⬇</span> Download APK
+        </a>
+        <p class="download-sub">
+            Или собери сам: <code>git clone https://github.com/M0NDsuChTiG/Void-Auditor.git && cd Void-Auditor/android && ./gradlew assembleDebug</code>
+        </p>
+    </div>
+
+    <div class="info-grid">
+        <div class="info-card">
+            <div class="icon">🛡️</div>
+            <h3>Security Dashboard</h3>
+            <p>Risk Aggregator со шкалой 0–100. Сканирует ADB Wi-Fi, Accessibility, SELinux, Device Admin, Overlay, banking apps. Автогенерация fix-команд.</p>
+        </div>
+        <div class="info-card">
+            <div class="icon">🧠</div>
+            <h3>AI Forensics Assistant</h3>
+            <p>Gemini 2.0/1.5 с контекстом устройства. Полный аудит через Shizuku-команды, анализ логов на IOC, экспорт отчётов.</p>
+        </div>
+        <div class="info-card">
+            <div class="icon">🏦</div>
+            <h3>Banking Deep Scan</h3>
+            <p>Поиск финансовых приложений (Unibank, Sima, LeoPay), проверка опасных permission'ов, выявление over-privileged пакетов.</p>
+        </div>
+        <div class="info-card">
+            <div class="icon">⚡</div>
+            <h3>Shizuku Executor</h3>
+            <p>High-level API: batch-команды, таймауты, CommandResult, полное логирование. Все экраны работают через единый адаптер.</p>
+        </div>
+        <div class="info-card">
+            <div class="icon">📦</div>
+            <h3>APK Manager</h3>
+            <p>Batch uninstall/disable/clear, backup APK, Activity Launcher — полный контроль над пакетами без root.</p>
+        </div>
+        <div class="info-card">
+            <div class="icon">🔌</div>
+            <h3>Connection Manager</h3>
+            <p>WiFi ADB pairing, device info, диагностика подключения — всё в одном экране.</p>
+        </div>
+        <div class="info-card">
+            <div class="icon">💻</div>
+            <h3>Terminal &amp; Scripts</h3>
+            <p>Встроенный терминал + 8 пресетов (AUDIT, LOCKDOWN, CONTROL, CLEANUP, NETWORK) с цветной категоризацией.</p>
+        </div>
+        <div class="info-card">
+            <div class="icon">📁</div>
+            <h3>File Manager</h3>
+            <p>Полный доступ к файловой системе через Shizuku: просмотр, копирование, удаление, переименование.</p>
+        </div>
+    </div>
+
+    <div class="features">
+        <h2>⎯ FUNCTION_MATRIX ⎯</h2>
+        <div class="feature-row"><span class="name">Security Dashboard</span><span class="desc">Risk Score 0–100 с автогенерацией исправлений</span></div>
+        <div class="feature-row"><span class="name">Device Audit</span><span class="desc">12+ команд: SELinux, ADB Wi-Fi, Accessibility, банки</span></div>
+        <div class="feature-row"><span class="name">AI Assistant</span><span class="desc">Gemini Governance: Intent Proposal → Policy Engine → Confirm</span></div>
+        <div class="feature-row"><span class="name">Audit Trail (TRACE)</span><span class="desc">Forensic timeline всех действий с метками времени и риска</span></div>
+        <div class="feature-row"><span class="name">Apps Manager</span><span class="desc">Force-stop, disable, clear data, batch-операции</span></div>
+        <div class="feature-row"><span class="name">Banking Deep Scan</span><span class="desc">Проверка разрешений, WebView, Deep Links, сервисов</span></div>
+    </div>
+
+    <div class="security-section">
+        <h2>⎯ PROTOCOLS ⎯</h2>
+        <ul class="security-list">
+            <li>Все destructive-действия требуют подтверждения</li>
+            <li>API-ключи Gemini в EncryptedSharedPreferences (AES-256-GCM)</li>
+            <li>Логи аудита — только в приватной директории приложения</li>
+            <li>Биометрия / PIN при запуске (опционально)</li>
+            <li>Capability System + Policy Engine + Human Confirmation</li>
+            <li>Structured Audit Trail</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p>
+            <a href="https://github.com/M0NDsuChTiG/Void-Auditor">GitHub</a> ·
+            <a href="https://github.com/M0NDsuChTiG/Void-Auditor/blob/main/README.md">README</a> ·
+            <a href="https://github.com/M0NDsuChTiG/Void-Auditor/releases">Releases</a> ·
+            <a href="https://github.com/M0NDsuChTiG/Void-Auditor/blob/main/SECURITY.md">Security</a>
+        </p>
+        <p>VOID Auditor · CyberHack Edition · V12.6</p>
+        <p style="margin-top:0.5rem; color: #1a3a1a;">Kotlin · Jetpack Compose · Shizuku API 13 · Gemini 2.0/1.5 · Material3 · minSdk 26 · targetSdk 35 · compileSdk 35</p>
+    </div>
+
+</div>
+</body>
+</html>
