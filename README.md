@@ -50,6 +50,27 @@ cd Void-Auditor/android
 
 ---
 
+## 📦 Release Notes v1.2
+
+### ✨ Новые возможности
+- **Banking Deep Scan** — специализированный анализ финансовых приложений (Unibank, Sima, LeoPay и др.) с проверкой опасных разрешений, WebView, Deep Links и persistent services
+- **AI Governance Layer** — Gemini работает только как Advisor через Intent Proposal System с обязательным подтверждением пользователя
+- **Structured Audit Trail (TRACE)** — полный forensic timeline всех действий с метками времени, уровнем риска и статусом
+
+### 🔧 Улучшения
+- Security Dashboard: Risk Score 0–100 с автогенерацией fix-команд
+- Device Audit: расширен до 12+ системных команд (SELinux, ADB Wi-Fi, Accessibility, Device Admin, Overlay, банковские приложения)
+- Shizuku Executor: batch-команды, таймауты, CommandResult, полное логирование
+- UI: CyberHack темная тема с цветовой индикацией рисков (зелёный/жёлтый/красный)
+- Протоколы безопасности: все деструктивные действия требуют явного подтверждения, API-ключи в EncryptedSharedPreferences (AES-256-GCM)
+
+### 🐛 Исправления
+- Стабилизация работы с Shizuku API 13
+- Устранены утечки памяти в AI Assistant
+- Исправлены edge-cases в Banking Deep Scan
+
+---
+
 ### 🛠 Основные Функции
 
 | Функция | Описание |
