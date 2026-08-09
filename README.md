@@ -1,121 +1,174 @@
-# 🌑 VOID Auditor
+# VOID Auditor
 
-> **Мобильный Zero Trust Forensics Toolkit** для Android  
-> Shizuku + AI Governance + Risk Aggregator + Banking Deep Scan
+> **Zero Trust mobile forensics toolkit** for Android  
+> Shizuku · AI Governance · Risk Aggregator · Cache Cleaner · Network Scan
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B-brightgreen)](https://github.com/M0NDsuChTiG/Void-Auditor)
 [![Shizuku](https://img.shields.io/badge/Shizuku-Enabled-8A2BE2)](https://shizuku.rikka.app/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9%2B-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Release](https://img.shields.io/github/v/release/M0NDsuChTiG/Void-Auditor)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
 [![CI](https://github.com/M0NDsuChTiG/Void-Auditor/actions/workflows/android-build.yml/badge.svg)](https://github.com/M0NDsuChTiG/Void-Auditor/actions)
 
-**VOID Auditor** — профессиональный инструмент для аудита безопасности Android-устройств **без root-прав**. Использует Shizuku API и Gemini AI с жёсткой governance-моделью.
+**VOID Auditor** is a professional **no-root** Android security audit and forensics tool.  
+It uses the [Shizuku](https://shizuku.rikka.app/) API for shell-level capabilities and optional Google Gemini for advisory analysis under a strict **governance** model (AI never executes commands directly).
+
+🌐 Landing page: [m0ndsuchtig.github.io/Void-Auditor](https://m0ndsuchtig.github.io/Void-Auditor/)
 
 ---
 
-### ✨ Ключевые Возможности
+## Features
 
-- **Zero Trust Execution** — Capability System + Policy Engine + обязательное подтверждение пользователя
-- **Security Dashboard** — автоматический Risk Score (0–100) с рекомендациями
-- **Banking Deep Scan** — специализированный анализ финансовых приложений (Unibank, Sima, LeoPay и др.)
-- **AI Governance Layer** — Gemini работает только как Advisor (Intent Proposal System)
-- **Structured Audit Trail** — полный forensic timeline всех действий
-- **CyberHack UI** — современный тёмный интерфейс с цветовой индикацией рисков
+| Module | Description |
+|--------|-------------|
+| **Security Dashboard** | Risk score 0–100, findings for ADB Wi‑Fi, Accessibility, SELinux, overlays, banking apps |
+| **Cache Cleaner** | Scan external cache, dry-run, 3-factor confirm (`PURGE`), selective purge, honest `EXTERNAL_CACHE_ONLY` banner |
+| **NET_SCAN** | Subnet host discovery: one Shizuku batch of parallel pings (~3s for /24), MAC via `/proc/net/arp`, common ports |
+| **WIFI_ADB** | Honest status via `getprop`; enable path verifies port is active or reports `SETPROP_FAILED` / `VERIFY_FAILED` |
+| **AI Forensics** | Gemini as advisor only: Intent Proposal → Policy Engine → human confirmation |
+| **Banking Deep Scan** | Permissions, WebView, deep links, persistent services on finance-related packages |
+| **Apps / Activities** | Force-stop, disable, clear data, activity launcher (with confirmation for destructive ops) |
+| **Audit Trail (TRACE)** | Structured timeline of commands, risk, decisions, exit codes |
+| **Terminal & Scripts** | Shell via Shizuku + preset scripts (audit, lockdown, cleanup, network) |
+| **File Manager** | Browse/copy via Shizuku where policy allows |
+
+### Security model
+
+- **Zero Trust execution**: typed capabilities + Policy Engine + confirmation for high-risk actions  
+- **AI is advisory only** — no direct shell from the model  
+- Gemini API keys stored with **EncryptedSharedPreferences** (AES-256-GCM)  
+- Audit logs in the **app-private** directory (not world-readable `/sdcard`)  
+- Optional biometric / device credential gate at launch  
 
 ---
 
-### 🚀 Быстрая Установка
+## Requirements
 
-Скачать последнюю версию:
+| Requirement | Notes |
+|-------------|--------|
+| **Android 8.0+** (API 26) | minSdk 26, targetSdk 35 |
+| **Shizuku v13+** | Must be started (USB ADB or Wireless Debugging) and permission granted to VOID Auditor |
+| **Optional** | Gemini API key for AI features |
 
-[![Download APK](https://img.shields.io/badge/Download-Latest_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+**Limits (by design / platform):**
 
-Или собрать из исходников:
+- Full internal `/data/data/*/cache` visibility usually needs **root**; without root the UI shows **EXTERNAL_CACHE_ONLY** and offers `pm trim-caches` where applicable  
+- `ENABLE_WIFI_ADB` via `setprop` is often blocked by SELinux on non-root devices — the app reports failure honestly instead of fake “enabled”
+
+---
+
+## Download
+
+[![Download APK](https://img.shields.io/badge/Download-v1.3.1_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+
+**Latest release:** [v1.3.1](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.3.1)
+
+```text
+Asset: Void-Auditor-v1.3.1.apk
+sha256: c6a7648456cc88dd885cf6d51f1563c19fc7912c4b7d913a196bfd7bf0d0130b
+```
+
+Or install from a PC:
+
+```bash
+adb install -r Void-Auditor-v1.3.1.apk
+```
+
+---
+
+## Build from source
 
 ```bash
 git clone https://github.com/M0NDsuChTiG/Void-Auditor.git
 cd Void-Auditor/android
-./gradlew assembleDebug
+# JDK 17+ recommended (CI uses 17; some environments use 21)
+./gradlew :app:assembleDebug
+```
+
+APK output:
+
+```text
+android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 ```
 
 ---
 
-### 📋 Поддерживаемые Устройства
+## Quick start
 
-| Android | Статус | Shizuku | Примечание |
-|---------|--------|---------|------------|
-| 8.0+ (API 26) | ✅ Полная | Полная | Рекомендуется |
-| 11+ | ✅ Отличная | Полная | Scoped Storage |
-| 14–15 | ✅ Полная | Полная | Тестировано |
-
----
-
-## 📦 Release Notes v1.2
-
-### ✨ Новые возможности
-- **Banking Deep Scan** — специализированный анализ финансовых приложений (Unibank, Sima, LeoPay и др.) с проверкой опасных разрешений, WebView, Deep Links и persistent services
-- **AI Governance Layer** — Gemini работает только как Advisor через Intent Proposal System с обязательным подтверждением пользователя
-- **Structured Audit Trail (TRACE)** — полный forensic timeline всех действий с метками времени, уровнем риска и статусом
-
-### 🔧 Улучшения
-- Security Dashboard: Risk Score 0–100 с автогенерацией fix-команд
-- Device Audit: расширен до 12+ системных команд (SELinux, ADB Wi-Fi, Accessibility, Device Admin, Overlay, банковские приложения)
-- Shizuku Executor: batch-команды, таймауты, CommandResult, полное логирование
-- UI: CyberHack темная тема с цветовой индикацией рисков (зелёный/жёлтый/красный)
-- Протоколы безопасности: все деструктивные действия требуют явного подтверждения, API-ключи в EncryptedSharedPreferences (AES-256-GCM)
-
-### 🐛 Исправления
-- Стабилизация работы с Shizuku API 13
-- Устранены утечки памяти в AI Assistant
-- Исправлены edge-cases в Banking Deep Scan
+1. Install **Shizuku** from GitHub / Play and **start** it (pair Wireless Debugging or USB).  
+2. Install VOID Auditor and open it → grant **Shizuku** permission when prompted.  
+3. Optional: enter a **Gemini API key** in the AI screen (stored encrypted).  
+4. Run **Security Dashboard** or **CACHE** scan → use dry-run before purge.  
+5. **CONN** → check WIFI_ADB status; **NET_SCAN** → scan the current subnet.
 
 ---
 
-### 🛠 Основные Функции
+## Release notes (recent)
 
-| Функция | Описание |
-|---------|----------|
-| **Security Dashboard** | Общий уровень риска устройства + автоматический анализ |
-| **Device Audit** | 12+ системных команд с AI-анализом (SELinux, ADB Wi-Fi, Accessibility, банковские приложения и т.д.) |
-| **Banking Deep Scan** | Поиск опасных разрешений, WebView, Deep Links, persistent services в финансовых приложениях |
-| **AI Assistant** | Governed forensic reasoning: только Intent Proposal → Policy Engine → Human Confirmation |
-| **Audit Trail (TRACE)** | Полная история всех команд с метками времени, риском и статусом |
-| **Apps Manager** | Force-stop, disable, clear data, batch-операции с подтверждением |
+### v1.3.1
 
----
+- **WIFI_ADB honesty:** after `setprop` + restart `adbd`, success only if `getprop service.adb.tcp.port` matches; otherwise `VERIFY_FAILED`  
+- `delay(800)` before verify to reduce false negatives on slow devices  
+- Unit tests for SETPROP / VERIFY paths  
 
-### 🛡️ Протоколы Безопасности
+### v1.3
 
-- Все деструктивные действия требуют явного подтверждения
-- API-ключи Gemini хранятся в EncryptedSharedPreferences (AES-256-GCM)
-- Логи аудита — только в приватной директории приложения
-- Биометрия/PIN при запуске (опционально)
+- Cache Cleaner E2E (dry-run → phrase confirm → purge → rescan)  
+- NET_SCAN batch ping (one Shizuku IPC for the whole /24)  
+- MAC resolution via Shizuku `cat /proc/net/arp`  
+- Scan state retained across tab switches (`CacheScanStorage`)  
 
 ---
 
-### 📁 Структура Проекта
+## Architecture (short)
 
+```text
+UI (Compose)
+  → Capability / intent layer
+  → PolicyEngine (allow / deny / confirm)
+  → ShizukuExecutor (shell, timeouts, CommandResult)
+  → AuditLogger / GlobalLog
 ```
-android/app/src/main/java/com/kuzyamond/voidauditor/
-├── core/
-│   ├── ShizukuExecutor.kt
-│   ├── Capability.kt
-│   ├── PolicyEngine.kt
-│   ├── SecurityModule.kt
-│   └── ai/
-├── AIAssistantScreen.kt
-├── DashboardScreen.kt
-├── AppManagerScreen.kt
-├── AuditScreen.kt
-└── ...
+
+AI path:
+
+```text
+Sanitized context → Gemini (analysis only)
+  → IntentProposal (non-executable)
+  → Validator + Policy
+  → Human confirmation
+  → Capability execution
 ```
 
 ---
 
-<div align="center">
+## Screenshots
 
-Разработано с ❤️ для Android Security Researchers
+See the [`screenshots/`](screenshots/) folder in the repository.
 
-[GitHub Issues](https://github.com/M0NDsuChTiG/Void-Auditor/issues) · [Telegram](https://t.me/EthicalHackingCS)
+---
 
-</div>
+## Security / responsible use
+
+This tool is intended for **authorized** device audit and lab work only.  
+Report vulnerabilities privately — see [SECURITY.md](SECURITY.md).
+
+Do **not** use VOID Auditor to access devices or data without permission.
+
+---
+
+## License
+
+[MIT](LICENSE)
+
+---
+
+## Links
+
+- [Releases](https://github.com/M0NDsuChTiG/Void-Auditor/releases)  
+- [Issues](https://github.com/M0NDsuChTiG/Void-Auditor/issues)  
+- [Security policy](SECURITY.md)  
+- [Russian README](README_RU.md) (if present)  
+- Telegram: [@kuzyamond](https://t.me/kuzyamond)
+
+**Stack:** Kotlin · Jetpack Compose · Material 3 · Shizuku API 13 · Gemini (optional) · minSdk 26 · targetSdk 35
