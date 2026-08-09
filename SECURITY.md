@@ -12,7 +12,7 @@ We take the security of VOID Auditor seriously. If you believe you have found a 
 
 ### Responsible Disclosure Process
 
-1. **Report via Telegram**: [@kuzyamond](https://t.me/kuzyamond)
+1. **Report via Telegram**: [EthicalHackingCS](https://t.me/EthicalHackingCS)
 2. Include a detailed description of the vulnerability, steps to reproduce, and affected versions.
 3. You will receive an acknowledgment within 48 hours.
 4. We will work on a fix and release timeline, keeping you informed.

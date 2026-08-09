@@ -169,6 +169,6 @@ Do **not** use VOID Auditor to access devices or data without permission.
 - [Issues](https://github.com/M0NDsuChTiG/Void-Auditor/issues)  
 - [Security policy](SECURITY.md)  
 - [Russian README](README_RU.md) (if present)  
-- Telegram: [@kuzyamond](https://t.me/kuzyamond)
+- Telegram: [EthicalHackingCS](https://t.me/EthicalHackingCS)
 
 **Stack:** Kotlin · Jetpack Compose · Material 3 · Shizuku API 13 · Gemini (optional) · minSdk 26 · targetSdk 35
