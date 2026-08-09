@@ -26,6 +26,7 @@ data class AuditEvent(
             RiskLevel.MEDIUM -> "MED"
             RiskLevel.LOW -> "LOW"
             RiskLevel.UNKNOWN -> "???"
+            RiskLevel.TIER_1_REVERSIBLE -> "TIER1"
         }
 
     val decisionColor: String

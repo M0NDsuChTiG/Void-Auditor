@@ -50,7 +50,7 @@ import java.util.*
 data class ChatMessage(val role: String, val text: String, val riskLevel: String? = null)
 
 enum class RiskLevel {
-    LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN
+    LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN, TIER_1_REVERSIBLE
 }
 
 fun parseRiskLevel(text: String): RiskLevel {

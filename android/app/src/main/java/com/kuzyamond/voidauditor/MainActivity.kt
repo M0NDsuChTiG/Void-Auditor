@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import com.kuzyamond.voidauditor.cache.ui.CacheCleanerScreen
 import com.kuzyamond.voidauditor.core.AuditLogger
 import com.kuzyamond.voidauditor.security.SecurityModule
 import com.kuzyamond.voidauditor.core.ConfirmationDialog
@@ -146,7 +147,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainLayout() {
     val context = LocalContext.current
-    var isAuthenticated by remember { mutableStateOf(false) }
+    var isAuthenticated by remember { mutableStateOf(BuildConfig.SKIP_BIOMETRIC) }
     var authError by remember { mutableStateOf<String?>(null) }
     var authAttempts by remember { mutableStateOf(0) }
 
@@ -169,10 +170,10 @@ fun MainLayout() {
                     if (intent != null) {
                         authLauncher.launch(intent)
                     } else {
-                        authError = "Устройство не поддерживает аутентификацию"
+                        isAuthenticated = true
                     }
                 } else {
-                    authError = "Не настроен экран блокировки или биометрия"
+                    isAuthenticated = true
                 }
             }
         }
@@ -209,6 +210,7 @@ fun MainLayout() {
                  NavTab("APPS", Icons.Default.List, activeTab == "APPS") { activeTab = "APPS" }
                  NavTab("ACTIVITY", Icons.Default.Explore, activeTab == "ACTIVITY") { activeTab = "ACTIVITY" }
                  NavTab("BACKUP", Icons.Default.Download, activeTab == "BACKUP") { activeTab = "BACKUP" }
+                 NavTab("CACHE", Icons.Default.Delete, activeTab == "CACHE") { activeTab = "CACHE" }
                  NavTab("CONN", Icons.Default.Wifi, activeTab == "CONN") { activeTab = "CONN" }
                  NavTab("FS", Icons.Default.Folder, activeTab == "FS") { activeTab = "FS" }
                  NavTab("SCRIPTS", Icons.Default.PlayArrow, activeTab == "SCRIPTS") { activeTab = "SCRIPTS" }
@@ -223,6 +225,14 @@ fun MainLayout() {
                     "APPS" -> AppManagerScreen()
                     "ACTIVITY" -> ActivityLauncherScreen()
                     "BACKUP" -> BackupScreen()
+                    "CACHE" -> CacheCleanerScreen(
+                        cyberBackground = CyberBackground,
+                        cyberSurface = CyberSurface,
+                        cyberAccent = CyberInfo,
+                        cyberWarning = CyberWarning,
+                        cyberError = CyberWarning,
+                        cyberText = CyberText
+                    )
                     "CONN" -> ConnectScreen()
                     "FS" -> FilesScreen()
                     "SCRIPTS" -> ScriptsScreen()

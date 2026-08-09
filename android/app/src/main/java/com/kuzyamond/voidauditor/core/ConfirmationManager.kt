@@ -1,15 +1,23 @@
 package com.kuzyamond.voidauditor.core
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,9 +30,10 @@ object ConfirmationManager {
     fun requestConfirmation(
         intent: Capability,
         onConfirm: () -> Unit,
-        onCancel: () -> Unit = {}
+        onCancel: () -> Unit = {},
+        requiredPhrase: String? = null
     ) {
-        currentRequest = ConfirmationRequest(intent, onConfirm, onCancel)
+        currentRequest = ConfirmationRequest(intent, onConfirm, onCancel, requiredPhrase)
     }
 
     fun dismiss() {
@@ -35,7 +44,8 @@ object ConfirmationManager {
 data class ConfirmationRequest(
     val intent: Capability,
     val onConfirm: () -> Unit,
-    val onCancel: () -> Unit
+    val onCancel: () -> Unit,
+    val requiredPhrase: String? = null
 )
 
 @Composable
@@ -54,6 +64,8 @@ fun ConfirmationDialog(
         "MEDIUM" -> Color(0xFFFFCC00)
         else -> cyberAccent
     }
+    val phrase = request.requiredPhrase
+    var typed by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = {
@@ -71,7 +83,7 @@ fun ConfirmationDialog(
             )
         },
         text = {
-            androidx.compose.foundation.layout.Column {
+            Column {
                 Text(
                     "RISK: $riskLabel",
                     color = riskColor,
@@ -84,6 +96,28 @@ fun ConfirmationDialog(
                     fontSize = 13.sp,
                     fontFamily = FontFamily.Monospace
                 )
+                if (phrase != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "TYPE '$phrase' TO CONFIRM DESTRUCTIVE ACTION:",
+                        color = cyberWarning,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = typed,
+                        onValueChange = { value -> typed = value },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            color = cyberText,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 13.sp
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         },
         confirmButton = {
@@ -92,7 +126,12 @@ fun ConfirmationDialog(
                     request.onConfirm()
                     ConfirmationManager.dismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = cyberWarning)
+                enabled = request.requiredPhrase == null || typed == request.requiredPhrase,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = cyberWarning,
+                    disabledContainerColor = cyberWarning.copy(alpha = 0.3f),
+                    disabledContentColor = Color.Gray
+                )
             ) {
                 Text("EXECUTE", fontWeight = FontWeight.Bold, color = Color.White)
             }
