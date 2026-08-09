@@ -6,9 +6,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Context
 import android.os.Bundle
 import java.io.File
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +19,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,6 +66,26 @@ val CyberWarning   = Color(0xFFFF2D55)
 val CyberInfo      = Color(0xFF00E5FF)
 val CyberBorder    = Color(0xFF1E293B) // Оставляем темную границу для контраста
 
+enum class NavStyle { TABS, GRID }
+private const val PREFS_NAME = "void_auditor_prefs"
+private const val PREFS_NAV_STYLE = "nav_style"
+
+data class HubItem(val id: String, val title: String, val icon: ImageVector, val accent: Color)
+
+private val hubItems = listOf(
+    HubItem("AUDIT", "AUDIT", Icons.Default.Shield, CyberAccent),
+    HubItem("TRACE", "TRACE", Icons.Default.History, CyberAccent2),
+    HubItem("CACHE", "CACHE", Icons.Default.Delete, CyberWarning),
+    HubItem("CONN", "CONN", Icons.Default.Wifi, CyberInfo),
+    HubItem("APPS", "APPS", Icons.Default.List, CyberAccent2),
+    HubItem("ACTIVITY", "ACTIVITY", Icons.Default.Explore, CyberAccent),
+    HubItem("BACKUP", "BACKUP", Icons.Default.Download, CyberWarning),
+    HubItem("FS", "FS", Icons.Default.Folder, CyberInfo),
+    HubItem("SCRIPTS", "SCRIPTS", Icons.Default.PlayArrow, CyberAccent2),
+    HubItem("SHELL", "SHELL", Icons.Default.Terminal, CyberAccent),
+    HubItem("AI", "AI", Icons.Default.SmartToy, CyberInfo)
+)
+
 @Composable
 fun ADBStudioTheme(content: @Composable () -> Unit) {
     MaterialTheme(
@@ -84,7 +109,7 @@ object GlobalLog {
     private val _entries = MutableStateFlow<List<LogEntry>>(emptyList())
     val entries: StateFlow<List<LogEntry>> = _entries
 
-    private val _isExpanded = MutableStateFlow(true)
+    private val _isExpanded = MutableStateFlow(false)
     val isExpanded: StateFlow<Boolean> = _isExpanded
 
     private var logsDir: File? = null
@@ -186,12 +211,20 @@ fun MainLayout() {
 
     var activeTab by remember { mutableStateOf("AUDIT") }
     var showInfoDialog by remember { mutableStateOf(false) }
+    val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    var navStyle by remember {
+        mutableStateOf(if (prefs.getString(PREFS_NAV_STYLE, NavStyle.GRID.name) == NavStyle.GRID.name) NavStyle.GRID else NavStyle.TABS)
+    }
     val status by ShizukuManager.isAuthorizedFlow().collectAsState(initial = false)
     val allLogs by GlobalLog.entries.collectAsState()
     val isLogExpanded by GlobalLog.isExpanded.collectAsState()
     
     val filteredLogs = remember(allLogs, activeTab) {
         allLogs.filter { it.tab == "GLOBAL" || it.tab == activeTab }
+    }
+
+    LaunchedEffect(activeTab) {
+        GlobalLog.setExpanded(false)
     }
 
     Box(modifier = Modifier.fillMaxSize().background(CyberBackground)) {
@@ -204,50 +237,92 @@ fun MainLayout() {
                 AuditLogger.integrateWithExecutor()
             }
 
-            Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).background(Color(0xFF090F1A)).border(1.dp, CyberBorder).horizontalScroll(rememberScrollState())) {
-                 NavTab("AUDIT", Icons.Default.Shield, activeTab == "AUDIT") { activeTab = "AUDIT" }
-                 NavTab("TRACE", Icons.Default.History, activeTab == "TRACE") { activeTab = "TRACE" }
-                 NavTab("APPS", Icons.Default.List, activeTab == "APPS") { activeTab = "APPS" }
-                 NavTab("ACTIVITY", Icons.Default.Explore, activeTab == "ACTIVITY") { activeTab = "ACTIVITY" }
-                 NavTab("BACKUP", Icons.Default.Download, activeTab == "BACKUP") { activeTab = "BACKUP" }
-                 NavTab("CACHE", Icons.Default.Delete, activeTab == "CACHE") { activeTab = "CACHE" }
-                 NavTab("CONN", Icons.Default.Wifi, activeTab == "CONN") { activeTab = "CONN" }
-                 NavTab("FS", Icons.Default.Folder, activeTab == "FS") { activeTab = "FS" }
-                 NavTab("SCRIPTS", Icons.Default.PlayArrow, activeTab == "SCRIPTS") { activeTab = "SCRIPTS" }
-                 NavTab("SHELL", Icons.Default.Terminal, activeTab == "SHELL") { activeTab = "SHELL" }
-                 NavTab("AI", Icons.Default.SmartToy, activeTab == "AI") { activeTab = "AI" }
-            }
-
-            Box(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                when (activeTab) {
-                    "AUDIT" -> DashboardScreen()
-                    "TRACE" -> AuditScreen()
-                    "APPS" -> AppManagerScreen()
-                    "ACTIVITY" -> ActivityLauncherScreen()
-                    "BACKUP" -> BackupScreen()
-                    "CACHE" -> CacheCleanerScreen(
-                        cyberBackground = CyberBackground,
-                        cyberSurface = CyberSurface,
-                        cyberAccent = CyberInfo,
-                        cyberWarning = CyberWarning,
-                        cyberError = CyberWarning,
-                        cyberText = CyberText
-                    )
-                    "CONN" -> ConnectScreen()
-                    "FS" -> FilesScreen()
-                    "SCRIPTS" -> ScriptsScreen()
-                    "SHELL" -> TerminalScreen()
-                    "AI" -> AIAssistantScreen()
+            LaunchedEffect(navStyle) {
+                if (navStyle == NavStyle.GRID) {
+                    activeTab = "HOME"
+                    GlobalLog.setExpanded(false)
                 }
             }
 
-            if (activeTab != "APPS") {
+            if (navStyle == NavStyle.GRID && activeTab != "HOME") {
+                BackHandler {
+                    activeTab = "HOME"
+                    GlobalLog.setExpanded(false)
+                }
+            }
+
+            if (navStyle == NavStyle.TABS) {
+                Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).background(Color(0xFF090F1A)).border(1.dp, CyberBorder).horizontalScroll(rememberScrollState())) {
+                     NavTab("AUDIT", Icons.Default.Shield, activeTab == "AUDIT") { activeTab = "AUDIT" }
+                     NavTab("TRACE", Icons.Default.History, activeTab == "TRACE") { activeTab = "TRACE" }
+                     NavTab("APPS", Icons.Default.List, activeTab == "APPS") { activeTab = "APPS" }
+                     NavTab("ACTIVITY", Icons.Default.Explore, activeTab == "ACTIVITY") { activeTab = "ACTIVITY" }
+                     NavTab("BACKUP", Icons.Default.Download, activeTab == "BACKUP") { activeTab = "BACKUP" }
+                     NavTab("CACHE", Icons.Default.Delete, activeTab == "CACHE") { activeTab = "CACHE" }
+                     NavTab("CONN", Icons.Default.Wifi, activeTab == "CONN") { activeTab = "CONN" }
+                     NavTab("FS", Icons.Default.Folder, activeTab == "FS") { activeTab = "FS" }
+                     NavTab("SCRIPTS", Icons.Default.PlayArrow, activeTab == "SCRIPTS") { activeTab = "SCRIPTS" }
+                     NavTab("SHELL", Icons.Default.Terminal, activeTab == "SHELL") { activeTab = "SHELL" }
+                     NavTab("AI", Icons.Default.SmartToy, activeTab == "AI") { activeTab = "AI" }
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                if (navStyle == NavStyle.GRID && activeTab != "HOME") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("⌂ HOME", color = CyberAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                            modifier = Modifier.cyberClickable { activeTab = "HOME"; GlobalLog.setExpanded(false) })
+                        Spacer(Modifier.weight(1f))
+                        Text("> $activeTab", color = CyberText, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                    }
+                }
+                when {
+                    navStyle == NavStyle.GRID && activeTab == "HOME" -> HomeHub(hubItems) { id ->
+                        activeTab = id
+                        GlobalLog.setExpanded(false)
+                    }
+                    else -> when (activeTab) {
+                        "AUDIT" -> DashboardScreen()
+                        "TRACE" -> AuditScreen()
+                        "APPS" -> AppManagerScreen()
+                        "ACTIVITY" -> ActivityLauncherScreen()
+                        "BACKUP" -> BackupScreen()
+                        "CACHE" -> CacheCleanerScreen(
+                            cyberBackground = CyberBackground,
+                            cyberSurface = CyberSurface,
+                            cyberAccent = CyberInfo,
+                            cyberWarning = CyberWarning,
+                            cyberError = CyberWarning,
+                            cyberText = CyberText
+                        )
+                        "CONN" -> ConnectScreen()
+                        "FS" -> FilesScreen()
+                        "SCRIPTS" -> ScriptsScreen()
+                        "SHELL" -> TerminalScreen()
+                        "AI" -> AIAssistantScreen()
+                    }
+                }
+            }
+
+            if (tabNeedsConsole(activeTab)) {
                 LogStream(filteredLogs.map { it.msg }, activeTab, isLogExpanded)
             }
         }
 
         if (showInfoDialog) {
-            InfoDialog(onDismiss = { showInfoDialog = false })
+            InfoDialog(
+                navStyle = navStyle,
+                onNavStyleChange = { style ->
+                    navStyle = style
+                    prefs.edit().putString(PREFS_NAV_STYLE, style.name).apply()
+                    activeTab = if (style == NavStyle.GRID) "HOME" else "AUDIT"
+                    GlobalLog.setExpanded(false)
+                },
+                onDismiss = { showInfoDialog = false }
+            )
         }
 
         ConfirmationDialog(
@@ -258,6 +333,11 @@ fun MainLayout() {
             cyberText = CyberText
         )
     }
+}
+
+private fun tabNeedsConsole(tab: String): Boolean = when (tab) {
+    "SHELL", "SCRIPTS", "CONN", "CACHE", "TRACE", "AUDIT" -> true
+    else -> false
 }
 
 @Composable
@@ -300,7 +380,7 @@ fun Header(isOnline: Boolean, onInfoClick: () -> Unit) {
 }
 
 @Composable
-fun InfoDialog(onDismiss: () -> Unit) {
+fun InfoDialog(navStyle: NavStyle, onNavStyleChange: (NavStyle) -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = CyberSurface,
@@ -320,6 +400,12 @@ fun InfoDialog(onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(10.dp))
                 Text("DEVELOPER: Gemini CLI [CORE_SYNC]", color = Color.Gray, fontSize = 10.sp)
+                Spacer(Modifier.height(14.dp))
+                Text("NAVIGATION:", color = CyberAccent, fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    NavStyleToggle("TOP TABS", navStyle == NavStyle.TABS) { onNavStyleChange(NavStyle.TABS) }
+                    NavStyleToggle("HOME GRID", navStyle == NavStyle.GRID) { onNavStyleChange(NavStyle.GRID) }
+                }
             }
         },
         confirmButton = {
@@ -330,6 +416,50 @@ fun InfoDialog(onDismiss: () -> Unit) {
         shape = RoundedCornerShape(2.dp),
         modifier = Modifier.border(1.dp, CyberAccent)
     )
+}
+
+@Composable
+fun NavStyleToggle(label: String, active: Boolean, onClick: () -> Unit) {
+    Text(
+        label,
+        color = if (active) CyberBackground else CyberText,
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = FontFamily.Monospace,
+        modifier = Modifier
+            .border(1.dp, if (active) CyberAccent else CyberBorder)
+            .background(if (active) CyberAccent else CyberSurface)
+            .cyberClickable(onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeHub(items: List<HubItem>, onOpen: (String) -> Unit) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(items) { item ->
+            Card(
+                onClick = { onOpen(item.id) },
+                colors = CardDefaults.cardColors(containerColor = CyberSurface),
+                border = BorderStroke(1.dp, item.accent.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    Modifier.padding(20.dp).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(item.icon, null, tint = item.accent, modifier = Modifier.size(40.dp))
+                    Spacer(Modifier.height(10.dp))
+                    Text(item.title, color = CyberText, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
 }
 
 @Composable
