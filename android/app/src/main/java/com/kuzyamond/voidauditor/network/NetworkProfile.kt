@@ -28,8 +28,10 @@ data class HostInfo(
     val hostname: String = "",
     val vendor: String = "",
     val openPorts: List<Int> = emptyList(),
+    val services: Map<Int, String> = emptyMap(),
     val rttMs: Long = -1,
-    val isAlive: Boolean = false
+    val isAlive: Boolean = false,
+    val fullPortsScanned: Boolean = false
 )
 
 data class ScanResult(

@@ -1,5 +1,8 @@
 package com.kuzyamond.voidauditor.network
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -61,29 +64,64 @@ object NetworkProfileDetector {
         return ipInt in start..end
     }
 
-    suspend fun detectProfile(manualOverride: String? = null): NetworkProfile = withContext(Dispatchers.IO) {
+    suspend fun detectProfile(context: Context, manualOverride: String? = null): NetworkProfile = withContext(Dispatchers.IO) {
         if (manualOverride != null) {
             return@withContext buildManualProfile(manualOverride)
         }
 
-        val interfaces: Enumeration<NetworkInterface> = NetworkInterface.getNetworkInterfaces()
         var activeInterface: NetworkInterface? = null
         var localIp: InetAddress? = null
 
-        while (interfaces.hasMoreElements()) {
-            val intf = interfaces.nextElement()
-            if (!intf.isUp || intf.isLoopback || intf.isVirtual) continue
+        val activeNet = tryResolveActiveNetwork(context)
+        if (activeNet != null) {
+            try {
+                val intf = NetworkInterface.getByName(activeNet.first)
+                if (intf != null && intf.isUp) {
+                    localIp = activeNet.second
+                    if (localIp != null) activeInterface = intf
+                }
+            } catch (_: Exception) {
+                // ignore
+            }
+        }
 
-            val inetAddresses: Enumeration<InetAddress> = intf.inetAddresses
-            while (inetAddresses.hasMoreElements()) {
-                val addr = inetAddresses.nextElement()
-                if (addr is Inet4Address && !addr.isLoopbackAddress) {
+        if (localIp == null) {
+            val defaultDev = tryDetectDefaultInterface()
+            if (defaultDev != null) {
+                try {
+                    val intf = NetworkInterface.getByName(defaultDev)
+                    if (intf != null && intf.isUp) {
+                        localIp = intf.inetAddresses
+                            .asSequence()
+                            .filterIsInstance<Inet4Address>()
+                            .firstOrNull { !it.isLoopbackAddress }
+                        if (localIp != null) activeInterface = intf
+                    }
+                } catch (_: Exception) {
+                    // ignore
+                }
+            }
+        }
+
+        if (localIp == null) {
+            val interfaces: Enumeration<NetworkInterface> = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val intf = interfaces.nextElement()
+                if (!intf.isUp || intf.isLoopback || intf.isVirtual) continue
+
+                val inetAddresses: Enumeration<InetAddress> = intf.inetAddresses
+                while (inetAddresses.hasMoreElements()) {
+                    val addr = inetAddresses.nextElement()
+                    if (addr is Inet4Address && !addr.isLoopbackAddress) {
+                        localIp = addr
+                        break
+                    }
+                }
+                if (localIp != null) {
                     activeInterface = intf
-                    localIp = addr
                     break
                 }
             }
-            if (localIp != null) break
         }
 
         if (localIp == null) {
@@ -147,6 +185,42 @@ object NetworkProfileDetector {
                     null
                 }
             } ?: ""
+    }
+
+    private fun tryResolveActiveNetwork(context: Context): Pair<String, InetAddress>? {
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                ?: return null
+            val network = cm.activeNetwork ?: return null
+            val caps = cm.getNetworkCapabilities(network) ?: return null
+            if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) return null
+            val lp = cm.getLinkProperties(network) ?: return null
+            val iface = lp.interfaceName ?: return null
+            val ipv4 = lp.linkAddresses
+                .mapNotNull { it.address }
+                .filterIsInstance<Inet4Address>()
+                .firstOrNull { !it.isLoopbackAddress }
+                ?: return null
+            iface to ipv4
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private suspend fun tryDetectDefaultInterface(): String = withContext(Dispatchers.IO) {
+        try {
+            val proc = Runtime.getRuntime().exec("ip route show default")
+            val reader = BufferedReader(InputStreamReader(proc.inputStream))
+            val lines = reader.readLines()
+            reader.close()
+            lines.firstNotNullOfOrNull { line ->
+                val parts = line.split("\\s+".toRegex())
+                val devIdx = parts.indexOf("dev")
+                if (devIdx >= 0 && devIdx + 1 < parts.size) parts[devIdx + 1] else null
+            } ?: ""
+        } catch (_: Exception) {
+            ""
+        }
     }
 
     private suspend fun tryDetectGateway(): String = withContext(Dispatchers.IO) {

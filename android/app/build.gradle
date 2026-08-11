@@ -14,6 +14,29 @@ android {
         buildConfigField "boolean", "SKIP_BIOMETRIC", "false"
     }
 
+    sourceSets {
+        main {
+            java {
+                srcDirs = ["src/main/java"]
+                exclude "**/docs/**"
+                exclude "**/backup*/**"
+            }
+            kotlin {
+                srcDirs = ["src/main/java"]
+                exclude "**/docs/**"
+                exclude "**/backup*/**"
+            }
+        }
+        test {
+            java.srcDirs = ["src/test/java"]
+            kotlin.srcDirs = ["src/test/java"]
+        }
+        androidTest {
+            java.srcDirs = ["src/androidTest/java"]
+            kotlin.srcDirs = ["src/androidTest/java"]
+        }
+    }
+
     buildTypes {
         debug {
             // ChromeOS / ARC / без отпечатка
@@ -22,6 +45,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
         }
     }
 

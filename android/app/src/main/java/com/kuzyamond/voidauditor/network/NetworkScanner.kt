@@ -2,14 +2,40 @@ package com.kuzyamond.voidauditor.network
 
 import com.kuzyamond.voidauditor.core.ShizukuExecutor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.Collections
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.asCoroutineDispatcher
 
 object NetworkScanner {
 
-    private val COMMON_PORTS = listOf(22, 80, 443, 5555, 8080, 8443, 9090, 3389, 5900, 8443)
+    val COMMON_PORTS = listOf(22, 80, 443, 5555, 8080, 8443, 9090, 3389, 5900)
+    val FULL_PORTS: List<Int> = (1..65535).toList()
+
+    private const val PORT_CONNECT_TIMEOUT_MS = 350
+    private const val PORT_BATCH_SIZE = 256
+    private const val BANNER_READ_TIMEOUT_MS = 400
+    private const val BANNER_MAX_LEN = 64
+
+    private val portScanDispatcher by lazy {
+        Executors.newFixedThreadPool(PORT_BATCH_SIZE).asCoroutineDispatcher()
+    }
+
+    private val HTTP_PORTS = setOf(80, 8000, 8080, 8888, 3000, 5000, 8081, 9080)
+
+    private val KNOWN_SERVICES = mapOf(
+        21 to "FTP", 22 to "SSH", 23 to "Telnet", 25 to "SMTP", 53 to "DNS",
+        67 to "DHCP", 68 to "DHCP", 80 to "HTTP", 110 to "POP3", 123 to "NTP",
+        143 to "IMAP", 443 to "HTTPS", 465 to "SMTPS", 587 to "SMTP",
+        993 to "IMAPS", 995 to "POP3S", 3306 to "MySQL", 3389 to "RDP",
+        5353 to "mDNS", 5555 to "ADB", 5900 to "VNC", 5432 to "PostgreSQL"
+    )
 
     suspend fun generateTargets(baseIp: String, prefix: Int = 24): List<ScanTarget> {
         return withContext(Dispatchers.Default) {
@@ -72,29 +98,89 @@ object NetworkScanner {
     suspend fun scanHostsWithPorts(
         targets: List<ScanTarget>,
         ports: List<Int> = COMMON_PORTS,
-        onProgress: (Int, Int) -> Unit = { _, _ -> }
+        onProgress: (hostDone: Int, hostTotal: Int, portDone: Int, portTotal: Int) -> Unit = { _, _, _, _ -> },
+        onHostResult: (HostInfo) -> Unit = {}
     ): List<HostInfo> {
-        val aliveHosts = scanHosts(targets, onProgress)
-        return aliveHosts.map { host ->
-            host.copy(openPorts = tcpScanPorts(host.ip, ports))
+        if (targets.isEmpty()) return emptyList()
+        val aliveHosts = scanHosts(targets) { done, total ->
+            onProgress(done, total, 0, 0)
         }
+        val result = mutableListOf<HostInfo>()
+        aliveHosts.forEachIndexed { index, host ->
+val scanned = tcpScanPorts(host.ip, ports) { done, total ->
+                    onProgress(index + 1, aliveHosts.size, done, total)
+                }
+                val updated = host.copy(
+                    openPorts = scanned.keys.sorted(),
+                    services = scanned.filterValues { it.isNotEmpty() }
+                )
+            onHostResult(updated)
+            result.add(updated)
+        }
+        return result
     }
 
-    private suspend fun tcpScanPorts(ip: String, ports: List<Int>): List<Int> {
-        return withContext(Dispatchers.IO) {
-            ports.filter { port ->
-                try {
-                    withTimeout(1500) {
-                        val socket = Socket()
-                        socket.connect(InetSocketAddress(ip, port), 1000)
-                        socket.close()
-                        true
+    private suspend fun tcpScanPorts(
+        ip: String,
+        ports: List<Int>,
+        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> }
+    ): Map<Int, String> {
+        if (ports.isEmpty()) return emptyMap()
+        val open = Collections.synchronizedMap(mutableMapOf<Int, String>())
+        val done = AtomicInteger(0)
+        val total = ports.size
+        ports.chunked(PORT_BATCH_SIZE).forEach { batch ->
+            coroutineScope {
+                batch.forEach { port ->
+                    launch(portScanDispatcher) {
+                        try {
+                            val socket = Socket()
+                            try {
+                                socket.connect(InetSocketAddress(ip, port), PORT_CONNECT_TIMEOUT_MS)
+                                val banner = grabService(socket, ip, port)
+                                open[port] = banner.ifEmpty { KNOWN_SERVICES[port] ?: "" }
+                            } finally {
+                                try {
+                                    socket.close()
+                                } catch (_: Exception) {
+                                }
+                            }
+                        } catch (_: Exception) {
+                        } finally {
+                            onProgress(done.incrementAndGet(), total)
+                        }
                     }
-                } catch (_: Exception) {
-                    false
                 }
             }
         }
+        return open.toSortedMap()
+    }
+
+    private fun grabService(socket: Socket, ip: String, port: Int): String {
+        return try {
+            socket.soTimeout = BANNER_READ_TIMEOUT_MS
+            if (port in HTTP_PORTS) {
+                socket.getOutputStream().write(
+                    "GET / HTTP/1.0\r\nHost: $ip\r\nUser-Agent: VoidAuditor/1.4\r\n\r\n".toByteArray()
+                )
+                socket.getOutputStream().flush()
+            }
+            val buf = ByteArray(2048)
+            val n = socket.getInputStream().read(buf)
+            if (n <= 0) return ""
+            val raw = String(buf, 0, n, Charsets.ISO_8859_1)
+            val firstLine = raw.lineSequence().firstOrNull() ?: ""
+            sanitizeBanner(firstLine)
+        } catch (_: Exception) {
+            ""
+        }
+    }
+
+    private fun sanitizeBanner(raw: String): String {
+        val cleaned = raw.map { ch ->
+            if (ch.code in 32..126) ch else ' '
+        }.joinToString("").trim().replace(Regex("\\s+"), " ")
+        return cleaned.take(BANNER_MAX_LEN)
     }
 
     private suspend fun tryReadMac(ip: String): String {
@@ -169,6 +255,13 @@ object NetworkScanner {
         if (clean.length < 6) return ""
         val prefix = clean.take(6)
         return macVendors[prefix] ?: ""
+    }
+
+    suspend fun scanAllPorts(
+        ip: String,
+        onProgress: (Int, Int) -> Unit = { _, _ -> }
+    ): Map<Int, String> {
+        return tcpScanPorts(ip, FULL_PORTS, onProgress)
     }
 
     suspend fun scanFull(targetIp: String, prefix: Int = 24): ScanResult {

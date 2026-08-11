@@ -1,13 +1,10 @@
 package com.kuzyamond.voidauditor
 
-import android.app.Activity
-import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.FragmentActivity
 import android.content.Context
 import android.os.Bundle
 import java.io.File
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -15,6 +12,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -36,6 +34,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -112,6 +111,9 @@ object GlobalLog {
     private val _isExpanded = MutableStateFlow(false)
     val isExpanded: StateFlow<Boolean> = _isExpanded
 
+    private val _consoleHeight = MutableStateFlow(280f)
+    val consoleHeight: StateFlow<Float> = _consoleHeight
+
     private var logsDir: File? = null
 
     fun init(context: Context) {
@@ -151,13 +153,17 @@ object GlobalLog {
         _isExpanded.value = expanded
     }
 
+    fun setConsoleHeight(height: Float) {
+        _consoleHeight.value = height.coerceIn(120f, 600f)
+    }
+
     fun clear(tab: String) {
         _entries.value = _entries.value.filter { it.tab != tab && it.tab != "GLOBAL" }
     }
 }
 
 // --- ОСНОВНОЙ ЭКРАН ---
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         GlobalLog.init(this)
@@ -176,27 +182,16 @@ fun MainLayout() {
     var authError by remember { mutableStateOf<String?>(null) }
     var authAttempts by remember { mutableStateOf(0) }
 
-    val authLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            isAuthenticated = true
-        } else {
-            authError = "Аутентификация не выполнена"
-        }
-    }
-
     if (authAttempts >= 0) {
         LaunchedEffect(authAttempts) {
-            val activity = context as? Activity
+            val activity = context as? FragmentActivity
             if (!isAuthenticated && activity != null && authError == null) {
                 if (SecurityModule.canAuthenticate(context)) {
-                    val intent = SecurityModule.createCredentialIntent(activity)
-                    if (intent != null) {
-                        authLauncher.launch(intent)
-                    } else {
-                        isAuthenticated = true
-                    }
+                    SecurityModule.authenticate(
+                        activity = activity,
+                        onSuccess = { isAuthenticated = true },
+                        onError = { err -> authError = err }
+                    )
                 } else {
                     isAuthenticated = true
                 }
@@ -336,7 +331,7 @@ fun MainLayout() {
 }
 
 private fun tabNeedsConsole(tab: String): Boolean = when (tab) {
-    "SHELL", "SCRIPTS", "CONN", "CACHE", "TRACE", "AUDIT" -> true
+    "SHELL", "SCRIPTS", "CONN", "CACHE", "TRACE", "AUDIT", "FS" -> true
     else -> false
 }
 
@@ -480,10 +475,24 @@ fun RowScope.NavTab(label: String, icon: ImageVector, selected: Boolean, onClick
 
 @Composable
 fun LogStream(entries: List<String>, currentTab: String, isExpanded: Boolean) {
-    val height by animateDpAsState(if (isExpanded) 280.dp else 36.dp, label = "logHeight")
+    val customHeight by GlobalLog.consoleHeight.collectAsState()
+    val height by animateDpAsState(if (isExpanded) customHeight.dp else 36.dp, label = "logHeight")
     val clipboardManager = LocalClipboardManager.current
     
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).height(height).fillMaxWidth().border(1.dp, CyberAccent).background(CyberBackground)) {
+        if (isExpanded) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(8.dp)
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            val newHeight = GlobalLog.consoleHeight.value - dragAmount.y
+                            GlobalLog.setConsoleHeight(newHeight)
+                        }
+                    }
+                    .background(CyberSurface.copy(alpha = 0.6f))
+            ) { }
+        }
         Row(
             modifier = Modifier.fillMaxWidth().background(CyberSurface).clickable { GlobalLog.setExpanded(!isExpanded) }.padding(8.dp), 
             horizontalArrangement = Arrangement.SpaceBetween,
