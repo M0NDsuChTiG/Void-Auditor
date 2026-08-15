@@ -111,6 +111,10 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 
 ## Release notes (recent)
 
+### v1.4.2
+
+- **Android accessibility (TalkBack)**: accessible names for all icon-only buttons (Send, Refresh, Save, Export, Back up, Info), contrast fixes for inactive nav tabs, log `[COPY]`/`[CLEAR]` and path chips (WCAG 1.4.3).
+
 ### v1.4.1
 
 - **AI Governance Layer (Intent Proposal)** — Gemini acts as advisor only: `PROPOSAL_JSON` (whitelisted `capabilityId`) → sanitize/parse/validate → `AI_PROPOSAL_REVIEW` dialog → PolicyEngine → CapabilityExecutor → AuditLogger (`ActorType.AI`). Destructive ops stay out of the whitelist by design.
