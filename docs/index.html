@@ -247,7 +247,7 @@
       margin-top: 0.75rem;
       font-family: ui-monospace, monospace;
       font-size: 0.75rem;
-      color: #1a3a1a;
+      color: var(--muted);
     }
 
     code, .mono {
@@ -257,9 +257,48 @@
       padding: 0.1em 0.35em;
       border-radius: 3px;
     }
+
+    /* --- Accessibility --- */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0.5rem;
+      background: var(--accent);
+      color: var(--bg);
+      padding: 0.5rem 1rem;
+      border-radius: 0 0 4px 4px;
+      font-weight: 700;
+      z-index: 100;
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 0; }
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
   </style>
 </head>
 <body>
+<a href="#main" class="skip-link" data-i18n="skip">Skip to main content</a>
 <div class="container">
 
   <div class="topbar">
@@ -267,6 +306,7 @@
     <button type="button" class="lang-btn" data-set-lang="ru" id="btn-ru" aria-pressed="false">RU</button>
   </div>
 
+  <main id="main" tabindex="-1">
   <header class="hero">
     <div class="version" data-i18n="version">CYBERHACK · v1.3.1</div>
     <h1 data-i18n="title">VOID AUDITOR</h1>
@@ -293,14 +333,15 @@
   </div>
 
   <nav class="tabs" role="tablist" aria-label="Sections">
-    <button type="button" class="tab active" data-tab="features" role="tab" aria-selected="true" data-i18n="tab_features">FEATURES</button>
-    <button type="button" class="tab" data-tab="matrix" role="tab" aria-selected="false" data-i18n="tab_matrix">MATRIX</button>
-    <button type="button" class="tab" data-tab="security" role="tab" aria-selected="false" data-i18n="tab_security">SECURITY</button>
-    <button type="button" class="tab" data-tab="start" role="tab" aria-selected="false" data-i18n="tab_start">QUICK START</button>
-    <button type="button" class="tab" data-tab="limits" role="tab" aria-selected="false" data-i18n="tab_limits">LIMITS</button>
+    <button type="button" class="tab active" data-tab="features" id="tab-features" role="tab" aria-selected="true" aria-controls="panel-features" tabindex="0" data-i18n="tab_features">FEATURES</button>
+    <button type="button" class="tab" data-tab="matrix" id="tab-matrix" role="tab" aria-selected="false" aria-controls="panel-matrix" tabindex="-1" data-i18n="tab_matrix">MATRIX</button>
+    <button type="button" class="tab" data-tab="security" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-i18n="tab_security">SECURITY</button>
+    <button type="button" class="tab" data-tab="start" id="tab-start" role="tab" aria-selected="false" aria-controls="panel-start" tabindex="-1" data-i18n="tab_start">QUICK START</button>
+    <button type="button" class="tab" data-tab="limits" id="tab-limits" role="tab" aria-selected="false" aria-controls="panel-limits" tabindex="-1" data-i18n="tab_limits">LIMITS</button>
   </nav>
 
-  <section id="panel-features" class="panel active" role="tabpanel">
+  <section id="panel-features" class="panel active" role="tabpanel" aria-labelledby="tab-features">
+    <h2 class="visually-hidden" data-i18n="tab_features">FEATURES</h2>
     <div class="grid">
       <div class="card">
         <div class="icon">🛡️</div>
@@ -345,7 +386,7 @@
     </div>
   </section>
 
-  <section id="panel-matrix" class="panel" role="tabpanel">
+  <section id="panel-matrix" class="panel" role="tabpanel" aria-labelledby="tab-matrix" hidden>
     <h2 data-i18n="matrix_h">FUNCTION MATRIX</h2>
     <div class="feature-row"><span class="name">Dashboard</span><span class="desc" data-i18n="m1">Risk score + auto fix hints</span></div>
     <div class="feature-row"><span class="name">Device Audit</span><span class="desc" data-i18n="m2">SELinux, ADB Wi‑Fi, Accessibility, packages</span></div>
@@ -355,7 +396,7 @@
     <div class="feature-row"><span class="name">TRACE</span><span class="desc" data-i18n="m6">Structured forensic events</span></div>
   </section>
 
-  <section id="panel-security" class="panel" role="tabpanel">
+  <section id="panel-security" class="panel" role="tabpanel" aria-labelledby="tab-security" hidden>
     <h2 data-i18n="sec_h">PROTOCOLS</h2>
     <ul class="security-list">
       <li data-i18n="s1">Destructive actions require explicit confirmation</li>
@@ -367,7 +408,7 @@
     </ul>
   </section>
 
-  <section id="panel-start" class="panel" role="tabpanel">
+  <section id="panel-start" class="panel" role="tabpanel" aria-labelledby="tab-start" hidden>
     <h2 data-i18n="start_h">QUICK START</h2>
     <ul class="security-list">
       <li data-i18n="q1">Install and start Shizuku (USB ADB or Wireless Debugging)</li>
@@ -381,7 +422,7 @@
     </p>
   </section>
 
-  <section id="panel-limits" class="panel" role="tabpanel">
+  <section id="panel-limits" class="panel" role="tabpanel" aria-labelledby="tab-limits" hidden>
     <h2 data-i18n="lim_h">KNOWN LIMITS</h2>
     <div class="limits" data-i18n="lim1">
       Internal /data/data cache is often invisible without root. The app shows EXTERNAL_CACHE_ONLY and may offer SYSTEM_TRIM — it does not pretend to see full internal cache.
@@ -393,6 +434,7 @@
       Authorized use only. You are responsible for compliance with local law and device owner consent.
     </div>
   </section>
+  </main>
 
   <footer class="footer">
     <p>
@@ -411,6 +453,7 @@
 (function () {
   var T = {
     en: {
+      skip: "Skip to main content",
       version: "CYBERHACK · v1.3.1",
       title: "VOID AUDITOR",
       subtitle: "Zero Trust Android forensics toolkit — audit, cache purge, network scan, and AI-assisted analysis via Shizuku (no root).",
@@ -457,6 +500,7 @@
       footer: "VOID Auditor · CyberHack Edition · v1.3.1"
     },
     ru: {
+      skip: "Перейти к содержимому",
       version: "CYBERHACK · v1.3.1",
       title: "VOID AUDITOR",
       subtitle: "Zero Trust toolkit для Android-форензики: аудит, очистка кэша, сетевой скан и AI-анализ через Shizuku (без root).",
@@ -524,9 +568,34 @@
       var on = t.getAttribute("data-tab") === id;
       t.classList.toggle("active", on);
       t.setAttribute("aria-selected", on ? "true" : "false");
+      t.setAttribute("tabindex", on ? "0" : "-1");
     });
     document.querySelectorAll(".panel").forEach(function (p) {
-      p.classList.toggle("active", p.id === "panel-" + id);
+      var on = p.id === "panel-" + id;
+      p.classList.toggle("active", on);
+      p.hidden = !on;
+    });
+  }
+
+  // Keyboard navigation for the tablist (WAI-ARIA APG: arrow keys + Home/End, roving tabindex)
+  var tablistEl = document.querySelector(".tabs");
+  if (tablistEl) {
+    tablistEl.addEventListener("keydown", function (e) {
+      var tabs = Array.prototype.slice.call(tablistEl.querySelectorAll('[role="tab"]'));
+      var idx = tabs.indexOf(document.activeElement);
+      if (idx === -1) return;
+      var next = -1;
+      if (e.key === "ArrowRight") next = idx + 1;
+      else if (e.key === "ArrowLeft") next = idx - 1;
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = tabs.length - 1;
+      else return;
+      e.preventDefault();
+      if (next < 0) next = tabs.length - 1;
+      if (next >= tabs.length) next = 0;
+      var t = tabs[next];
+      t.focus();
+      activateTab(t.getAttribute("data-tab"));
     });
   }
 

@@ -17,7 +17,16 @@
 /* ГЛОБАЛЬНЫЙ ОТКЛИК ДЛЯ ВСЕХ КНОПОК */
 button {
   transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
-  outline: none !important;
+}
+
+/* Фокус-индикатор: убираем только у мыши, для клавиатуры оставляем видимый контур */
+button:focus {
+  outline: none;
+}
+
+button:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
 }
 
 button:active {
@@ -75,7 +84,7 @@ button:active {
 }
 
 .t-line { margin-bottom: 4px; line-height: 1.4; }
-.t-time { color: #475569; margin-right: 8px; }
+.t-time { color: #94a3b8; margin-right: 8px; }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
@@ -95,4 +104,10 @@ button:active {
   pointer-events: none;
   animation: scanline 12s linear infinite;
   z-index: 50;
+}
+
+/* Уважение к prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .scanline { animation: none; }
+  button { transition: none; }
 }

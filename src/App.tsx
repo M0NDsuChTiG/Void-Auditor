@@ -147,12 +147,13 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
 
-  const CyberButton = ({ onClick, children, id, fullWidth = false, color = cyan, className = "", activeColor = "#fff" }: any) => {
+  const CyberButton = ({ onClick, children, id, fullWidth = false, color = cyan, className = "", activeColor = "#fff", ariaLabel }: any) => {
     const isThisExecuting = isExecuting && currentActionId === id;
     return (
       <button 
         onClick={() => { hapticClick(); onClick(); }} 
         disabled={isExecuting && !isThisExecuting}
+        aria-label={ariaLabel}
         className={`cyber-border ${className}`}
         style={{
           width: fullWidth ? '100%' : 'auto',
@@ -183,13 +184,13 @@ export default function App() {
       style={{ 
         flex: 1, padding: '10px 2px', 
         background: activeTab === id ? 'rgba(34, 211, 238, 0.1)' : 'transparent', 
-        color: activeTab === id ? cyan : '#475569', 
+        color: activeTab === id ? cyan : '#94a3b8', 
         border: 'none',
         borderBottom: activeTab === id ? `2px solid ${cyan}` : '2px solid transparent',
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px'
       }}
     >
-      <Icon size={16} color={activeTab === id ? cyan : '#475569'} />
+      <Icon size={16} color={activeTab === id ? cyan : '#94a3b8'} aria-hidden="true" />
       <span style={{ fontSize: '9px', fontWeight: 'bold', fontFamily: "'Space Mono', monospace", letterSpacing: '1px' }}>{label}</span>
     </button>
   );
@@ -219,8 +220,8 @@ export default function App() {
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: status === 'ONLINE' ? emerald : (status === 'PENDING' ? amber : danger) }} className={status === 'ONLINE' ? 'animate-pulse' : ''}></div>
             <span style={{ fontSize: '10px', fontFamily: "'Space Mono', monospace", color: status === 'ONLINE' ? emerald : (status === 'PENDING' ? amber : danger) }}>{status}</span>
           </div>
-          <button onClick={() => { hapticClick(); setActiveTab('help'); }} style={{ background: 'transparent', border: 'none', color: cyan }}>
-            <Star size={20} fill={activeTab === 'help' ? cyan : 'transparent'} />
+          <button onClick={() => { hapticClick(); setActiveTab('help'); }} aria-label="Help" style={{ background: 'transparent', border: 'none', color: cyan, cursor: 'pointer' }}>
+            <Star size={20} fill={activeTab === 'help' ? cyan : 'transparent'} aria-hidden="true" />
           </button>
         </div>
       </header>
@@ -241,7 +242,9 @@ export default function App() {
             <div className="cyber-border warning" style={{ padding: '20px', background: 'rgba(245, 158, 11, 0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                     <h2 style={{ fontFamily: "'Space Mono', monospace", color: amber, fontSize: '14px', fontWeight: 'bold' }}>{"> "}STANDALONE_HELP</h2>
-                    <X size={24} onClick={() => setActiveTab('dashboard')} color={amber} />
+                    <button type="button" onClick={() => setActiveTab('dashboard')} aria-label="Close help" style={{ background: 'transparent', border: 'none', color: amber, cursor: 'pointer', padding: '4px', lineHeight: 0 }}>
+                      <X size={24} aria-hidden="true" />
+                    </button>
                 </div>
                 <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: 1.8, fontFamily: "'IBM Plex Mono', monospace" }}>
                    [1] Установите приложение **Shizuku** на телефон.<br/>
@@ -276,8 +279,8 @@ export default function App() {
           {activeTab === 'packages' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', gap: '5px' }}>
-                <input style={{ flex: 1, background: '#020617', color: cyan, border: '1px solid #1e293b', padding: '12px', outline: 'none', fontFamily: "'Space Mono', monospace", fontSize: '11px' }} placeholder="FILTER..." value={searchPkg} onChange={e => setSearchPkg(e.target.value)} />
-                <CyberButton onClick={loadPackages} id="list_packages"><RefreshCw size={16} /></CyberButton>
+                <input aria-label="Filter packages" style={{ flex: 1, background: '#020617', color: cyan, border: '1px solid #1e293b', padding: '12px', outline: 'none', fontFamily: "'Space Mono', monospace", fontSize: '11px' }} placeholder="FILTER..." value={searchPkg} onChange={e => setSearchPkg(e.target.value)} />
+                <CyberButton onClick={loadPackages} id="list_packages" ariaLabel="Reload package list"><RefreshCw size={16} aria-hidden="true" /></CyberButton>
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px' }}>
@@ -302,13 +305,13 @@ export default function App() {
                                           <div key={pkg.name} style={{ padding: '10px', border: '1px solid #1e293b', background: '#020617', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                               <span style={{ fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', color: '#cbd5e1', fontWeight: 'bold' }}>{pkg.name}</span>
                                               <div style={{ display: 'flex', gap: '4px' }}>
-                                                  <button onClick={() => callApi('force_stop', { package: pkg.name }, `stop_${pkg.name}`)} style={{ flex: 1, background: 'rgba(245, 158, 11, 0.1)', color: amber, border: `1px solid ${amber}`, padding: '6px', fontSize: '9px' }}>STOP</button>
+                                                  <button aria-label={`Force stop ${pkg.name}`} onClick={() => callApi('force_stop', { package: pkg.name }, `stop_${pkg.name}`)} style={{ flex: 1, background: 'rgba(245, 158, 11, 0.1)', color: amber, border: `1px solid ${amber}`, padding: '6px', fontSize: '9px' }}>STOP</button>
                                                   {pkg.status !== 'DISABLED' ? (
-                                                      <button onClick={() => callApi('freeze', { package: pkg.name }, `off_${pkg.name}`)} style={{ flex: 1, background: 'rgba(239, 68, 68, 0.1)', color: danger, border: `1px solid ${danger}`, padding: '6px', fontSize: '9px' }}>OFF</button>
+                                                      <button aria-label={`Disable ${pkg.name}`} onClick={() => callApi('freeze', { package: pkg.name }, `off_${pkg.name}`)} style={{ flex: 1, background: 'rgba(239, 68, 68, 0.1)', color: danger, border: `1px solid ${danger}`, padding: '6px', fontSize: '9px' }}>OFF</button>
                                                   ) : (
-                                                      <button onClick={() => callApi('unfreeze', { package: pkg.name }, `on_${pkg.name}`)} style={{ flex: 1, background: 'rgba(16, 185, 129, 0.1)', color: emerald, border: `1px solid ${emerald}`, padding: '6px', fontSize: '9px' }}>ON</button>
+                                                      <button aria-label={`Enable ${pkg.name}`} onClick={() => callApi('unfreeze', { package: pkg.name }, `on_${pkg.name}`)} style={{ flex: 1, background: 'rgba(16, 185, 129, 0.1)', color: emerald, border: `1px solid ${emerald}`, padding: '6px', fontSize: '9px' }}>ON</button>
                                                   )}
-                                                  <button onClick={() => callApi('uninstall', { package: pkg.name }, `del_${pkg.name}`)} style={{ flex: 1, background: 'rgba(255, 255, 255, 0.05)', color: '#fff', border: '1px solid #475569', padding: '6px', fontSize: '9px' }}>DEL</button>
+                                                  <button aria-label={`Uninstall ${pkg.name}`} onClick={() => callApi('uninstall', { package: pkg.name }, `del_${pkg.name}`)} style={{ flex: 1, background: 'rgba(255, 255, 255, 0.05)', color: '#fff', border: '1px solid #475569', padding: '6px', fontSize: '9px' }}>DEL</button>
                                               </div>
                                           </div>
                                       ))}
@@ -326,8 +329,8 @@ export default function App() {
                 <div className="cyber-border warning" style={{ padding: '15px' }}>
                     <h2 style={{ fontSize: '11px', fontWeight: 'bold', color: amber, marginBottom: '10px' }}>{"> "}LOCAL_FS</h2>
                     <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
-                        <input style={{ flex: 1, background: '#020617', color: amber, border: '1px solid #78350f', padding: '12px', outline: 'none', fontSize: '11px' }} value={filePath} onChange={e => setFilePath(e.target.value)} />
-                        <CyberButton onClick={() => callApi('list_dir', { path: filePath }, 'list_dir')} id="list_dir" color={amber}><RefreshCw size={16} /></CyberButton>
+                        <input aria-label="File path" style={{ flex: 1, background: '#020617', color: amber, border: '1px solid #78350f', padding: '12px', outline: 'none', fontSize: '11px' }} value={filePath} onChange={e => setFilePath(e.target.value)} />
+                        <CyberButton onClick={() => callApi('list_dir', { path: filePath }, 'list_dir')} id="list_dir" color={amber} ariaLabel="List directory"><RefreshCw size={16} aria-hidden="true" /></CyberButton>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                         <CyberButton onClick={() => callApi('dir_size', { path: filePath }, 'dir_size')} id="dir_size" color={amber} fullWidth>CALCULATE_SIZE</CyberButton>
@@ -341,7 +344,7 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <div className="cyber-border" style={{ padding: '15px' }}>
                     <h2 style={{ fontSize: '11px', fontWeight: 'bold', color: cyan, marginBottom: '10px' }}>{"> "}LOCAL_SHELL</h2>
-                    <textarea style={{ width: '100%', height: '120px', background: '#020617', color: '#e2e8f0', border: '1px solid #1e293b', padding: '12px', outline: 'none', fontSize: '11px', resize: 'none' }} placeholder="Enter shell command..." value={customCmd} onChange={e => setCustomCmd(e.target.value)} />
+                    <textarea aria-label="Shell command" style={{ width: '100%', height: '120px', background: '#020617', color: '#e2e8f0', border: '1px solid #1e293b', padding: '12px', outline: 'none', fontSize: '11px', resize: 'none' }} placeholder="Enter shell command..." value={customCmd} onChange={e => setCustomCmd(e.target.value)} />
                     <div style={{ marginTop: '10px' }}>
                         <CyberButton onClick={() => callApi('shell', { command: customCmd }, 'shell_exec')} id="shell_exec" fullWidth color={cyan}><Send size={14} /> EXECUTE</CyberButton>
                     </div>
@@ -354,10 +357,10 @@ export default function App() {
           <div className="cyber-border" style={{ height: '240px', background: 'rgba(2, 6, 23, 0.95)', borderTop: `1px solid ${cyan}`, marginTop: '12px', padding: '0', display: 'flex', flexDirection: 'column' }}>
               <div style={{ padding: '8px 12px', borderBottom: '1px solid #1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a' }}>
                   <span style={{ fontSize: '9px', color: cyan, fontWeight: 'bold' }}>{"> "}STANDALONE_LOG_STREAM</span>
-                  <button onClick={() => { hapticClick(); setOutput(''); }} style={{ background: 'transparent', border: 'none', color: '#64748b', fontSize: '9px' }}>[CLEAR]</button>
+                  <button onClick={() => { hapticClick(); setOutput(''); }} style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '9px' }}>[CLEAR]</button>
               </div>
               <div style={{ padding: '10px', overflowY: 'auto', flexGrow: 1, display: 'flex', flexDirection: 'column-reverse' }}>
-                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '10px', color: '#cbd5e1', fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.5 }}>{output || 'AWAITING_LOCAL_ACTION...'}</pre>
+                  <pre role="log" aria-live="polite" style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '10px', color: '#cbd5e1', fontFamily: "'IBM Plex Mono', monospace", lineHeight: 1.5 }}>{output || 'AWAITING_LOCAL_ACTION...'}</pre>
               </div>
           </div>
         )}
