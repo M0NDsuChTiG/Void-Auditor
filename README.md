@@ -81,7 +81,7 @@ adb install -r Void-Auditor-v1.3.1.apk
 ```bash
 git clone https://github.com/M0NDsuChTiG/Void-Auditor.git
 cd Void-Auditor/android
-# JDK 17+ recommended (CI uses 17; some environments use 21)
+# JDK 21 required (CI uses 21)
 ./gradlew :app:assembleDebug
 ```
 
@@ -110,6 +110,16 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 ---
 
 ## Release notes (recent)
+
+### v1.4.1
+
+- **AI Governance Layer (Intent Proposal)** — Gemini acts as advisor only: `PROPOSAL_JSON` (whitelisted `capabilityId`) → sanitize/parse/validate → `AI_PROPOSAL_REVIEW` dialog → PolicyEngine → CapabilityExecutor → AuditLogger (`ActorType.AI`). Destructive ops stay out of the whitelist by design.
+- **Gemini API key** stored in EncryptedSharedPreferences (AES-256-GCM) with automatic migration from legacy plain prefs.
+- **Command injection closed** in the network scanner — strict IPv4 validation before shell interpolation (`generateTargets` / `scanHosts`).
+- **Gemini 429 UX** — one user bubble per request, single automatic retry without recursion, countdown only via `LaunchedEffect`.
+- **Banking deep scan** — dangerous-permission detection now works (regex instead of literal search).
+- **Report export** via MediaStore (scoped storage, API 29+) with legacy fallback.
+- **Build/CI** — moved to JDK 21, jetifier disabled (fixes lint), dead Capacitor layout removed (fixes lint `MissingClass`), unit tests run in CI.
 
 ### v1.3.1
 
