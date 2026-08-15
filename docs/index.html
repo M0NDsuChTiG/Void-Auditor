@@ -248,20 +248,54 @@
       text-align: center;
     }
     .feature-row {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 0.5rem;
-      padding: 0.75rem 1rem;
+      position: relative;
+      padding: 0;
       border-bottom: 1px solid var(--border);
       font-size: 0.9rem;
     }
-    .feature-row .name {
+    .feature-row.expanded { background: var(--surface); }
+    .feature-heading { margin: 0; }
+    .feature-toggle {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: none;
+      border: none;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .feature-toggle .name {
       font-family: ui-monospace, monospace;
       color: var(--accent);
       min-width: 140px;
     }
-    .feature-row .desc { color: var(--muted); flex: 1; }
+    .feature-toggle .desc { color: var(--muted); flex: 1; }
+    .feature-toggle .feature-more {
+      font-family: ui-monospace, monospace;
+      color: var(--accent);
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .feature-detail {
+      padding: 0 1rem 0.75rem 2.5rem;
+      font-size: 0.85rem;
+    }
+    .feature-detail ul { list-style: none; margin: 0; }
+    .feature-detail li {
+      padding: 0.2rem 0;
+      color: var(--muted);
+    }
+    .feature-detail li::before {
+      content: '▸ ';
+      color: var(--accent);
+      font-family: ui-monospace, monospace;
+    }
 
     .security-list {
       list-style: none;
@@ -544,12 +578,96 @@
 
   <section id="panel-matrix" class="panel" role="tabpanel" aria-labelledby="tab-matrix" hidden>
     <h2 data-i18n="matrix_h">FUNCTION MATRIX</h2>
-    <div class="feature-row"><span class="name">Dashboard</span><span class="desc" data-i18n="m1">Risk score + auto fix hints</span></div>
-    <div class="feature-row"><span class="name">Device Audit</span><span class="desc" data-i18n="m2">SELinux, ADB Wi‑Fi, Accessibility, packages</span></div>
-    <div class="feature-row"><span class="name">Cache</span><span class="desc" data-i18n="m3">Scan / dry-run / PURGE phrase / rescan</span></div>
-    <div class="feature-row"><span class="name">NET_SCAN</span><span class="desc" data-i18n="m4">Batch ping + MAC + ports</span></div>
-    <div class="feature-row"><span class="name">AI</span><span class="desc" data-i18n="m5">Proposal only → policy → confirm</span></div>
-    <div class="feature-row"><span class="name">TRACE</span><span class="desc" data-i18n="m6">Structured forensic events</span></div>
+    <div class="feature-row">
+      <h3 class="feature-heading">
+        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-1">
+          <span class="name">Dashboard</span><span class="desc" data-i18n="m1">Risk score + auto fix hints</span>
+          <span class="feature-more" aria-hidden="true">+</span>
+        </button>
+      </h3>
+      <div id="matrix-detail-1" class="feature-detail" hidden>
+        <ul>
+          <li data-i18n="m1d1">Aggregates a 0–100 risk from device state checks</li>
+          <li data-i18n="m1d2">Each fix hint maps to a confirmable capability with a policy decision</li>
+          <li data-i18n="m1d3">State is retained across tab switches</li>
+        </ul>
+      </div>
+    </div>
+    <div class="feature-row">
+      <h3 class="feature-heading">
+        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-2">
+          <span class="name">Device Audit</span><span class="desc" data-i18n="m2">SELinux, ADB Wi‑Fi, Accessibility, packages</span>
+          <span class="feature-more" aria-hidden="true">+</span>
+        </button>
+      </h3>
+      <div id="matrix-detail-2" class="feature-detail" hidden>
+        <ul>
+          <li data-i18n="m2d1">Checks SELinux enforcing, ADB Wi‑Fi exposure, Accessibility services</li>
+          <li data-i18n="m2d2">Lists installed packages and key system properties</li>
+          <li data-i18n="m2d3">Battery / build / hardware fingerprint via dumpsys</li>
+        </ul>
+      </div>
+    </div>
+    <div class="feature-row">
+      <h3 class="feature-heading">
+        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-3">
+          <span class="name">Cache</span><span class="desc" data-i18n="m3">Scan / dry-run / PURGE phrase / rescan</span>
+          <span class="feature-more" aria-hidden="true">+</span>
+        </button>
+      </h3>
+      <div id="matrix-detail-3" class="feature-detail" hidden>
+        <ul>
+          <li data-i18n="m3d1">External cache scan with per-app sizes</li>
+          <li data-i18n="m3d2">Dry-run first; PURGE requires a typed phrase (3-factor confirm)</li>
+          <li data-i18n="m3d3">Selective clean + honest EXTERNAL_CACHE_ONLY without root</li>
+        </ul>
+      </div>
+    </div>
+    <div class="feature-row">
+      <h3 class="feature-heading">
+        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-4">
+          <span class="name">NET_SCAN</span><span class="desc" data-i18n="m4">Batch ping + MAC + ports</span>
+          <span class="feature-more" aria-hidden="true">+</span>
+        </button>
+      </h3>
+      <div id="matrix-detail-4" class="feature-detail" hidden>
+        <ul>
+          <li data-i18n="m4d1">One Shizuku batch ping for the whole subnet (~3 s per /24)</li>
+          <li data-i18n="m4d2">MAC via /proc/net/arp with vendor lookup</li>
+          <li data-i18n="m4d3">Common ports + full 1–65535 scan with service detection</li>
+        </ul>
+      </div>
+    </div>
+    <div class="feature-row">
+      <h3 class="feature-heading">
+        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-5">
+          <span class="name">AI</span><span class="desc" data-i18n="m5">Proposal only → policy → confirm</span>
+          <span class="feature-more" aria-hidden="true">+</span>
+        </button>
+      </h3>
+      <div id="matrix-detail-5" class="feature-detail" hidden>
+        <ul>
+          <li data-i18n="m5d1">Gemini emits PROPOSAL_JSON with a whitelisted capabilityId</li>
+          <li data-i18n="m5d2">Human review → PolicyEngine → CapabilityExecutor</li>
+          <li data-i18n="m5d3">Audited as ActorType.AI; no direct shell execution</li>
+        </ul>
+      </div>
+    </div>
+    <div class="feature-row">
+      <h3 class="feature-heading">
+        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-6">
+          <span class="name">TRACE</span><span class="desc" data-i18n="m6">Structured forensic events</span>
+          <span class="feature-more" aria-hidden="true">+</span>
+        </button>
+      </h3>
+      <div id="matrix-detail-6" class="feature-detail" hidden>
+        <ul>
+          <li data-i18n="m6d1">Who, what, risk, policy decision, exit code, duration</li>
+          <li data-i18n="m6d2">App-private storage; export via MediaStore when needed</li>
+          <li data-i18n="m6d3">USER and AI actor types are distinguished</li>
+        </ul>
+      </div>
+    </div>
   </section>
 
   <section id="panel-security" class="panel" role="tabpanel" aria-labelledby="tab-security" hidden>
@@ -660,6 +778,24 @@
       m4: "Batch ping + MAC + ports",
       m5: "Proposal only → policy → confirm",
       m6: "Structured forensic events",
+      m1d1: "Aggregates a 0–100 risk from device state checks",
+      m1d2: "Each fix hint maps to a confirmable capability with a policy decision",
+      m1d3: "State is retained across tab switches",
+      m2d1: "Checks SELinux enforcing, ADB Wi‑Fi exposure, Accessibility services",
+      m2d2: "Lists installed packages and key system properties",
+      m2d3: "Battery / build / hardware fingerprint via dumpsys",
+      m3d1: "External cache scan with per-app sizes",
+      m3d2: "Dry-run first; PURGE requires a typed phrase (3-factor confirm)",
+      m3d3: "Selective clean + honest EXTERNAL_CACHE_ONLY without root",
+      m4d1: "One Shizuku batch ping for the whole subnet (~3 s per /24)",
+      m4d2: "MAC via /proc/net/arp with vendor lookup",
+      m4d3: "Common ports + full 1–65535 scan with service detection",
+      m5d1: "Gemini emits PROPOSAL_JSON with a whitelisted capabilityId",
+      m5d2: "Human review → PolicyEngine → CapabilityExecutor",
+      m5d3: "Audited as ActorType.AI; no direct shell execution",
+      m6d1: "Who, what, risk, policy decision, exit code, duration",
+      m6d2: "App-private storage; export via MediaStore when needed",
+      m6d3: "USER and AI actor types are distinguished",
       sec_h: "PROTOCOLS",
       s1: "Destructive actions require explicit confirmation",
       s2: "Gemini API keys in EncryptedSharedPreferences (AES-256-GCM)",
@@ -732,6 +868,24 @@
       m4: "Batch ping + MAC + порты",
       m5: "Только proposal → policy → confirm",
       m6: "Структурированные forensic-события",
+      m1d1: "Собирает риск 0–100 из проверок состояния устройства",
+      m1d2: "Каждая подсказка — подтверждаемая capability с решением политики",
+      m1d3: "Состояние сохраняется между переключением вкладок",
+      m2d1: "Проверяет SELinux enforcing, экспонирование ADB Wi‑Fi, службы Accessibility",
+      m2d2: "Список установленных пакетов и ключевых системных свойств",
+      m2d3: "Отпечаток батареи / сборки / железа через dumpsys",
+      m3d1: "Скан external-кэша с размерами по приложениям",
+      m3d2: "Сначала dry-run; PURGE требует фразу (3-факторное подтверждение)",
+      m3d3: "Выборочная очистка + честный EXTERNAL_CACHE_ONLY без root",
+      m4d1: "Один batch ping через Shizuku на всю подсеть (~3 с на /24)",
+      m4d2: "MAC из /proc/net/arp с определением вендора",
+      m4d3: "Основные порты + полный скан 1–65535 с определением сервисов",
+      m5d1: "Gemini формирует PROPOSAL_JSON с whitelisted capabilityId",
+      m5d2: "Подтверждение человека → PolicyEngine → CapabilityExecutor",
+      m5d3: "Аудит как ActorType.AI; без прямого выполнения shell",
+      m6d1: "Кто, что, риск, решение политики, exit code, время",
+      m6d2: "Private storage; экспорт через MediaStore при необходимости",
+      m6d3: "Различаются actor-типы USER и AI",
       sec_h: "ПРОТОКОЛЫ",
       s1: "Деструктивные действия — только с подтверждением",
       s2: "Ключи Gemini в EncryptedSharedPreferences (AES-256-GCM)",
@@ -826,6 +980,20 @@
       var card = btn.closest(".card");
       if (card) card.classList.toggle("expanded", !expanded);
       var more = btn.querySelector(".card-more");
+      if (more) more.textContent = expanded ? "+" : "−";
+    });
+  });
+
+  // Matrix rows: click to expand details
+  document.querySelectorAll(".feature-toggle").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var expanded = btn.getAttribute("aria-expanded") === "true";
+      btn.setAttribute("aria-expanded", expanded ? "false" : "true");
+      var detail = document.getElementById(btn.getAttribute("aria-controls"));
+      if (detail) detail.hidden = expanded;
+      var row = btn.closest(".feature-row");
+      if (row) row.classList.toggle("expanded", !expanded);
+      var more = btn.querySelector(".feature-more");
       if (more) more.textContent = expanded ? "+" : "−";
     });
   });
