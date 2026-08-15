@@ -37,11 +37,23 @@ object NetworkScanner {
         5353 to "mDNS", 5555 to "ADB", 5900 to "VNC", 5432 to "PostgreSQL"
     )
 
+    private val IPV4_REGEX = Regex("""^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$""")
+
+    /**
+     * Валидация IPv4-адреса (4 октета 0..255).
+     * Обязательна перед интерполяцией адресов в shell-скрипты — защита от command injection.
+     */
+    internal fun isValidIpv4(ip: String): Boolean {
+        val m = IPV4_REGEX.matchEntire(ip.trim()) ?: return false
+        return m.groupValues.drop(1).all { it.toInt() in 0..255 }
+    }
+
     suspend fun generateTargets(baseIp: String, prefix: Int = 24): List<ScanTarget> {
         return withContext(Dispatchers.Default) {
             try {
+                // Валидация IPv4 перед построением диапазона (защита от инъекций в shell)
+                if (!isValidIpv4(baseIp)) return@withContext emptyList()
                 val parts = baseIp.split(".")
-                if (parts.size != 4) return@withContext emptyList()
                 val base = parts.take(3).joinToString(".")
                 val hostBits = 32 - prefix
                 val total = (1 shl hostBits) - 2
@@ -58,14 +70,16 @@ object NetworkScanner {
     }
 
     suspend fun scanHosts(targets: List<ScanTarget>, onProgress: (Int, Int) -> Unit = { _, _ -> }): List<HostInfo> {
-        if (targets.isEmpty()) return emptyList()
-        onProgress(1, targets.size)
+        // Defense in depth: допускаем в shell-скрипт только валидные IPv4
+        val validTargets = targets.filter { isValidIpv4(it.ip) }
+        if (validTargets.isEmpty()) return emptyList()
+        onProgress(1, validTargets.size)
 
         val aliveIps = try {
             withTimeout(45_000) {
                 val script = buildString {
                     append("for ip in ")
-                    append(targets.joinToString(" ") { it.ip })
+                    append(validTargets.joinToString(" ") { it.ip })
                     append("; do (ping -c 1 -W 1 \"\$ip\" >/dev/null 2>&1 && echo \"\$ip\") & done; wait")
                 }
                 val result = ShizukuExecutor.executeCommand(script, timeoutMs = 45_000)
@@ -77,7 +91,7 @@ object NetworkScanner {
         } catch (_: Exception) {
             emptyList()
         }
-        onProgress(targets.size, targets.size)
+        onProgress(validTargets.size, validTargets.size)
 
         return withContext(Dispatchers.IO) {
             aliveIps.map { ip ->
