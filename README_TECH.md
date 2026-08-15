@@ -1,6 +1,6 @@
 # VOID Auditor — Technical Documentation
 
-> English technical overview · aligned with **v1.3.1**  
+> English technical overview · aligned with **v1.4.2**  
 > For the project landing README see [README.md](README.md). Russian short doc: [README_RU.md](README_RU.md).
 
 ---
@@ -150,13 +150,13 @@ cd Void-Auditor/android
 Typical output:
 
 ```text
-android/app/build/outputs/apk/debug/Void-Auditor-v1.3.1.apk
+android/app/build/outputs/apk/debug/Void-Auditor-v1.4.2.apk
 ```
 
 Install:
 
 ```bash
-adb install -r app/build/outputs/apk/debug/Void-Auditor-v1.3.1.apk
+adb install -r app/build/outputs/apk/debug/Void-Auditor-v1.4.2.apk
 ```
 
 **Requirements on device:** Android 8.0+, Shizuku v13+ started, permission granted to VOID Auditor.
@@ -182,7 +182,7 @@ Exact file set evolves; treat this as a map, not a frozen tree.
 ## 8. Releases
 
 - GitHub Releases: https://github.com/M0NDsuChTiG/Void-Auditor/releases  
-- Latest tag example: **v1.3.1** (WIFI_ADB verify, batch NET_SCAN, cache E2E)  
+- Latest tag example: **v1.4.2** (port-scan reliability, Gemini 3 models, a11y)  
 - Always prefer the **Assets** APK + published **sha256** over random mirrors  
 
 ---
@@ -190,7 +190,7 @@ Exact file set evolves; treat this as a map, not a frozen tree.
 ## 9. Related links
 
 - [README.md](README.md) — English project README  
-- [README_RU.md](README_RU.md) — Russian technical notes (may lag; this file tracks v1.3.1)  
+- [README_RU.md](README_RU.md) — Russian technical notes (may lag; this file tracks v1.4.2)  
 - [SECURITY.md](SECURITY.md) — vulnerability reporting  
 - [Landing](https://m0ndsuchtig.github.io/Void-Auditor/) — Pages site (EN default)  
 - Screenshots: [`screenshots/`](screenshots/)  
