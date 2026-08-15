@@ -1,7 +1,10 @@
 package com.kuzyamond.voidauditor
 
+import android.content.ContentValues
 import android.content.Context
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import android.widget.Toast
 import com.kuzyamond.voidauditor.security.SecurityModule
 import androidx.compose.foundation.BorderStroke
@@ -32,11 +35,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.kuzyamond.voidauditor.core.ActorType
+import com.kuzyamond.voidauditor.core.AuditLogger
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.PolicyEngine
 import com.kuzyamond.voidauditor.core.ShizukuExecutor
 import com.kuzyamond.voidauditor.core.ai.AIProposalService
-import com.kuzyamond.voidauditor.core.ai.ContextSanitizerPipeline
 import com.kuzyamond.voidauditor.core.ai.IntentProposal
-import com.kuzyamond.voidauditor.core.AuditLogger
+import com.kuzyamond.voidauditor.core.ai.extractProposalJson
+import com.kuzyamond.voidauditor.core.ai.proposalToCapability
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStreamWriter
@@ -80,6 +87,12 @@ val availableModels = listOf(
     "gemini-1.5-flash" to "1.5_FLASH"
 )
 
+// Реальные имена опасных разрешений в выводе `dumpsys package` (android.permission.X: granted=true)
+private val DANGEROUS_PERMISSION_REGEX = Regex(
+    "android\\.permission\\.(SEND_SMS|RECEIVE_SMS|READ_SMS|READ_CALL_LOG|WRITE_CALL_LOG|READ_CONTACTS|WRITE_CONTACTS|SYSTEM_ALERT_WINDOW|READ_PHONE_STATE|RECORD_AUDIO|ACCESS_FINE_LOCATION|REQUEST_INSTALL_PACKAGES|QUERY_ALL_PACKAGES)|BIND_ACCESSIBILITY_SERVICE",
+    RegexOption.IGNORE_CASE
+)
+
 val systemInstruction = """
 Ты — сертифицированный Senior Android Security & Digital Forensics эксперт (Red/Blue Team, 10+ лет опыта).
 Специализация: Shizuku, ADB, pm/am/dumpsys, SELinux, Accessibility Abuse, Banking Trojan detection, IOC hunting, DevSecOps.
@@ -91,6 +104,17 @@ val systemInstruction = """
 - Всегда давай готовые команды для VOID Auditor (SHELL / SCRIPT_EXECUTOR)
 - Предлагай автоматизированные скрипты и hardening-рекомендации
 - Отвечай на русском, структурировано, в профессиональном кибер-стиле
+
+=== INTENT PROPOSAL PROTOCOL (ОБЯЗАТЕЛЬНО) ===
+Если ты предлагаешь выполнить действие на устройстве (команду, сбор логов, чтение файла, инспекцию) — в КОНЦЕ ответа добавь строго ОДИН машиночитаемый блок в формате:
+PROPOSAL_JSON: {"proposedCapability":{"capabilityId":"LIST_PACKAGES","parameters":{"filter":"-3"}},"advisoryText":"Краткое описание действия","confidence":0.9}
+
+Разрешённые capabilityId (строго из списка, другие невозможны):
+- LIST_PACKAGES — список установленных пакетов; параметр filter: "all" или "-3"
+- COLLECT_LOGS — сбор логов; параметр service: "logcat" или имя сервиса
+- ANALYZE_LOG / INSPECT_FILE — чтение файла; параметр path: абсолютный путь
+- GENERATE_REPORT — генерация отчёта; параметров нет
+НИКОГДА не предлагай произвольные shell-команды в PROPOSAL_JSON — только перечисленные capabilityId. Если действие не входит в список, просто опиши его текстом БЕЗ блока PROPOSAL_JSON.
 """.trimIndent()
 
 @Composable
@@ -98,7 +122,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val prefs = remember { context.getSharedPreferences("void_auditor_ai", Context.MODE_PRIVATE) }
-    var apiKey by remember { mutableStateOf(prefs.getString("gemini_key", "") ?: "") }
+    var apiKey by remember { mutableStateOf(runCatching { SecurityModule.getApiKey(context) }.getOrNull() ?: "") }
     var selectedModel by remember { mutableStateOf(prefs.getString("gemini_model", "gemini-2.0-flash-lite") ?: "gemini-2.0-flash-lite") }
     var showKeyInput by remember { mutableStateOf(apiKey.isEmpty()) }
     var inputText by remember { mutableStateOf("") }
@@ -106,10 +130,23 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
     var isProcessing by remember { mutableStateOf(false) }
     var retryCooldown by remember { mutableStateOf(0) }
     var showSaveDialog by remember { mutableStateOf(false) }
+    var pendingProposal by remember { mutableStateOf<IntentProposal?>(null) }
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         ShizukuExecutor.init()
+        // Миграция: если ключ лежал в открытых SharedPreferences — переносим в зашифрованные
+        if (apiKey.isBlank()) {
+            val legacyKey = prefs.getString("gemini_key", null)?.trim()
+            if (!legacyKey.isNullOrBlank()) {
+                runCatching {
+                    SecurityModule.saveApiKey(context, legacyKey)
+                    prefs.edit().remove("gemini_key").apply()
+                    apiKey = legacyKey
+                    showKeyInput = false
+                }
+            }
+        }
     }
 
     LaunchedEffect(messages.size) {
@@ -120,7 +157,11 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         if (retryCooldown > 0) { delay(1000); retryCooldown-- }
     }
 
-    fun saveKey(key: String) { prefs.edit().putString("gemini_key", key.trim()).apply() }
+    fun saveKey(key: String) {
+        runCatching { SecurityModule.saveApiKey(context, key.trim()) }
+            .onSuccess { Toast.makeText(context, "✅ Ключ сохранён", Toast.LENGTH_SHORT).show() }
+            .onFailure { Toast.makeText(context, "❌ Не удалось сохранить ключ: ${it.localizedMessage}", Toast.LENGTH_LONG).show() }
+    }
     fun saveModel(model: String) { prefs.edit().putString("gemini_model", model).apply() }
     fun saveMessages() {
         val json = JSONArray().apply {
@@ -129,6 +170,58 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         prefs.edit().putString("chat_history", json).apply()
     }
     fun clearChat() { messages = emptyList(); prefs.edit().remove("chat_history").apply() }
+
+    fun approveProposal() {
+        val proposal = pendingProposal ?: return
+        pendingProposal = null
+        val capability = proposalToCapability(proposal)
+        if (capability == null) {
+            AuditLogger.log(
+                actor = ActorType.AI,
+                capability = "intent",
+                riskLevel = RiskLevel.HIGH,
+                decision = "REJECTED",
+                target = proposal.proposedCapability.capabilityId.name,
+                details = "Unmappable proposal (не входит в whitelist или не хватает параметров)"
+            )
+            messages = messages + ChatMessage("assistant", "⛔ PROPOSAL_REJECTED: действие не входит в whitelist или не хватает параметров.")
+            saveMessages()
+            return
+        }
+        AuditLogger.log(
+            actor = ActorType.AI,
+            capability = "intent",
+            riskLevel = PolicyEngine.severityFromScore(capability.riskScore),
+            decision = "APPROVED",
+            target = capability.description,
+            details = proposal.advisoryText
+        )
+        scope.launch {
+            val result = CapabilityExecutor.execute(capability)
+            val outcome = if (result.isSuccessful) {
+                "✅ EXECUTED: ${capability.description}\n${result.output.take(500)}"
+            } else {
+                "❌ NOT_EXECUTED: ${result.error}"
+            }
+            messages = messages + ChatMessage("assistant", outcome, PolicyEngine.severityFromScore(capability.riskScore).name)
+            saveMessages()
+        }
+    }
+
+    fun rejectProposal() {
+        val proposal = pendingProposal ?: return
+        pendingProposal = null
+        AuditLogger.log(
+            actor = ActorType.AI,
+            capability = "intent",
+            riskLevel = RiskLevel.LOW,
+            decision = "REJECTED",
+            target = proposal.proposedCapability.capabilityId.name,
+            details = "User rejected AI proposal"
+        )
+        messages = messages + ChatMessage("assistant", "⛔ PROPOSAL_REJECTED_BY_USER.")
+        saveMessages()
+    }
 
     fun parseGeminiResponse(body: String): String? {
         return try {
@@ -192,6 +285,14 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         messages = messages + ChatMessage("assistant", result, riskLevel)
         isProcessing = false
         saveMessages()
+
+        // AI Governance: если Gemini предложила действие — парсим Intent Proposal и ждём подтверждения пользователя
+        val proposalJson = extractProposalJson(result)
+        val parsedProposal = proposalJson?.let { AIProposalService.parseAndValidateProposal(it) }
+        if (parsedProposal != null) {
+            pendingProposal = parsedProposal
+            ShizukuExecutor.logListener?.invoke("INFO", "AI_PROPOSAL: ${parsedProposal.proposedCapability.capabilityId} awaiting user approval")
+        }
 
         if (retryCooldown > 0) {
             delay(retryCooldown * 1000L + 1000L)
@@ -296,9 +397,12 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
                     appendLine("• Version: ${output.lines().firstOrNull { it.contains("versionName") }?.substringAfter("versionName=") ?: "N/A"}")
                     appendLine("• Installer: ${output.lines().firstOrNull { it.contains("installerPackageName") }?.substringAfter("installerPackageName=") ?: "N/A"}")
                     
-                    // Опасные разрешения
-                    val dangerous = output.contains("SMS|CALL_LOG|CONTACTS|ACCESSIBILITY|SYSTEM_ALERT_WINDOW|READ_PHONE_STATE", ignoreCase = true)
-                    appendLine("• Dangerous Permissions: ${if (dangerous) "DETECTED ⚠" else "None"}")
+                    // Опасные разрешения: ищем реальные имена в выводе dumpsys (android.permission.X: granted=true)
+                    val dangerousPermissions = DANGEROUS_PERMISSION_REGEX.findAll(output)
+                        .map { it.value }
+                        .distinct()
+                        .toList()
+                    appendLine("• Dangerous Permissions: ${if (dangerousPermissions.isNotEmpty()) "DETECTED ⚠ ${dangerousPermissions.joinToString(", ")}" else "None"}")
                     
                     // Exported activities
                     if (output.contains("exported=true")) {
@@ -322,7 +426,6 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
     }
 
     // ====================== EXPORT REPORT ======================
-    // ====================== EXPORT REPORT (FIXED) ======================
     fun exportCurrentReport() {
         if (messages.isEmpty()) {
             Toast.makeText(context, "Нет данных для сохранения", Toast.LENGTH_SHORT).show()
@@ -349,15 +452,28 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         }
 
         try {
-            // Новое надёжное место — Downloads (работает стабильно)
-            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val appDir = File(downloadsDir, "ADB_Studio_Logs")
-            if (!appDir.exists()) appDir.mkdirs()
-
-            val file = File(appDir, filename)
-            
-            FileWriter(file).use { writer ->
-                writer.write(reportContent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Scoped storage: пишем в Downloads через MediaStore (разрешения не нужны)
+                val resolver = context.contentResolver
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, filename)
+                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                    put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/ADB_Studio_Logs")
+                }
+                val uri = resolver.insert(
+                    MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                    values
+                ) ?: throw Exception("MEDIASTORE_INSERT_FAILED")
+                resolver.openOutputStream(uri)?.use { stream ->
+                    OutputStreamWriter(stream).use { writer -> writer.write(reportContent) }
+                } ?: throw Exception("OUTPUT_STREAM_FAILED")
+            } else {
+                // API 26-28: прямое обращение к Downloads ещё работает
+                @Suppress("DEPRECATION")
+                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                val appDir = File(downloadsDir, "ADB_Studio_Logs")
+                if (!appDir.exists()) appDir.mkdirs()
+                FileWriter(File(appDir, filename)).use { writer -> writer.write(reportContent) }
             }
 
             Toast.makeText(
@@ -379,6 +495,70 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
     }
 
     // ====================== UI ======================
+    // ====================== AI PROPOSAL REVIEW (GOVERNANCE) ======================
+    val activeProposal = pendingProposal
+    if (activeProposal != null) {
+        val proposalCapability = proposalToCapability(activeProposal)
+        val proposalRisk = proposalCapability?.riskScore ?: 0
+        val proposalRiskLabel = PolicyEngine.severityLabel(proposalRisk)
+        val proposalRiskColor = when (proposalRiskLabel) {
+            "CRITICAL" -> Color(0xFFFF2D55)
+            "HIGH" -> Color(0xFFFF9500)
+            "MEDIUM" -> Color(0xFFFFCC00)
+            else -> CyberAccent
+        }
+        AlertDialog(
+            onDismissRequest = { rejectProposal() },
+            containerColor = CyberSurface,
+            titleContentColor = CyberAccent,
+            textContentColor = CyberText,
+            title = { Text("> AI_PROPOSAL_REVIEW", fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace) },
+            text = {
+                Column {
+                    Text(
+                        "RISK: $proposalRiskLabel (${proposalRisk}/100)",
+                        color = proposalRiskColor,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        activeProposal.advisoryText.ifBlank { "AI предлагает выполнить действие на устройстве." },
+                        color = CyberText,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "CAPABILITY: ${proposalCapability?.description ?: "UNMAPPED / NOT IN WHITELIST"}",
+                        color = CyberInfo,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    activeProposal.confidence?.let {
+                        Spacer(Modifier.height(6.dp))
+                        Text("CONFIDENCE: ${(it * 100).toInt()}%", color = Color(0xFF94A3B8), fontSize = 10.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { approveProposal() },
+                    enabled = proposalCapability != null,
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberAccent, contentColor = CyberBackground),
+                    shape = RoundedCornerShape(2.dp)
+                ) { Text("APPROVE & EXECUTE", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { rejectProposal() }) {
+                    Text("REJECT", color = CyberWarning, fontWeight = FontWeight.Bold)
+                }
+            },
+            shape = RoundedCornerShape(2.dp),
+            modifier = Modifier.border(1.dp, proposalRiskColor)
+        )
+    }
+
     if (showSaveDialog) {
         AlertDialog(
             onDismissRequest = { showSaveDialog = false },

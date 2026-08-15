@@ -98,4 +98,6 @@ dependencies {
     testImplementation "junit:junit:4.13.2"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4"
     testImplementation "io.mockk:mockk:1.13.10"
+    // Реальная реализация org.json для локальных unit-тестов (android.jar предоставляет заглушки)
+    testImplementation "org.json:json:20240303"
 }
