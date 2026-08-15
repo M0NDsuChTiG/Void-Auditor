@@ -80,6 +80,7 @@ private val hubItems = listOf(
     HubItem("CACHE", "CACHE", Icons.Default.Delete, CyberWarning),
     HubItem("CONN", "CONN", Icons.Default.Wifi, CyberInfo),
     HubItem("APPS", "APPS", Icons.Default.List, CyberAccent2),
+    HubItem("PERMS", "PERMS", Icons.Default.Security, CyberWarning),
     HubItem("ACTIVITY", "ACTIVITY", Icons.Default.Explore, CyberAccent),
     HubItem("BACKUP", "BACKUP", Icons.Default.Download, CyberWarning),
     HubItem("FS", "FS", Icons.Default.Folder, CyberInfo),
@@ -255,6 +256,7 @@ fun MainLayout() {
                      NavTab("AUDIT", Icons.Default.Shield, activeTab == "AUDIT") { activeTab = "AUDIT" }
                      NavTab("TRACE", Icons.Default.History, activeTab == "TRACE") { activeTab = "TRACE" }
                      NavTab("APPS", Icons.Default.List, activeTab == "APPS") { activeTab = "APPS" }
+                     NavTab("PERMS", Icons.Default.Security, activeTab == "PERMS") { activeTab = "PERMS" }
                      NavTab("ACTIVITY", Icons.Default.Explore, activeTab == "ACTIVITY") { activeTab = "ACTIVITY" }
                      NavTab("BACKUP", Icons.Default.Download, activeTab == "BACKUP") { activeTab = "BACKUP" }
                      NavTab("CACHE", Icons.Default.Delete, activeTab == "CACHE") { activeTab = "CACHE" }
@@ -287,6 +289,7 @@ fun MainLayout() {
                         "AUDIT" -> DashboardScreen()
                         "TRACE" -> AuditScreen()
                         "APPS" -> AppManagerScreen()
+                        "PERMS" -> PermissionAuditScreen()
                         "ACTIVITY" -> ActivityLauncherScreen()
                         "BACKUP" -> BackupScreen()
                         "CACHE" -> CacheCleanerScreen(
@@ -335,7 +338,7 @@ fun MainLayout() {
 }
 
 private fun tabNeedsConsole(tab: String): Boolean = when (tab) {
-    "SHELL", "SCRIPTS", "CONN", "CACHE", "TRACE", "AUDIT", "FS" -> true
+    "SHELL", "SCRIPTS", "CONN", "CACHE", "TRACE", "AUDIT", "FS", "PERMS" -> true
     else -> false
 }
 

@@ -91,7 +91,7 @@ APK output:
 android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 ```
 
-> ⚠️ **Требование сборки:** нужен **JDK 21 (Java 21)** — модуль `@capacitor/android` v8 компилируется под Java 21, на JDK 17 сборка падает с `invalid source release: 21`. Проверьте `java -version` и при необходимости укажите JDK 21 явно:
+> ⚠️ **Требование сборки:** нужен **JDK 21 (Java 21)** — CI и локальная сборка рассчитаны на него. Проверьте `java -version` и при необходимости укажите JDK 21 явно:
 >
 > ```bash
 > JAVA_HOME=/путь/к/jdk-21 ./gradlew assembleDebug
@@ -110,6 +110,13 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 ---
 
 ## Release notes (recent)
+
+### v1.4.3
+
+- **Permission Audit (PERMS)** — new module: audit installed packages by **actually granted** dangerous permissions, parsed from `dumpsys package` (One UI `requested`/`runtime` sections and AOSP inline format). Registry of 35 dangerous permissions grouped by sensitivity with weighted risk (SMS / mic / location / call-log = 3, contacts / camera / phone = 2, storage / calendar = 1, special app-ops = 3). Third-party scope by default; **ALL** mode marks system packages `[SYS]` and warns that high scores are expected there. Risk filters (LOW / MEDIUM / HIGH / CRITICAL), expandable app cards, live scan progress, report export to `Downloads/VOID_Auditor_Reports/` via MediaStore.
+- **Parser unit tests** — 7 tests covering both dumpsys formats, risk weighting and the SYS flag.
+- **Dead Capacitor shell removed** — `android/settings.gradle` no longer includes the unused `:capacitor-android` / `:capacitor-haptics` / `:capacitor-cordova-android-plugins` projects; unqualified Gradle tasks (`testDebugUnitTest`, `lint`) no longer fail with `invalid source release: 21` (latent CI breaker).
+- **Docs** — `PERMISSION_AUDIT_REPORT.md`: full minimization campaign report (7 apps, before/after scores, evidence-based revocations).
 
 ### v1.4.2
 
