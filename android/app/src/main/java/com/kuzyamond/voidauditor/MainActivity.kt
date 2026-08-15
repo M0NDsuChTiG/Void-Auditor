@@ -35,6 +35,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -481,17 +483,37 @@ fun LogStream(entries: List<String>, currentTab: String, isExpanded: Boolean) {
     
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp).height(height).fillMaxWidth().border(1.dp, CyberAccent).background(CyberBackground)) {
         if (isExpanded) {
-            Box(
-                modifier = Modifier.fillMaxWidth().height(8.dp)
-                    .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
-                            change.consume()
-                            val newHeight = GlobalLog.consoleHeight.value - dragAmount.y
-                            GlobalLog.setConsoleHeight(newHeight)
+            Row(
+                modifier = Modifier.fillMaxWidth().height(24.dp).background(CyberSurface.copy(alpha = 0.6f)),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Drag-ручка (основной жест для тех, кто может тянуть)
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxHeight()
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                val newHeight = GlobalLog.consoleHeight.value - dragAmount.y
+                                GlobalLog.setConsoleHeight(newHeight)
+                            }
                         }
-                    }
-                    .background(CyberSurface.copy(alpha = 0.6f))
-            ) { }
+                ) { }
+                // Альтернатива drag для клавиатуры / TalkBack (WCAG 2.5.7)
+                Text(
+                    "−", color = CyberAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 3.dp)
+                        .semantics { contentDescription = "Decrease console height" }
+                        .clickable { GlobalLog.setConsoleHeight(GlobalLog.consoleHeight.value - 40f) }
+                )
+                Text(
+                    "+", color = CyberAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 3.dp)
+                        .semantics { contentDescription = "Increase console height" }
+                        .clickable { GlobalLog.setConsoleHeight(GlobalLog.consoleHeight.value + 40f) }
+                )
+            }
         }
         Row(
             modifier = Modifier.fillMaxWidth().background(CyberSurface).clickable { GlobalLog.setExpanded(!isExpanded) }.padding(8.dp), 

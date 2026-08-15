@@ -113,7 +113,7 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 
 ### v1.4.2
 
-- **Android accessibility (TalkBack)**: accessible names for all icon-only buttons (Send, Refresh, Save, Export, Back up, Info), contrast fixes for inactive nav tabs, log `[COPY]`/`[CLEAR]` and path chips (WCAG 1.4.3).
+- **Android accessibility (TalkBack)**: accessible names for all icon-only buttons (Send, Refresh, Save, Export, Back up, Info), contrast fixes for inactive nav tabs, log `[COPY]`/`[CLEAR]` and path chips (WCAG 1.4.3), console resize `+`/`−` buttons as an alternative to drag (WCAG 2.5.7).
 
 ### v1.4.1
 
