@@ -93,6 +93,19 @@ private val DANGEROUS_PERMISSION_REGEX = Regex(
     RegexOption.IGNORE_CASE
 )
 
+/** Результат HTTP-вызова Gemini: Ok / Quota (429) / Err. */
+private sealed class GeminiHttpResult {
+    data class Ok(val text: String) : GeminiHttpResult()
+    data class Quota(val retryAfterSec: Int) : GeminiHttpResult()
+    data class Err(val text: String) : GeminiHttpResult()
+
+    fun asChatText(): String = when (this) {
+        is Ok -> text
+        is Quota -> "QUOTA_EXCEEDED — retry failed after wait"
+        is Err -> text
+    }
+}
+
 val systemInstruction = """
 Ты — сертифицированный Senior Android Security & Digital Forensics эксперт (Red/Blue Team, 10+ лет опыта).
 Специализация: Shizuku, ADB, pm/am/dumpsys, SELinux, Accessibility Abuse, Banking Trojan detection, IOC hunting, DevSecOps.
@@ -234,70 +247,118 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         } catch (_: Exception) { null }
     }
 
-    suspend fun askGemini(prompt: String, extraContext: String = "") {
-        if (apiKey.isBlank() || prompt.isBlank()) return
-        val fullPrompt = if (extraContext.isNotBlank()) "$prompt\n\n=== CONTEXT ===\n$extraContext" else prompt
-        messages = messages + ChatMessage("user", prompt)
-        isProcessing = true
-        inputText = ""
-
-        val result = withContext(Dispatchers.IO) {
+    suspend fun invokeGeminiHttp(fullPrompt: String): GeminiHttpResult =
+        withContext(Dispatchers.IO) {
             var conn: HttpURLConnection? = null
             try {
                 val body = JSONObject().apply {
                     put("contents", JSONArray().apply {
                         put(JSONObject().apply {
                             put("parts", JSONArray().apply {
-                                put(JSONObject().apply { put("text", "$systemInstruction\n\nUser query: $fullPrompt") })
+                                put(JSONObject().apply {
+                                    put("text", "$systemInstruction\n\nUser query: $fullPrompt")
+                                })
                             })
                         })
                     })
                 }.toString()
 
-                val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$selectedModel:generateContent?key=$apiKey")
-                conn = url.openConnection() as HttpURLConnection
-                conn.apply {
-                    requestMethod = "POST"; setRequestProperty("Content-Type", "application/json")
-                    doOutput = true; connectTimeout = 45000; readTimeout = 90000
+                val url = URL(
+                    "https://generativelanguage.googleapis.com/v1beta/models/" +
+                        "$selectedModel:generateContent?key=$apiKey"
+                )
+                conn = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    setRequestProperty("Content-Type", "application/json")
+                    doOutput = true
+                    connectTimeout = 45_000
+                    readTimeout = 90_000
                 }
                 OutputStreamWriter(conn.outputStream).use { it.write(body) }
 
-                if (conn.responseCode == 200) {
-                    val resp = conn.inputStream.bufferedReader().readText()
-                    parseGeminiResponse(resp) ?: "PARSE_ERROR"
-                } else {
-                    val err = conn.errorStream?.bufferedReader()?.readText() ?: "{}"
-                    if (conn.responseCode == 429) {
+                when (conn.responseCode) {
+                    200 -> {
+                        val resp = conn.inputStream.bufferedReader().readText()
+                        val parsed = parseGeminiResponse(resp) ?: "PARSE_ERROR"
+                        GeminiHttpResult.Ok(parsed)
+                    }
+                    429 -> {
+                        val err = conn.errorStream?.bufferedReader()?.readText() ?: "{}"
                         val sec = Regex("""(\d+)s""").find(err)?.groupValues?.get(1)?.toIntOrNull() ?: 60
-                        retryCooldown = sec.coerceIn(5, 120)
-                        "QUOTA_EXCEEDED — retry in ${retryCooldown}s"
-                    } else {
-                        val msg = try { JSONObject(err).optJSONObject("error")?.optString("message", "") ?: err } catch (_: Exception) { err }
-                        "API_ERR_${conn.responseCode}: ${msg.take(300)}"
+                        GeminiHttpResult.Quota(sec.coerceIn(5, 120))
+                    }
+                    else -> {
+                        val err = conn.errorStream?.bufferedReader()?.readText() ?: "{}"
+                        val msg = try {
+                            JSONObject(err).optJSONObject("error")?.optString("message", "") ?: err
+                        } catch (_: Exception) {
+                            err
+                        }
+                        GeminiHttpResult.Err("API_ERR_${conn.responseCode}: ${msg.take(300)}")
                     }
                 }
-            } catch (e: Exception) { "NETWORK_ERR: ${e.localizedMessage ?: e.message}" }
-            finally { conn?.disconnect() }
+            } catch (e: Exception) {
+                GeminiHttpResult.Err("NETWORK_ERR: ${e.localizedMessage ?: e.message}")
+            } finally {
+                conn?.disconnect()
+            }
         }
 
-        val riskLevel = Regex("""RISK[_\s]LEVEL[:\s]*(Low|Medium|High|Critical)""", RegexOption.IGNORE_CASE)
-            .find(result)?.groupValues?.get(1)?.replaceFirstChar { it.uppercase() }
-        messages = messages + ChatMessage("assistant", result, riskLevel)
-        isProcessing = false
+    /** HTTP only: никогда не добавляет user message. На 429 — один notice + одна повторная попытка. */
+    suspend fun callGeminiHttpWithSingleRetry(fullPrompt: String): String {
+        val first = invokeGeminiHttp(fullPrompt)
+        if (first !is GeminiHttpResult.Quota) return first.asChatText()
+
+        // notice — один раз; отсчёт ведёт только LaunchedEffect(retryCooldown)
+        val waitSec = first.retryAfterSec.coerceIn(5, 120)
+        retryCooldown = waitSec
+        messages = messages + ChatMessage("assistant", "QUOTA_EXCEEDED — retry in ${waitSec}s")
         saveMessages()
 
-        // AI Governance: если Gemini предложила действие — парсим Intent Proposal и ждём подтверждения пользователя
-        val proposalJson = extractProposalJson(result)
-        val parsedProposal = proposalJson?.let { AIProposalService.parseAndValidateProposal(it) }
-        if (parsedProposal != null) {
-            pendingProposal = parsedProposal
-            ShizukuExecutor.logListener?.invoke("INFO", "AI_PROPOSAL: ${parsedProposal.proposedCapability.capabilityId} awaiting user approval")
+        while (retryCooldown > 0) {
+            delay(200) // LaunchedEffect декрементит раз в секунду
         }
 
-        if (retryCooldown > 0) {
-            delay(retryCooldown * 1000L + 1000L)
-            retryCooldown = 0
-            askGemini(prompt, extraContext)
+        val second = invokeGeminiHttp(fullPrompt)
+        return second.asChatText()
+    }
+
+    suspend fun askGemini(prompt: String, extraContext: String = "") {
+        if (apiKey.isBlank() || prompt.isBlank()) return
+
+        // ВНИМАНИЕ: не ставим guard на isProcessing — performDeviceAudit / performBankingDeepScan /
+        // analyzeLogs устанавливают isProcessing ДО вызова askGemini; защита от двойного submit — в UI
+        // (Send/AUDIT/BANK/LOGS: enabled = !isProcessing). Рекурсии здесь больше нет.
+        val fullPrompt = if (extraContext.isNotBlank()) {
+            "$prompt\n\n=== CONTEXT ===\n$extraContext"
+        } else {
+            prompt
+        }
+
+        // user message — ровно один раз на submit
+        messages = messages + ChatMessage("user", prompt)
+        isProcessing = true
+        inputText = ""
+
+        try {
+            val reply = callGeminiHttpWithSingleRetry(fullPrompt)
+            val riskLevel = Regex("""RISK[_\s]LEVEL[:\s]*(Low|Medium|High|Critical)""", RegexOption.IGNORE_CASE)
+                .find(reply)?.groupValues?.get(1)?.replaceFirstChar { it.uppercase() }
+
+            messages = messages + ChatMessage("assistant", reply, riskLevel)
+            saveMessages()
+
+            // AI Governance: если Gemini предложила действие — парсим Intent Proposal и ждём подтверждения пользователя
+            val proposalJson = extractProposalJson(reply)
+            val parsedProposal = proposalJson?.let { AIProposalService.parseAndValidateProposal(it) }
+            if (parsedProposal != null) {
+                pendingProposal = parsedProposal
+                ShizukuExecutor.logListener?.invoke("INFO", "AI_PROPOSAL: ${parsedProposal.proposedCapability.capabilityId} awaiting user approval")
+            }
+        } finally {
+            isProcessing = false
+            // не оставляем «вечный» cooldown после выхода
+            if (retryCooldown > 0) retryCooldown = 0
         }
     }
 
