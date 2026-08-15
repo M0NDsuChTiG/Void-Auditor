@@ -14,10 +14,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Android SDK
@@ -39,6 +39,10 @@ jobs:
       - name: Build Debug APK
         working-directory: ./android
         run: ./gradlew assembleDebug
+
+      - name: Run Unit Tests
+        working-directory: ./android
+        run: ./gradlew testDebugUnitTest
 
       - name: Run Lint
         working-directory: ./android

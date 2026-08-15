@@ -59,10 +59,13 @@
 - Логирование каждой команды с меткой времени
 
 ## 6. Сборка и развертывание
+**Требование:** JDK 21 (Java 21). Модуль Capacitor 8 требует компиляции под Java 21 — на JDK 17 сборка падает с `invalid source release: 21`.
 ```bash
 cd android
 ./gradlew assembleDebug
 # APK: android/app/build/outputs/apk/debug/app-debug.apk
+# Если системный java ниже 21:
+# JAVA_HOME=/путь/к/jdk-21 ./gradlew assembleDebug
 ```
 
 ## 7. Структура проекта

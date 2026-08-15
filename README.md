@@ -91,6 +91,12 @@ APK output:
 android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 ```
 
+> ⚠️ **Требование сборки:** нужен **JDK 21 (Java 21)** — модуль `@capacitor/android` v8 компилируется под Java 21, на JDK 17 сборка падает с `invalid source release: 21`. Проверьте `java -version` и при необходимости укажите JDK 21 явно:
+>
+> ```bash
+> JAVA_HOME=/путь/к/jdk-21 ./gradlew assembleDebug
+> ```
+
 ---
 
 ## Quick start
