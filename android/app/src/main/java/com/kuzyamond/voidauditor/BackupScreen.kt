@@ -195,7 +195,7 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), color = CyberInfo, strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Refresh, null, tint = CyberInfo)
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = CyberInfo)
                 }
             }
         }
@@ -242,7 +242,7 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
                                 onClick = { backupPackage(entry) },
                                 modifier = Modifier.size(36.dp).border(1.dp, statusColor)
                             ) {
-                                Icon(Icons.Default.Download, null, tint = statusColor, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Download, contentDescription = "Back up ${entry.packageName}", tint = statusColor, modifier = Modifier.size(16.dp))
                             }
                         } else {
                             Text("OK", color = CyberAccent2, fontSize = 10.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)

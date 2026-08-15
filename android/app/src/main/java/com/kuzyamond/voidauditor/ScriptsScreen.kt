@@ -321,7 +321,7 @@ echo "==========================================="""), "NETWORK"),
                             GlobalLog.log("SCRIPT_SAVED", "ok", "SCRIPTS")
                         },
                         modifier = Modifier.size(44.dp).border(1.dp, CyberAccent).background(CyberSurface)
-                    ) { Icon(Icons.Default.Save, null, tint = CyberAccent) }
+                    ) { Icon(Icons.Default.Save, contentDescription = "Save script", tint = CyberAccent) }
                     IconButton(
                         onClick = {
                             scope.launch {
@@ -333,7 +333,7 @@ echo "==========================================="""), "NETWORK"),
                             }
                         },
                         modifier = Modifier.size(44.dp).border(1.dp, CyberInfo).background(CyberSurface)
-                    ) { Icon(Icons.Default.Share, null, tint = CyberInfo) }
+                    ) { Icon(Icons.Default.Share, contentDescription = "Export script", tint = CyberInfo) }
                 }
             }
         }

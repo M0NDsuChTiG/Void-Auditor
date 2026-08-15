@@ -98,7 +98,7 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), color = CyberInfo, strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Refresh, null, tint = CyberInfo)
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh packages", tint = CyberInfo)
                 }
             }
         }

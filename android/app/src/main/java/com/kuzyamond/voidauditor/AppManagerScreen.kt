@@ -98,7 +98,7 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), color = CyberInfo, strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Refresh, null, tint = CyberInfo)
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh packages", tint = CyberInfo)
                 }
             }
         }

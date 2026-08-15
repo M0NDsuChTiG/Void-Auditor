@@ -53,7 +53,7 @@ fun FilesScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScop
                         },
                         modifier = Modifier.border(1.dp, CyberAccent2).background(CyberSurface)
                     ) {
-                        Icon(Icons.Default.Refresh, null, tint = CyberAccent2)
+                        Icon(Icons.Default.Refresh, contentDescription = "List directory", tint = CyberAccent2)
                     }
                 }
 
@@ -126,7 +126,7 @@ fun RowScope.PathChip(label: String, onClick: () -> Unit) {
         color = Color.Transparent
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(label, color = Color(0xFF64748B), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            Text(label, color = Color(0xFF94A3B8), fontSize = 8.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

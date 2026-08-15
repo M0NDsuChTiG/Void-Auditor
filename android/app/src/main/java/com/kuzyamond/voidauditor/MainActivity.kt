@@ -366,7 +366,7 @@ fun Header(isOnline: Boolean, onInfoClick: () -> Unit) {
             Spacer(Modifier.width(15.dp))
             Icon(
                 Icons.Default.Info, 
-                null, 
+                contentDescription = "Info", 
                 tint = CyberAccent, 
                 modifier = Modifier.size(20.dp).cyberClickable(onInfoClick)
             )
@@ -467,7 +467,7 @@ fun RowScope.NavTab(label: String, icon: ImageVector, selected: Boolean, onClick
         }.cyberClickable(onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val iconColor = if (selected) CyberAccent else Color(0xFF475569)
+        val iconColor = if (selected) CyberAccent else Color(0xFF94A3B8)
         Icon(icon, null, tint = iconColor, modifier = Modifier.size(16.dp))
         Text(label, color = iconColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
     }
@@ -509,12 +509,12 @@ fun LogStream(entries: List<String>, currentTab: String, isExpanded: Boolean) {
                 Text("> ${currentTab}_HACK_STREAM", color = CyberAccent, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("[COPY]", color = Color(0xFF64748B), fontSize = 9.sp, modifier = Modifier.cyberClickable { 
+                Text("[COPY]", color = Color(0xFF94A3B8), fontSize = 9.sp, modifier = Modifier.cyberClickable { 
                     val logText = entries.joinToString("\n")
                     clipboardManager.setText(AnnotatedString(logText))
                     GlobalLog.log("COPIED_TO_CLIPBOARD", "ok", currentTab)
                 })
-                Text("[CLEAR]", color = Color(0xFF64748B), fontSize = 9.sp, modifier = Modifier.cyberClickable { 
+                Text("[CLEAR]", color = Color(0xFF94A3B8), fontSize = 9.sp, modifier = Modifier.cyberClickable { 
                     GlobalLog.clear(currentTab)
                 })
             }

@@ -830,7 +830,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
                 enabled = !isProcessing && apiKey.isNotBlank() && retryCooldown == 0
             ) {
                 if (retryCooldown > 0) Text("$retryCooldown", color = CyberAccent2, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                else Icon(Icons.Default.Send, null, tint = if (isProcessing) Color.Gray else CyberAccent)
+                else Icon(Icons.Default.Send, contentDescription = "Send", tint = if (isProcessing) Color.Gray else CyberAccent)
             }
         }
     }
