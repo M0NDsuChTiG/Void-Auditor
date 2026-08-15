@@ -59,19 +59,19 @@ It uses the [Shizuku](https://shizuku.rikka.app/) API for shell-level capabiliti
 
 ## Download
 
-[![Download APK](https://img.shields.io/badge/Download-v1.4.2_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-v1.4.3_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
 
-**Latest release:** [v1.4.2](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.2)
+**Latest release:** [v1.4.3](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.3)
 
 ```text
-Asset: Void-Auditor-v1.4.2.apk
-sha256: 3d9212b74a317d491e320de166b903e9429a4236c0d78770af7b9d87751b7f07
+Asset: Void-Auditor-v1.4.3.apk
+sha256: 87aa672200646d29ce92a0b7ecbd21866025822bd1b91054192f9607176fee6f
 ```
 
 Or install from a PC:
 
 ```bash
-adb install -r Void-Auditor-v1.4.2.apk
+adb install -r Void-Auditor-v1.4.3.apk
 ```
 
 ---
