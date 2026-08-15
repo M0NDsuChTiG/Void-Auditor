@@ -60,19 +60,19 @@
 
 ## Загрузка
 
-[![Скачать APK](https://img.shields.io/badge/Download-v1.4.2_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+[![Скачать APK](https://img.shields.io/badge/Download-v1.4.3_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
 
-**Последний релиз:** [v1.4.2](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.2)
+**Последний релиз:** [v1.4.3](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.3)
 
 ```text
-Asset: Void-Auditor-v1.4.2.apk
-sha256: 3d9212b74a317d491e320de166b903e9429a4236c0d78770af7b9d87751b7f07
+Asset: Void-Auditor-v1.4.3.apk
+sha256: 87aa672200646d29ce92a0b7ecbd21866025822bd1b91054192f9607176fee6f
 ```
 
 Или установка с ПК:
 
 ```bash
-adb install -r Void-Auditor-v1.4.2.apk
+adb install -r Void-Auditor-v1.4.3.apk
 ```
 
 ---
@@ -92,7 +92,7 @@ cd Void-Auditor/android
 android/app/build/outputs/apk/debug/Void-Auditor-v<версия>.apk
 ```
 
-> ⚠️ **Требование сборки:** нужен **JDK 21 (Java 21)** — модуль `@capacitor/android` v8 компилируется под Java 21, на JDK 17 сборка падает с `invalid source release: 21`. Проверьте `java -version` и при необходимости укажите JDK 21 явно:
+> ⚠️ **Требование сборки:** нужен **JDK 21 (Java 21)** — CI и локальная сборка рассчитаны на него. Проверьте `java -version` и при необходимости укажите JDK 21 явно:
 >
 > ```bash
 > JAVA_HOME=/путь/к/jdk-21 ./gradlew assembleDebug
@@ -111,6 +111,13 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<версия>.apk
 ---
 
 ## История версий
+
+### v1.4.3
+
+- **Permission Audit (PERMS)** — новый модуль: аудит установленных приложений по **реально выданным** опасным разрешениям, парсится из `dumpsys package` (форматы One UI `requested`/`runtime` и инлайн AOSP). Реестр из 35 опасных разрешений, сгруппированных по чувствительности с весами риска (SMS / микрофон / локация / журнал звонков = 3, контакты / камера / телефон = 2, storage / календарь = 1, special app-ops = 3). По умолчанию — только сторонние приложения; режим **ALL** помечает системные пакеты тегом `[SYS]` и предупреждает, что там высокие баллы ожидаемы. Фильтры риска (LOW / MEDIUM / HIGH / CRITICAL), раскрывающиеся карточки, живой прогресс скана, экспорт отчёта в `Downloads/VOID_Auditor_Reports/` через MediaStore.
+- **Юнит-тесты парсера** — 7 тестов: оба формата dumpsys, веса риска, SYS-флаг.
+- **Убран мёртвый Capacitor-каркас** — `android/settings.gradle` больше не подключает неиспользуемые проекты `:capacitor-android` / `:capacitor-haptics` / `:capacitor-cordova-android-plugins`; unqualified-задачи Gradle (`testDebugUnitTest`, `lint`) больше не падают с `invalid source release: 21` (латентный брейкер CI).
+- **Документация** — `PERMISSION_AUDIT_REPORT.md`: отчёт кампании минимизации (7 приложений, баллы до/после, отзывы по фактам использования).
 
 ### v1.4.2
 
