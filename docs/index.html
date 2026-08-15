@@ -183,17 +183,61 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 1.25rem;
-      transition: border-color 0.15s;
+      position: relative;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
     .card:hover { border-color: var(--accent); }
+    .card.expanded {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(57, 255, 20, 0.12);
+    }
     .card .icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
-    .card h3 {
+    .card-heading { margin: 0; }
+    .card-toggle {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.4rem;
+      width: 100%;
+      padding: 0;
+      background: none;
+      border: none;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .card-toggle .card-title {
       font-size: 0.95rem;
       color: var(--accent);
       font-family: ui-monospace, monospace;
-      margin-bottom: 0.4rem;
     }
-    .card p { font-size: 0.9rem; color: var(--muted); }
+    .card-toggle .card-desc { font-size: 0.9rem; color: var(--muted); }
+    .card-toggle .card-more {
+      position: absolute;
+      top: 0.85rem;
+      right: 1rem;
+      font-family: ui-monospace, monospace;
+      font-size: 1.1rem;
+      line-height: 1;
+      color: var(--accent);
+    }
+    .card-detail {
+      margin-top: 0.85rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .card-detail ul { list-style: none; margin: 0; }
+    .card-detail li {
+      padding: 0.25rem 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .card-detail li::before {
+      content: '▸ ';
+      color: var(--accent);
+      font-family: ui-monospace, monospace;
+    }
 
     h2 {
       font-family: ui-monospace, monospace;
@@ -360,44 +404,140 @@
     <h2 class="visually-hidden" data-i18n="tab_features">FEATURES</h2>
     <div class="grid">
       <div class="card">
-        <div class="icon">🛡️</div>
-        <h3 data-i18n="f1_t">Security Dashboard</h3>
-        <p data-i18n="f1_d">Risk Aggregator 0–100. Scans ADB Wi‑Fi, Accessibility, SELinux, overlays, banking apps. Suggests fix commands.</p>
+        <h3 class="card-heading">
+          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-1">
+            <span class="icon" aria-hidden="true">🛡️</span>
+            <span class="card-title" data-i18n="f1_t">Security Dashboard</span>
+            <span class="card-desc" data-i18n="f1_d">Risk Aggregator 0–100. Scans ADB Wi‑Fi, Accessibility, SELinux, overlays, banking apps. Suggests fix commands.</span>
+            <span class="card-more" aria-hidden="true">+</span>
+          </button>
+        </h3>
+        <div id="card-detail-1" class="card-detail" hidden>
+          <ul>
+            <li data-i18n="f1d1">Risk score 0–100 from 6+ checks: ADB Wi‑Fi, Accessibility services, SELinux, overlays, banking apps</li>
+            <li data-i18n="f1d2">Fix hints are offered as confirmable capabilities — never raw shell commands</li>
+            <li data-i18n="f1d3">Every check is written to TRACE together with the policy decision</li>
+          </ul>
+        </div>
       </div>
       <div class="card">
-        <div class="icon">🧹</div>
-        <h3 data-i18n="f2_t">Cache Cleaner</h3>
-        <p data-i18n="f2_d">External cache scan, dry-run, 3-factor PURGE confirm, selective clean. Honest EXTERNAL_CACHE_ONLY when internal data needs root.</p>
+        <h3 class="card-heading">
+          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-2">
+            <span class="icon" aria-hidden="true">🧹</span>
+            <span class="card-title" data-i18n="f2_t">Cache Cleaner</span>
+            <span class="card-desc" data-i18n="f2_d">External cache scan, dry-run, 3-factor PURGE confirm, selective clean. Honest EXTERNAL_CACHE_ONLY when internal data needs root.</span>
+            <span class="card-more" aria-hidden="true">+</span>
+          </button>
+        </h3>
+        <div id="card-detail-2" class="card-detail" hidden>
+          <ul>
+            <li data-i18n="f2d1">Scans external cache of user apps; dry-run shows sizes before anything is removed</li>
+            <li data-i18n="f2d2">PURGE needs a typed phrase + explicit confirm (3-factor), with per-app selective clean</li>
+            <li data-i18n="f2d3">Honest EXTERNAL_CACHE_ONLY — internal /data/data without root is reported, never faked</li>
+          </ul>
+        </div>
       </div>
       <div class="card">
-        <div class="icon">🌐</div>
-        <h3 data-i18n="f3_t">NET_SCAN</h3>
-        <p data-i18n="f3_d">Subnet discovery: one Shizuku batch of parallel pings (~3s for /24). MAC via proc arp, common TCP ports on live hosts.</p>
+        <h3 class="card-heading">
+          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-3">
+            <span class="icon" aria-hidden="true">🌐</span>
+            <span class="card-title" data-i18n="f3_t">NET_SCAN</span>
+            <span class="card-desc" data-i18n="f3_d">Subnet discovery: one Shizuku batch of parallel pings (~3s for /24). MAC via proc arp, common TCP ports on live hosts.</span>
+            <span class="card-more" aria-hidden="true">+</span>
+          </button>
+        </h3>
+        <div id="card-detail-3" class="card-detail" hidden>
+          <ul>
+            <li data-i18n="f3d1">Subnet discovery: one Shizuku batch of parallel pings — about 3 s per /24</li>
+            <li data-i18n="f3d2">MAC from /proc/net/arp with vendor lookup; common TCP ports on live hosts</li>
+            <li data-i18n="f3d3">Full 1–65535 scan with service detection and banners; cancellable from the UI</li>
+          </ul>
+        </div>
       </div>
       <div class="card">
-        <div class="icon">🔌</div>
-        <h3 data-i18n="f4_t">WIFI_ADB</h3>
-        <p data-i18n="f4_d">Status from getprop only. Enable verifies the port is active or returns SETPROP_FAILED / VERIFY_FAILED — no fake “enabled”.</p>
+        <h3 class="card-heading">
+          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-4">
+            <span class="icon" aria-hidden="true">🔌</span>
+            <span class="card-title" data-i18n="f4_t">WIFI_ADB</span>
+            <span class="card-desc" data-i18n="f4_d">Status from getprop only. Enable verifies the port is active or returns SETPROP_FAILED / VERIFY_FAILED — no fake “enabled”.</span>
+            <span class="card-more" aria-hidden="true">+</span>
+          </button>
+        </h3>
+        <div id="card-detail-4" class="card-detail" hidden>
+          <ul>
+            <li data-i18n="f4d1">Status is read only from getprop — no fake “enabled”</li>
+            <li data-i18n="f4d2">Enable verifies the port actually answers, otherwise SETPROP_FAILED / VERIFY_FAILED</li>
+            <li data-i18n="f4d3">Reports SELinux blocks on non-root devices honestly</li>
+          </ul>
+        </div>
       </div>
       <div class="card">
-        <div class="icon">🧠</div>
-        <h3 data-i18n="f5_t">AI Forensics</h3>
-        <p data-i18n="f5_d">Gemini as advisor: Intent Proposal → Policy Engine → human confirm. AI never runs shell directly.</p>
+        <h3 class="card-heading">
+          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-5">
+            <span class="icon" aria-hidden="true">🧠</span>
+            <span class="card-title" data-i18n="f5_t">AI Forensics</span>
+            <span class="card-desc" data-i18n="f5_d">Gemini as advisor: Intent Proposal → Policy Engine → human confirm. AI never runs shell directly.</span>
+            <span class="card-more" aria-hidden="true">+</span>
+          </button>
+        </h3>
+        <div id="card-detail-5" class="card-detail" hidden>
+          <ul>
+            <li data-i18n="f5d1">Gemini proposes Intent Proposals with whitelisted capabilityId — advisory only</li>
+            <li data-i18n="f5d2">Pipeline: sanitize → validate → human review → PolicyEngine → execute → audit</li>
+            <li data-i18n="f5d3">AI never runs shell directly; destructive operations are not in the whitelist</li>
+          </ul>
+        </div>
       </div>
       <div class="card">
-        <div class="icon">🏦</div>
-        <h3 data-i18n="f6_t">Banking Deep Scan</h3>
-        <p data-i18n="f6_d">Finance-related packages: dangerous permissions, WebView, deep links, persistent services.</p>
+        <h3 class="card-heading">
+          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-6">
+            <span class="icon" aria-hidden="true">🏦</span>
+            <span class="card-title" data-i18n="f6_t">Banking Deep Scan</span>
+            <span class="card-desc" data-i18n="f6_d">Finance-related packages: dangerous permissions, WebView, deep links, persistent services.</span>
+            <span class="card-more" aria-hidden="true">+</span>
+          </button>
+        </h3>
+        <div id="card-detail-6" class="card-detail" hidden>
+          <ul>
+            <li data-i18n="f6d1">Finance packages: dangerous permissions (SMS, call log, contacts), WebView, deep links</li>
+            <li data-i18n="f6d2">Detects persistent background services and accessibility risk indicators</li>
+            <li data-i18n="f6d3">Results feed the risk score with a clear DETECTED / OK status</li>
+          </ul>
+        </div>
       </div>
       <div class="card">
-        <div class="icon">📦</div>
-        <h3 data-i18n="f7_t">Apps & Activities</h3>
-        <p data-i18n="f7_d">Force-stop, disable, clear data, activity launcher — destructive ops require confirmation.</p>
+        <h3 class="card-heading">
+          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-7">
+            <span class="icon" aria-hidden="true">📦</span>
+            <span class="card-title" data-i18n="f7_t">Apps & Activities</span>
+            <span class="card-desc" data-i18n="f7_d">Force-stop, disable, clear data, activity launcher — destructive ops require confirmation.</span>
+            <span class="card-more" aria-hidden="true">+</span>
+          </button>
+        </h3>
+        <div id="card-detail-7" class="card-detail" hidden>
+          <ul>
+            <li data-i18n="f7d1">Per package: force-stop, disable, clear data, activity launcher</li>
+            <li data-i18n="f7d2">Destructive actions require explicit confirmation via risk-tiered dialogs</li>
+            <li data-i18n="f7d3">Package list with status: running / frozen / disabled</li>
+          </ul>
+        </div>
       </div>
       <div class="card">
-        <div class="icon">📜</div>
-        <h3 data-i18n="f8_t">Audit Trail</h3>
-        <p data-i18n="f8_d">TRACE timeline: who, what, risk, policy decision, exit code, duration.</p>
+        <h3 class="card-heading">
+          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-8">
+            <span class="icon" aria-hidden="true">📜</span>
+            <span class="card-title" data-i18n="f8_t">Audit Trail</span>
+            <span class="card-desc" data-i18n="f8_d">TRACE timeline: who, what, risk, policy decision, exit code, duration.</span>
+            <span class="card-more" aria-hidden="true">+</span>
+          </button>
+        </h3>
+        <div id="card-detail-8" class="card-detail" hidden>
+          <ul>
+            <li data-i18n="f8d1">TRACE timeline: actor, capability, risk, policy decision, exit code, duration</li>
+            <li data-i18n="f8d2">Written to app-private storage; export via MediaStore when needed</li>
+            <li data-i18n="f8d3">ActorType distinguishes USER decisions from AI decisions</li>
+          </ul>
+        </div>
       </div>
     </div>
   </section>
@@ -489,6 +629,30 @@
       f6_t: "Banking Deep Scan", f6_d: "Finance-related packages: dangerous permissions, WebView, deep links, persistent services.",
       f7_t: "Apps & Activities", f7_d: "Force-stop, disable, clear data, activity launcher — destructive ops require confirmation.",
       f8_t: "Audit Trail", f8_d: "TRACE timeline: who, what, risk, policy decision, exit code, duration.",
+      f1d1: "Risk score 0–100 from 6+ checks: ADB Wi‑Fi, Accessibility services, SELinux, overlays, banking apps",
+      f1d2: "Fix hints are offered as confirmable capabilities — never raw shell commands",
+      f1d3: "Every check is written to TRACE together with the policy decision",
+      f2d1: "Scans external cache of user apps; dry-run shows sizes before anything is removed",
+      f2d2: "PURGE needs a typed phrase + explicit confirm (3-factor), with per-app selective clean",
+      f2d3: "Honest EXTERNAL_CACHE_ONLY — internal /data/data without root is reported, never faked",
+      f3d1: "Subnet discovery: one Shizuku batch of parallel pings — about 3 s per /24",
+      f3d2: "MAC from /proc/net/arp with vendor lookup; common TCP ports on live hosts",
+      f3d3: "Full 1–65535 scan with service detection and banners; cancellable from the UI",
+      f4d1: "Status is read only from getprop — no fake “enabled”",
+      f4d2: "Enable verifies the port actually answers, otherwise SETPROP_FAILED / VERIFY_FAILED",
+      f4d3: "Reports SELinux blocks on non-root devices honestly",
+      f5d1: "Gemini proposes Intent Proposals with whitelisted capabilityId — advisory only",
+      f5d2: "Pipeline: sanitize → validate → human review → PolicyEngine → execute → audit",
+      f5d3: "AI never runs shell directly; destructive operations are not in the whitelist",
+      f6d1: "Finance packages: dangerous permissions (SMS, call log, contacts), WebView, deep links",
+      f6d2: "Detects persistent background services and accessibility risk indicators",
+      f6d3: "Results feed the risk score with a clear DETECTED / OK status",
+      f7d1: "Per package: force-stop, disable, clear data, activity launcher",
+      f7d2: "Destructive actions require explicit confirmation via risk-tiered dialogs",
+      f7d3: "Package list with status: running / frozen / disabled",
+      f8d1: "TRACE timeline: actor, capability, risk, policy decision, exit code, duration",
+      f8d2: "Written to app-private storage; export via MediaStore when needed",
+      f8d3: "ActorType distinguishes USER decisions from AI decisions",
       matrix_h: "FUNCTION MATRIX",
       m1: "Risk score + auto fix hints",
       m2: "SELinux, ADB Wi‑Fi, Accessibility, packages",
@@ -537,6 +701,30 @@
       f6_t: "Banking Deep Scan", f6_d: "Финпакеты: опасные permission, WebView, deep links, сервисы.",
       f7_t: "Apps & Activities", f7_d: "Force-stop, disable, clear, launcher — опасные действия с подтверждением.",
       f8_t: "Audit Trail", f8_d: "TRACE: кто, что, риск, решение политики, exit code, время.",
+      f1d1: "Риск 0–100 по 6+ проверкам: ADB Wi‑Fi, службы Accessibility, SELinux, overlay, банковские приложения",
+      f1d2: "Подсказки по исправлению — как подтверждаемые capabilities, никогда raw shell",
+      f1d3: "Каждая проверка пишется в TRACE вместе с решением политики",
+      f2d1: "Сканирует external-кэш приложений; dry-run показывает размеры до удаления",
+      f2d2: "PURGE требует введённой фразы + явного подтверждения (3 фактора), выборочная очистка по приложениям",
+      f2d3: "Честный EXTERNAL_CACHE_ONLY — internal /data/data без root сообщается, а не выдумывается",
+      f3d1: "Обнаружение хостов: один batch параллельных ping через Shizuku — около 3 с на /24",
+      f3d2: "MAC из /proc/net/arp с определением вендора; основные TCP-порты на живых хостах",
+      f3d3: "Полный скан 1–65535 с определением сервисов и баннеров; отменяется из UI",
+      f4d1: "Статус читается только из getprop — без фейкового «enabled»",
+      f4d2: "Enable проверяет, что порт реально отвечает, иначе SETPROP_FAILED / VERIFY_FAILED",
+      f4d3: "Честно сообщает о блокировках SELinux на устройствах без root",
+      f5d1: "Gemini предлагает Intent Proposal только с whitelisted capabilityId — advisor",
+      f5d2: "Конвейер: санитайзинг → валидация → подтверждение → PolicyEngine → исполнение → аудит",
+      f5d3: "AI не выполняет shell напрямую; деструктивные операции вне whitelist",
+      f6d1: "Финпакеты: опасные permission (SMS, журнал звонков, контакты), WebView, deep links",
+      f6d2: "Детект постоянных фоновых сервисов и индикаторов accessibility-риска",
+      f6d3: "Результаты идут в риск-скор с явным статусом DETECTED / OK",
+      f7d1: "По пакету: force-stop, disable, clear data, запуск activity",
+      f7d2: "Опасные действия — только с явным подтверждением через диалоги по уровню риска",
+      f7d3: "Список пакетов со статусом: работает / заморожен / отключён",
+      f8d1: "TRACE-таймлайн: actor, capability, риск, решение политики, exit code, время",
+      f8d2: "Хранится только в private storage; экспорт через MediaStore при необходимости",
+      f8d3: "ActorType различает решения USER и AI",
       matrix_h: "ФУНКЦИОНАЛЬНАЯ МАТРИЦА",
       m1: "Risk score + подсказки",
       m2: "SELinux, ADB Wi‑Fi, Accessibility, пакеты",
@@ -625,6 +813,20 @@
   document.querySelectorAll(".tab").forEach(function (t) {
     t.addEventListener("click", function () {
       activateTab(t.getAttribute("data-tab"));
+    });
+  });
+
+  // Feature cards: click to expand details (accordion)
+  document.querySelectorAll(".card-toggle").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var expanded = btn.getAttribute("aria-expanded") === "true";
+      btn.setAttribute("aria-expanded", expanded ? "false" : "true");
+      var detail = document.getElementById(btn.getAttribute("aria-controls"));
+      if (detail) detail.hidden = expanded;
+      var card = btn.closest(".card");
+      if (card) card.classList.toggle("expanded", !expanded);
+      var more = btn.querySelector(".card-more");
+      if (more) more.textContent = expanded ? "+" : "−";
     });
   });
 
