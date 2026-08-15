@@ -47,6 +47,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import com.kuzyamond.voidauditor.cache.ui.CacheCleanerScreen
 import com.kuzyamond.voidauditor.core.AuditLogger
+import com.kuzyamond.voidauditor.core.ShizukuExecutor
 import com.kuzyamond.voidauditor.security.SecurityModule
 import com.kuzyamond.voidauditor.core.ConfirmationDialog
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -232,6 +233,7 @@ fun MainLayout() {
 
             LaunchedEffect(Unit) {
                 AuditLogger.integrateWithExecutor()
+                ShizukuExecutor.init()
             }
 
             LaunchedEffect(navStyle) {

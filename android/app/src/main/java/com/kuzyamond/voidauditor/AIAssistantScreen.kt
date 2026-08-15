@@ -81,10 +81,14 @@ fun getRiskColor(level: RiskLevel): Color {
     }
 }
 
+// Вся линейка 2.x (2.0-flash-lite/2.0-flash/1.5-flash shut down 01.06.2026; 2.5-flash/2.5-flash-lite/2.5-pro
+// — «no longer available to new users») отвечает API_ERR_404. Проверено по ключу: работают только
+// gemini-3-flash-preview и gemini-3.1-flash-lite-preview (HTTP 200).
+private const val DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview"
+
 val availableModels = listOf(
-    "gemini-2.0-flash-lite" to "FLASH_LITE",
-    "gemini-2.0-flash" to "FLASH",
-    "gemini-1.5-flash" to "1.5_FLASH"
+    "gemini-3-flash-preview" to "FLASH",
+    "gemini-3.1-flash-lite-preview" to "FLASH_LITE"
 )
 
 // Реальные имена опасных разрешений в выводе `dumpsys package` (android.permission.X: granted=true)
@@ -136,7 +140,13 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
     val clipboardManager = LocalClipboardManager.current
     val prefs = remember { context.getSharedPreferences("void_auditor_ai", Context.MODE_PRIVATE) }
     var apiKey by remember { mutableStateOf(runCatching { SecurityModule.getApiKey(context) }.getOrNull() ?: "") }
-    var selectedModel by remember { mutableStateOf(prefs.getString("gemini_model", "gemini-2.0-flash-lite") ?: "gemini-2.0-flash-lite") }
+    val savedModel = prefs.getString("gemini_model", null)
+    var selectedModel by remember {
+        mutableStateOf(
+            if (savedModel in availableModels.map { it.first }) savedModel ?: DEFAULT_GEMINI_MODEL
+            else DEFAULT_GEMINI_MODEL
+        )
+    }
     var showKeyInput by remember { mutableStateOf(apiKey.isEmpty()) }
     var inputText by remember { mutableStateOf("") }
     var messages by remember { mutableStateOf(loadMessages(prefs)) }

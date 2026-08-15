@@ -113,6 +113,9 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 
 ### v1.4.2
 
+- **Port scan reliability (NET_SCAN)**: fixed SYN-flood drops — 256 concurrent connects overwhelmed router SYN queues and silently lost real open ports (measured: 31% success at 256, ~92% at 32). Now 32 concurrent connects with 150ms timeouts, up to 4 retry passes for lost SYNs, and adaptive pacing between chunks so routers can drain their queues. Verified on-device: a full 65535-port scan now finds open ports the old scanner missed. `COMMON_PORTS` extended with **53 (DNS)** and **445 (SMB)**.
+- **Command logging everywhere**: `ShizukuExecutor.init()` now runs app-wide, so `[CMD]` / `[RESULT]` lines appear in the console on every screen (previously only after opening the AI screen).
+- **AI models fixed**: the Gemini 2.x line was shut down by Google (2.0 removed June 1, 2026; 2.5 “no longer available to new users” → `API_ERR_404`). Switched to **`gemini-3-flash-preview`** / **`gemini-3.1-flash-lite-preview`** (verified HTTP 200 with the API key), with automatic migration of the saved model preference.
 - **Android accessibility (TalkBack)**: accessible names for all icon-only buttons (Send, Refresh, Save, Export, Back up, Info), contrast fixes for inactive nav tabs, log `[COPY]`/`[CLEAR]` and path chips (WCAG 1.4.3), console resize `+`/`−` buttons as an alternative to drag (WCAG 2.5.7).
 
 ### v1.4.1

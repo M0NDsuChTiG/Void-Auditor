@@ -3,23 +3,38 @@ package com.kuzyamond.voidauditor.network
 import com.kuzyamond.voidauditor.core.ShizukuExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.SocketTimeoutException
 import java.util.Collections
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.asCoroutineDispatcher
 
 object NetworkScanner {
 
-    val COMMON_PORTS = listOf(22, 80, 443, 5555, 8080, 8443, 9090, 3389, 5900)
+    val COMMON_PORTS = listOf(22, 53, 80, 443, 445, 5555, 8080, 8443, 9090, 3389, 5900)
     val FULL_PORTS: List<Int> = (1..65535).toList()
 
-    private const val PORT_CONNECT_TIMEOUT_MS = 350
-    private const val PORT_BATCH_SIZE = 256
+    // Сканирование портов: 256 одновременных SYN переполняют очередь роутера
+    // (netfilter backlog) — реально открытые порты теряются (замер на CPE:
+    // 256→31%, 64→78%, 32→~92%, а под постоянной нагрузкой роутер коллапсирует
+    // до <20%, восстанавливаясь за ~5с тишины). Поэтому:
+    //  - 32 параллельных (лучший компромисс точность/скорость),
+    //  - таймаут 150мс (LAN-ответ приходит за миллисекунды, таймаут нужен только
+    //    для потерянных/фильтруемых SYN),
+    //  - адаптивная пауза между порциями, если прошлая упёрлась в таймауты
+    //    (роутер успевает дренировать SYN-очередь; на здоровых сетях пауз нет),
+    //  - до 4 проходов: не ответившие порты повторяются (потери ~0.5-3%/проход).
+    private const val PORT_CONNECT_TIMEOUT_MS = 150
+    private const val PORT_BATCH_SIZE = 32
+    private const val MAX_SCAN_PASSES = 4
+    private const val CHUNK_PAUSE_MS = 80L
     private const val BANNER_READ_TIMEOUT_MS = 400
     private const val BANNER_MAX_LEN = 64
 
@@ -34,7 +49,7 @@ object NetworkScanner {
         67 to "DHCP", 68 to "DHCP", 80 to "HTTP", 110 to "POP3", 123 to "NTP",
         143 to "IMAP", 443 to "HTTPS", 465 to "SMTPS", 587 to "SMTP",
         993 to "IMAPS", 995 to "POP3S", 3306 to "MySQL", 3389 to "RDP",
-        5353 to "mDNS", 5555 to "ADB", 5900 to "VNC", 5432 to "PostgreSQL"
+        445 to "SMB", 5353 to "mDNS", 5555 to "ADB", 5900 to "VNC", 5432 to "PostgreSQL"
     )
 
     private val IPV4_REGEX = Regex("""^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$""")
@@ -143,30 +158,55 @@ val scanned = tcpScanPorts(host.ip, ports) { done, total ->
         val open = Collections.synchronizedMap(mutableMapOf<Int, String>())
         val done = AtomicInteger(0)
         val total = ports.size
-        ports.chunked(PORT_BATCH_SIZE).forEach { batch ->
-            coroutineScope {
-                batch.forEach { port ->
-                    launch(portScanDispatcher) {
-                        try {
-                            val socket = Socket()
+
+        // Многопроходный скан: не ответившие за таймаут порты (SYN потерян роутером
+        // при перегрузке либо порт фильтруется) повторяются на следующих проходах.
+        // Пул неответивших схлопывается в 2-10 раз за проход; 4 проходов хватает
+        // с запасом даже на капризных роутерах.
+        var pending = ports
+        repeat(MAX_SCAN_PASSES) { pass ->
+            if (pending.isEmpty()) return@repeat
+            val nextTimedOut = Collections.synchronizedList(mutableListOf<Int>())
+            val prevChunkTimedOut = AtomicBoolean(false)
+
+            pending.chunked(PORT_BATCH_SIZE).forEach { batch ->
+                // Адаптивная пауза: только если прошлая порция упёрлась в таймауты
+                // (роутер задыхается). На здоровых сетях скан идёт без замедления.
+                if (prevChunkTimedOut.get()) delay(CHUNK_PAUSE_MS)
+                val chunkTimedOut = AtomicBoolean(false)
+
+                coroutineScope {
+                    batch.forEach { port ->
+                        launch(portScanDispatcher) {
                             try {
-                                socket.connect(InetSocketAddress(ip, port), PORT_CONNECT_TIMEOUT_MS)
-                                val banner = grabService(socket, ip, port)
-                                open[port] = banner.ifEmpty { KNOWN_SERVICES[port] ?: "" }
-                            } finally {
+                                val socket = Socket()
                                 try {
-                                    socket.close()
-                                } catch (_: Exception) {
+                                    socket.connect(InetSocketAddress(ip, port), PORT_CONNECT_TIMEOUT_MS)
+                                    val banner = grabService(socket, ip, port)
+                                    open[port] = banner.ifEmpty { KNOWN_SERVICES[port] ?: "" }
+                                } catch (_: SocketTimeoutException) {
+                                    chunkTimedOut.set(true)
+                                    if (pass < MAX_SCAN_PASSES - 1) nextTimedOut.add(port)
+                                } finally {
+                                    try {
+                                        socket.close()
+                                    } catch (_: Exception) {
+                                    }
                                 }
+                            } catch (_: Exception) {
+                            } finally {
+                                onProgress(minOf(done.incrementAndGet(), total), total)
                             }
-                        } catch (_: Exception) {
-                        } finally {
-                            onProgress(done.incrementAndGet(), total)
                         }
                     }
                 }
+
+                prevChunkTimedOut.set(chunkTimedOut.get())
             }
+
+            pending = nextTimedOut
         }
+
         return open.toSortedMap()
     }
 
