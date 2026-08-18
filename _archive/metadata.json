@@ -1,0 +1,6 @@
+{
+  "name": "ADB Script Studio",
+  "description": "A professional tool for generating ADB (Android Debug Bridge) scripts from natural language descriptions. Powered by Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

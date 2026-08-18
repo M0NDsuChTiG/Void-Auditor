@@ -1,0 +1,9 @@
+val fullResults = NetworkScanner.scanAllPorts(currentHost.ip) { scanned, total ->
+    scanProgressText = "Сканирование: $scanned / $total портов"
+}
+// full scan — replace, не merge со старыми:
+val updated = currentHost.copy(
+    openPorts = fullResults.keys.sorted(),
+    services = fullResults,
+    fullPortsScanned = true
+)
