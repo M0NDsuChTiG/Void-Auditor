@@ -114,10 +114,11 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<версия>.apk
 
 ### v1.4.3
 
-- **Permission Audit (PERMS)** — новый модуль: аудит установленных приложений по **реально выданным** опасным разрешениям, парсится из `dumpsys package` (форматы One UI `requested`/`runtime` и инлайн AOSP). Реестр из 35 опасных разрешений, сгруппированных по чувствительности с весами риска (SMS / микрофон / локация / журнал звонков = 3, контакты / камера / телефон = 2, storage / календарь = 1, special app-ops = 3). По умолчанию — только сторонние приложения; режим **ALL** помечает системные пакеты тегом `[SYS]` и предупреждает, что там высокие баллы ожидаемы. Фильтры риска (LOW / MEDIUM / HIGH / CRITICAL), раскрывающиеся карточки, живой прогресс скана, экспорт отчёта в `Downloads/VOID_Auditor_Reports/` через MediaStore.
+- **Permission Audit (PERMS)** — новый модуль: аудит установленных приложений по **реально выданным** опасным разрешениям, парсится из `dumpsys package` (форматы One UI `requested`/`runtime` и инлайн AOSP). Реестр из 33 опасных разрешений, сгруппированных по чувствительности с весами риска (SMS / микрофон / локация / журнал звонков = 3, контакты / камера / телефон = 2, storage / календарь = 1, special app-ops = 2–3). По умолчанию — только сторонние приложения; режим **ALL** помечает системные пакеты тегом `[SYS]` и предупреждает, что там высокие баллы ожидаемы. Фильтры риска (LOW / MEDIUM / HIGH / CRITICAL), раскрывающиеся карточки, живой прогресс скана, экспорт отчёта в `Downloads/VOID_Auditor_Reports/` через MediaStore.
 - **Юнит-тесты парсера** — 7 тестов: оба формата dumpsys, веса риска, SYS-флаг.
+- **Структура документации** — техническая документация (`README_TECH.md`) и полевые отчёты (`PERMISSION_AUDIT_REPORT.md`, `VOID_Auditor_Report_NET_SCAN.md`) перенесены в [`docs/`](docs/README.md) с автоматизированной CI-проверкой ссылок (`docs-links.yml`).
 - **Убран мёртвый Capacitor-каркас** — `android/settings.gradle` больше не подключает неиспользуемые проекты `:capacitor-android` / `:capacitor-haptics` / `:capacitor-cordova-android-plugins`; unqualified-задачи Gradle (`testDebugUnitTest`, `lint`) больше не падают с `invalid source release: 21` (латентный брейкер CI).
-- **Документация** — `PERMISSION_AUDIT_REPORT.md`: отчёт кампании минимизации (7 приложений, баллы до/после, отзывы по фактам использования).
+- **Документация** — [`docs/PERMISSION_AUDIT_REPORT.md`](docs/PERMISSION_AUDIT_REPORT.md): отчёт кампании минимизации (7 приложений, баллы до/после, отзывы по фактам использования).
 
 ### v1.4.2
 
@@ -163,6 +164,18 @@ AI-путь:
 ## Скриншоты
 
 Смотрите папку [`screenshots/`](screenshots/).
+
+---
+
+## Документация
+
+📚 **Индекс:** [docs/README.md](docs/README.md) — все технические документы и отчёты в одном месте
+
+| Документ | Описание |
+|----------|-----------|
+| [README_TECH.md](docs/README_TECH.md) | Техническая документация — архитектура, capabilities, PolicyEngine, Shizuku-слой, AI governance |
+| [PERMISSION_AUDIT_REPORT.md](docs/PERMISSION_AUDIT_REPORT.md) | Отчёт кампании минимизации разрешений — 7 third-party приложений, баллы риска до/после, отзывы по фактам использования (`pm revoke` / `appops`) |
+| [VOID_Auditor_Report_NET_SCAN.md](docs/VOID_Auditor_Report_NET_SCAN.md) | Отчёт по NET_SCAN — замеры надёжности порт-скана (параллельность 1–256, потери SYN-очереди), баннеры сервисов, полный скан 65535 портов |
 
 ---
 

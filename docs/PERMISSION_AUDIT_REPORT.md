@@ -99,5 +99,5 @@
 ## 6. Артефакты
 
 - Финальный отчёт скана: `Downloads/VOID_Auditor_Reports/Permission_Audit_20260815_195639.txt` (371 приложение, полный перечень с группами и весами).
-- Инструмент: модуль **PERMS** (Permission Audit) приложения VOID Auditor v1.4.2+ — парсер `dumpsys package` (One UI + AOSP форматы), реестр 35 опасных разрешений, SYS-тег для системных пакетов, экспорт через MediaStore.
+- Инструмент: модуль **PERMS** (Permission Audit) приложения VOID Auditor v1.4.2+ — парсер `dumpsys package` (One UI + AOSP форматы), реестр 33 опасных разрешений, SYS-тег для системных пакетов, экспорт через MediaStore.
 - Юнит-тесты парсера: `PermissionAuditTest` (7 тестов, покрытие обоих форматов dumpsys, весов и SYS-флага).

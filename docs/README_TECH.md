@@ -1,7 +1,7 @@
 # VOID Auditor — Technical Documentation
 
 > English technical overview · aligned with **v1.4.3**  
-> For the project landing README see [README.md](README.md). Russian short doc: [README_RU.md](README_RU.md).
+> For the project landing README see [README.md](../README.md). Russian short doc: [README_RU.md](../README_RU.md).
 
 ---
 
@@ -189,17 +189,17 @@ Exact file set evolves; treat this as a map, not a frozen tree.
 
 ## 9. Related links
 
-- [README.md](README.md) — English project README  
-- [README_RU.md](README_RU.md) — Russian technical notes (may lag; this file tracks v1.4.3)  
-- [SECURITY.md](SECURITY.md) — vulnerability reporting  
+- [README.md](../README.md) — English project README  
+- [README_RU.md](../README_RU.md) — Russian technical notes (may lag; this file tracks v1.4.3)  
+- [SECURITY.md](../SECURITY.md) — vulnerability reporting  
 - [Landing](https://m0ndsuchtig.github.io/Void-Auditor/) — Pages site (EN default)  
-- Screenshots: [`screenshots/`](screenshots/)  
+- Screenshots: [`screenshots/`](../screenshots/)  
 - Telegram: [EthicalHackingCS](https://t.me/EthicalHackingCS)
 
 ---
 
 ## 10. License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](../LICENSE).
 
 **Authorized use only.** Audit devices you own or have explicit permission to test.

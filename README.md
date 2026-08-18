@@ -113,10 +113,11 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 
 ### v1.4.3
 
-- **Permission Audit (PERMS)** — new module: audit installed packages by **actually granted** dangerous permissions, parsed from `dumpsys package` (One UI `requested`/`runtime` sections and AOSP inline format). Registry of 35 dangerous permissions grouped by sensitivity with weighted risk (SMS / mic / location / call-log = 3, contacts / camera / phone = 2, storage / calendar = 1, special app-ops = 3). Third-party scope by default; **ALL** mode marks system packages `[SYS]` and warns that high scores are expected there. Risk filters (LOW / MEDIUM / HIGH / CRITICAL), expandable app cards, live scan progress, report export to `Downloads/VOID_Auditor_Reports/` via MediaStore.
+- **Permission Audit (PERMS)** — new module: audit installed packages by **actually granted** dangerous permissions, parsed from `dumpsys package` (One UI `requested`/`runtime` sections and AOSP inline format). Registry of 33 dangerous permissions grouped by sensitivity with weighted risk (SMS / mic / location / call-log = 3, contacts / camera / phone = 2, storage / calendar = 1, special app-ops = 2–3). Third-party scope by default; **ALL** mode marks system packages `[SYS]` and warns that high scores are expected there. Risk filters (LOW / MEDIUM / HIGH / CRITICAL), expandable app cards, live scan progress, report export to `Downloads/VOID_Auditor_Reports/` via MediaStore.
 - **Parser unit tests** — 7 tests covering both dumpsys formats, risk weighting and the SYS flag.
+- **Docs organization** — technical documentation (`README_TECH.md`) and field reports (`PERMISSION_AUDIT_REPORT.md`, `VOID_Auditor_Report_NET_SCAN.md`) moved to [`docs/`](docs/README.md) with automated CI link validation (`docs-links.yml`).
 - **Dead Capacitor shell removed** — `android/settings.gradle` no longer includes the unused `:capacitor-android` / `:capacitor-haptics` / `:capacitor-cordova-android-plugins` projects; unqualified Gradle tasks (`testDebugUnitTest`, `lint`) no longer fail with `invalid source release: 21` (latent CI breaker).
-- **Docs** — `PERMISSION_AUDIT_REPORT.md`: full minimization campaign report (7 apps, before/after scores, evidence-based revocations).
+- **Docs** — [`docs/PERMISSION_AUDIT_REPORT.md`](docs/PERMISSION_AUDIT_REPORT.md): full minimization campaign report (7 apps, before/after scores, evidence-based revocations).
 
 ### v1.4.2
 
@@ -175,6 +176,18 @@ Sanitized context → Gemini (analysis only)
 ## Screenshots
 
 See the [`screenshots/`](screenshots/) folder in the repository.
+
+---
+
+## Documentation
+
+📚 **Index:** [docs/README.md](docs/README.md) — all technical docs and reports in one place
+
+| Document | Description |
+|----------|-------------|
+| [README_TECH.md](docs/README_TECH.md) | Technical documentation — architecture, capabilities, PolicyEngine, Shizuku layer, AI governance |
+| [PERMISSION_AUDIT_REPORT.md](docs/PERMISSION_AUDIT_REPORT.md) | Permission minimization campaign report — 7 third-party apps, before/after risk scores, evidence-based revocations via `pm revoke` / `appops` |
+| [VOID_Auditor_Report_NET_SCAN.md](docs/VOID_Auditor_Report_NET_SCAN.md) | NET_SCAN field report — port-scan reliability measurements (parallelism 1–256, SYN-queue loss), service banners, full 65535-port scan results |
 
 ---
 
