@@ -1,0 +1,3 @@
+{
+  "startupScript": "cd /home/mondsuchtig/VOID_Auditor || exit 1\n\necho \"=== VOID Auditor Workspace ===\"\necho \"PWD: $(pwd)\"\necho\necho \"=== Git ===\"\ngit branch --show-current\ngit status --short\ngit log -1 --oneline\necho\necho \"=== Agent Instructions ===\"\nif [ -f AGENTS.md ]; then\n    cat AGENTS.md\nelse\n    echo \"ERROR: AGENTS.md missing\"\n    exit 1\nfi"
+}

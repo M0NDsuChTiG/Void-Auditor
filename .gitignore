@@ -66,6 +66,7 @@ capacitor-cordova-android-plugins/
 !package.json
 !tsconfig.json
 !metadata.json
+!.freebuff/settings.json
 *.txt
 !package-lock.txt
 
@@ -111,3 +112,9 @@ v101_check.png
 batch_install.sh
 dev_helper.sh
 run_me.sh
+
+# --- Freebuff workspace (keep settings.json, exclude DB) ---
+.freebuff/*.db
+.freebuff/*.db-shm
+.freebuff/*.db-wal
+.freebuff/desktop-*
