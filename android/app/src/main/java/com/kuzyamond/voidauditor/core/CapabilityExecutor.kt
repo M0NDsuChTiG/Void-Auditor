@@ -208,6 +208,7 @@ object CapabilityExecutor : USFPipeline {
             is Capability.RunAsRoot -> cap.commandHint
             is Capability.NetworkAction -> cap.action
             is Capability.ReadSensitiveData -> cap.dataType
+            is Capability.CleanCache -> cap.safeCommand
         }
     }
 
@@ -215,6 +216,7 @@ object CapabilityExecutor : USFPipeline {
         return when (cap) {
             is Capability.ModifySettings -> "pm grant ${cap.namespace} android.permission.WRITE_SECURE_SETTINGS"
             is Capability.InstallPackage -> "settings put global install_non_market_apps 1"
+            is Capability.CleanCache -> null
             else -> null
         }
     }
