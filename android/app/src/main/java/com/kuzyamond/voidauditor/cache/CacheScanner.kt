@@ -1,12 +1,12 @@
 package com.kuzyamond.voidauditor.cache
 
 import com.kuzyamond.voidauditor.GlobalLog
-import com.kuzyamond.voidauditor.ShizukuManager
 import com.kuzyamond.voidauditor.cache.models.CacheEntry
 import com.kuzyamond.voidauditor.cache.models.CacheStats
 import com.kuzyamond.voidauditor.core.ActorType
-import com.kuzyamond.voidauditor.core.AuditEvent
-import com.kuzyamond.voidauditor.core.AuditLogger
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.USFPipeline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -18,6 +18,7 @@ object CacheScanner {
     private const val FULL_MAX_DEPTH = 4
     private const val DEEP_MAX_DEPTH = 4
     private val SUFFIX_NAME_REGEX = Regex("^[a-zA-Z0-9_]+$")
+    private val pipelineContext = USFPipeline.Context(actor = ActorType.SCRIPT)
 
     private fun buildNameExpr(): String {
         val safe = PathSanitizer.SAFE_SUFFIX.filter { SUFFIX_NAME_REGEX.matches(it) }
@@ -27,15 +28,6 @@ object CacheScanner {
 
     suspend fun scan(capability: CacheCapability): CacheStats = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
-        AuditLogger.log(
-            AuditEvent(
-                actor = ActorType.SCRIPT,
-                capability = "CACHE_SCAN:${capability.name}",
-                riskLevel = capability.riskLevel,
-                decision = "ALLOWED",
-                details = "Starting ${capability.displayName}"
-            )
-        )
         GlobalLog.log("SCAN_START: ${capability.displayName}", "warn", TAG)
 
         val rawPaths = discoverCacheDirs(capability)
@@ -59,8 +51,9 @@ object CacheScanner {
             else -> com.kuzyamond.voidauditor.RiskLevel.LOW
         }
 
-        val installedPackages = ShizukuManager.executeCommand("pm list packages -3 2>/dev/null | wc -l")
-            .getOrNull()?.trim()?.toIntOrNull() ?: 0
+        val installedPackages = CapabilityExecutor.execute(
+            pipelineContext, Capability.RunShellCommand("pm list packages -3 2>/dev/null | wc -l")
+        ).commandResult.output.trim().toIntOrNull() ?: 0
 
         val stats = CacheStats(
             totalSizeBytes = totalSize,
@@ -72,15 +65,6 @@ object CacheScanner {
             installedPackages = installedPackages
         )
 
-        AuditLogger.log(
-            AuditEvent(
-                actor = ActorType.SCRIPT,
-                capability = "CACHE_SCAN:${capability.name}",
-                riskLevel = risk,
-                decision = "ALLOWED",
-                details = "Found ${entries.size} dirs, ${formatSize(totalSize)} total"
-            )
-        )
         GlobalLog.log(
             "SCAN_DONE: ${entries.size} dirs, ${formatSize(totalSize)} in ${duration}ms",
             if (risk.ordinal >= com.kuzyamond.voidauditor.RiskLevel.HIGH.ordinal) "warn" else "ok",
@@ -110,8 +94,9 @@ object CacheScanner {
                 append("""find "$root" -mindepth $MIN_DEPTH -maxdepth $maxDepth -type d $nameExpr -prune 2>/dev/null""")
             }
         }
-        val result = ShizukuManager.executeCommand(cmd)
-            .getOrNull() ?: ""
+        val result = CapabilityExecutor.execute(
+            pipelineContext, Capability.RunShellCommand(cmd)
+        ).commandResult.output
         result.lines()
             .filter { it.isNotBlank() }
             .distinctBy { raw ->
@@ -125,14 +110,17 @@ object CacheScanner {
         val countCmd = """find "$path" -type f 2>/dev/null | wc -l"""
         val modifiedCmd = """stat -c %Y "$path" 2>/dev/null"""
 
-        val sizeBytes = ShizukuManager.executeCommand(cmd)
-            .getOrNull()?.trim()?.toLongOrNull() ?: 0L
+        val sizeBytes = CapabilityExecutor.execute(
+            pipelineContext, Capability.RunShellCommand(cmd)
+        ).commandResult.output.trim().toLongOrNull() ?: 0L
 
-        val fileCount = ShizukuManager.executeCommand(countCmd)
-            .getOrNull()?.trim()?.toIntOrNull() ?: 0
+        val fileCount = CapabilityExecutor.execute(
+            pipelineContext, Capability.RunShellCommand(countCmd)
+        ).commandResult.output.trim().toIntOrNull() ?: 0
 
-        val lastModified = ShizukuManager.executeCommand(modifiedCmd)
-            .getOrNull()?.trim()?.toLongOrNull() ?: 0L
+        val lastModified = CapabilityExecutor.execute(
+            pipelineContext, Capability.RunShellCommand(modifiedCmd)
+        ).commandResult.output.trim().toLongOrNull() ?: 0L
 
         val pkg = PathSanitizer.extractPackage(path) ?: "unknown"
 
