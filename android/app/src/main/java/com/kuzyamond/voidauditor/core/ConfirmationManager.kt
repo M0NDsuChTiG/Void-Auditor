@@ -28,7 +28,7 @@ object ConfirmationManager {
         private set
 
     fun requestConfirmation(
-        intent: Capability,
+        intent: USFPipeline.Capability,
         onConfirm: () -> Unit,
         onCancel: () -> Unit = {},
         requiredPhrase: String? = null
@@ -42,7 +42,7 @@ object ConfirmationManager {
 }
 
 data class ConfirmationRequest(
-    val intent: Capability,
+    val intent: USFPipeline.Capability,
     val onConfirm: () -> Unit,
     val onCancel: () -> Unit,
     val requiredPhrase: String? = null

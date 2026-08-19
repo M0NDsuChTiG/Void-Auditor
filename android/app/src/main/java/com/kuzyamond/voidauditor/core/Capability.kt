@@ -1,6 +1,6 @@
 package com.kuzyamond.voidauditor.core
 
-sealed class Capability(val description: String, val riskScore: Int) {
+sealed class Capability(override val description: String, override val riskScore: Int) : USFPipeline.Capability {
     data class ReadSystemProp(val prop: String = "*") : Capability("Read system property: $prop", 10)
     data class RunShellCommand(val commandHint: String) : Capability("Shell: $commandHint", 30)
     data class QueryPackages(val filter: String = "all") : Capability("Query packages: $filter", 15)

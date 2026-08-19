@@ -1,33 +1,17 @@
 package com.kuzyamond.voidauditor.core
 
-import com.kuzyamond.voidauditor.GlobalLog
 import com.kuzyamond.voidauditor.RiskLevel
 
-object CapabilityExecutor {
+object CapabilityExecutor : USFPipeline {
     var logListener: ((type: String, message: String) -> Unit)? = null
 
-    data class AuditSummary(
-        val total: Int,
-        val passed: Int,
-        val failed: Int,
-        val blocked: Int,
-        val issues: List<AuditIssue>
-    )
-
-    data class AuditIssue(
-        val capability: Capability,
-        val severity: String,
-        val description: String,
-        val fixCommand: String?
-    )
-
-    private val auditIssues = mutableListOf<AuditIssue>()
+    private val auditIssues = mutableListOf<USFPipeline.AuditIssue>()
     private var totalAuditOps = 0
     private var passedOps = 0
     private var failedOps = 0
     private var blockedOps = 0
 
-    fun resetAudit() {
+    override fun resetAudit() {
         auditIssues.clear()
         totalAuditOps = 0
         passedOps = 0
@@ -35,31 +19,49 @@ object CapabilityExecutor {
         blockedOps = 0
     }
 
-    suspend fun execute(capability: Capability): ShizukuExecutor.CommandResult {
-        totalAuditOps++
-        val decision = PolicyEngine.evaluate(capability)
+    /**
+     * USFPipeline entry point — all privileged operations route here.
+     */
+    override suspend fun execute(
+        context: USFPipeline.Context,
+        capability: USFPipeline.Capability
+    ): USFPipeline.Result {
+        val coreCapability = capability as? Capability
+            ?: return USFPipeline.Result(
+                commandResult = ShizukuExecutor.CommandResult(
+                    success = false, output = "",
+                    error = "UNSUPPORTED_CAPABILITY: ${capability::class.simpleName}",
+                    exitCode = -1, executionTimeMs = 0
+                ),
+                decision = PolicyDecision.Denied("Unsupported capability type"),
+                capability = capability,
+                context = context
+            )
 
-        when (decision) {
+        totalAuditOps++
+        val decision = PolicyEngine.evaluate(coreCapability)
+
+        val commandResult = when (decision) {
             is PolicyDecision.Denied -> {
                 blockedOps++
                 logListener?.invoke("POLICY", "DENIED: ${decision.reason}")
                 AuditLogger.log(
-                    actor = ActorType.SYSTEM,
-                    capability = capability::class.simpleName ?: "unknown",
+                    actor = context.actor,
+                    capability = coreCapability::class.simpleName ?: "unknown",
                     riskLevel = RiskLevel.CRITICAL,
                     decision = "DENIED",
-                    target = capability.description,
+                    target = coreCapability.description,
                     details = decision.reason
                 )
                 auditIssues.add(
-                    AuditIssue(
-                        capability = capability,
+                    USFPipeline.AuditIssue(
+                        capability = coreCapability,
                         severity = "CRITICAL",
                         description = "Policy blocked: ${decision.reason}",
                         fixCommand = null
                     )
                 )
-                return ShizukuExecutor.CommandResult(
+                ShizukuExecutor.CommandResult(
                     success = false, output = "",
                     error = "DENIED: ${decision.reason}",
                     exitCode = -1, executionTimeMs = 0
@@ -73,20 +75,15 @@ object CapabilityExecutor {
                 )
 
                 ConfirmationManager.requestConfirmation(
-                    intent = capability,
-                    onConfirm = {
-                        confirmed = true
-                    },
+                    intent = coreCapability,
+                    onConfirm = { confirmed = true },
                     onCancel = {
                         blockedOps++
-                        logListener?.invoke("POLICY", "CANCELLED: ${capability.description}")
+                        logListener?.invoke("POLICY", "CANCELLED: ${coreCapability.description}")
                     }
                 )
 
-                if (confirmed) {
-                    return executeRaw(capability)
-                }
-                return result
+                if (confirmed) executeRaw(coreCapability) else result
             }
             is PolicyDecision.RequireDoubleConfirmation -> {
                 var firstConfirmed = false
@@ -97,34 +94,46 @@ object CapabilityExecutor {
                 )
 
                 ConfirmationManager.requestConfirmation(
-                    intent = capability,
+                    intent = coreCapability,
                     onConfirm = { firstConfirmed = true },
                     onCancel = {
                         blockedOps++
-                        logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${capability.description}")
+                        logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${coreCapability.description}")
                     }
                 )
 
                 if (firstConfirmed) {
                     ConfirmationManager.requestConfirmation(
-                        intent = capability,
+                        intent = coreCapability,
                         onConfirm = { secondConfirmed = true },
                         onCancel = {
                             blockedOps++
-                            logListener?.invoke("POLICY", "SECOND_CANCELLED: ${capability.description}")
+                            logListener?.invoke("POLICY", "SECOND_CANCELLED: ${coreCapability.description}")
                         }
                     )
                 }
 
-                if (secondConfirmed) {
-                    return executeRaw(capability)
-                }
-                return result
+                if (secondConfirmed) executeRaw(coreCapability) else result
             }
             is PolicyDecision.Allowed -> {
-                return executeRaw(capability)
+                executeRaw(coreCapability)
             }
         }
+
+        return USFPipeline.Result(
+            commandResult = commandResult,
+            decision = decision,
+            capability = coreCapability,
+            context = context
+        )
+    }
+
+    /**
+     * Backward-compatible entry point — delegates to USFPipeline.execute.
+     */
+    suspend fun execute(capability: Capability): ShizukuExecutor.CommandResult {
+        val result = execute(USFPipeline.Context(), capability)
+        return result.commandResult
     }
 
     private suspend fun executeRaw(capability: Capability): ShizukuExecutor.CommandResult {
@@ -160,7 +169,7 @@ object CapabilityExecutor {
 
             if (result.error.contains("DENIED") || result.error.contains("PERMISSION")) {
                 auditIssues.add(
-                    AuditIssue(
+                    USFPipeline.AuditIssue(
                         capability = capability,
                         severity = "HIGH",
                         description = "Permission denied for: ${capability.description}",
@@ -173,8 +182,8 @@ object CapabilityExecutor {
         return result
     }
 
-    fun getSummary(): AuditSummary {
-        return AuditSummary(
+    override fun getSummary(): USFPipeline.AuditSummary {
+        return USFPipeline.AuditSummary(
             total = totalAuditOps,
             passed = passedOps,
             failed = failedOps,

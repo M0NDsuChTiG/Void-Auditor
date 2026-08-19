@@ -12,12 +12,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.PolicyEngine
+import com.kuzyamond.voidauditor.core.USFPipeline
 import kotlinx.coroutines.launch
 import com.kuzyamond.voidauditor.core.ShizukuExecutor
 
 @Composable
 fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScope()) {
-    var auditSummary by remember { mutableStateOf<CapabilityExecutor.AuditSummary?>(null) }
+    var auditSummary by remember { mutableStateOf<USFPipeline.AuditSummary?>(null) }
     var scanning by remember { mutableStateOf(false) }
 
     Column(
