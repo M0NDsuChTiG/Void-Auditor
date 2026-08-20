@@ -1,6 +1,9 @@
 package com.kuzyamond.voidauditor.network
 
-import com.kuzyamond.voidauditor.core.ShizukuExecutor
+import com.kuzyamond.voidauditor.core.ActorType
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.USFPipeline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -17,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.asCoroutineDispatcher
 
 object NetworkScanner {
+
+    private val pipelineContext = USFPipeline.Context(actor = ActorType.SCRIPT)
 
     val COMMON_PORTS = listOf(22, 53, 80, 443, 445, 5555, 8080, 8443, 9090, 3389, 5900)
     val FULL_PORTS: List<Int> = (1..65535).toList()
@@ -97,7 +102,7 @@ object NetworkScanner {
                     append(validTargets.joinToString(" ") { it.ip })
                     append("; do (ping -c 1 -W 1 \"\$ip\" >/dev/null 2>&1 && echo \"\$ip\") & done; wait")
                 }
-                val result = ShizukuExecutor.executeCommand(script, timeoutMs = 45_000)
+                val result = CapabilityExecutor.execute(pipelineContext, Capability.RunShellCommand(commandHint = script)).commandResult
                 if (!result.isSuccessful) emptyList()
                 else result.output.lines().map { it.trim() }.filter { line ->
                     line.matches(Regex("^(\\d{1,3}\\.){3}\\d{1,3}$"))
@@ -240,7 +245,7 @@ val scanned = tcpScanPorts(host.ip, ports) { done, total ->
     private suspend fun tryReadMac(ip: String): String {
         return withContext(Dispatchers.IO) {
             try {
-                val result = ShizukuExecutor.executeCommand("cat /proc/net/arp")
+                val result = CapabilityExecutor.execute(pipelineContext, Capability.RunShellCommand(commandHint = "cat /proc/net/arp")).commandResult
                 if (!result.isSuccessful) return@withContext ""
                 val lines = result.output.lines()
 
