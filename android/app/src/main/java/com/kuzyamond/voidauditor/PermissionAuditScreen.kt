@@ -34,7 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.AuditLogger
-import com.kuzyamond.voidauditor.core.ShizukuExecutor
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.USFPipeline
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -223,18 +225,21 @@ fun PermissionAuditScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCor
             expanded.clear()
             scanDone = 0
             scanTotal = 0
+            val pipelineContext = USFPipeline.Context(actor = ActorType.SCRIPT, source = "permission_audit")
 
             val scopeLabel = if (includeSystem) "ALL" else "3RD-PARTY"
             GlobalLog.log("PERM_AUDIT: listing packages ($scopeLabel)...", "warn", "PERMS")
-            val listRes = ShizukuExecutor.executeCommand(
-                if (includeSystem) "pm list packages" else "pm list packages -3"
+            val listRes = CapabilityExecutor.execute(
+                pipelineContext,
+                Capability.QueryPackages(filter = if (includeSystem) "" else "-3")
             )
-            val pkgs = listRes.output.lines()
+            val pkgs = listRes.commandResult.output.lines()
                 .mapNotNull { it.removePrefix("package:").trim().takeIf { p -> p.isNotEmpty() } }
             // Для ALL-режима помечаем системные пакеты (SYS-тег), чтобы CRITICAL
             // от com.android.*/gms/samsung не пугал: это легитимный широкий доступ.
             val systemSet: Set<String> = if (includeSystem) {
-                ShizukuExecutor.executeCommand("pm list packages -s").output.lines()
+                CapabilityExecutor.execute(pipelineContext, Capability.QueryPackages(filter = "-s"))
+                    .commandResult.output.lines()
                     .mapNotNull { it.removePrefix("package:").trim().takeIf { p -> p.isNotEmpty() } }
                     .toSet()
             } else {
@@ -250,8 +255,8 @@ fun PermissionAuditScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCor
                     async {
                         semaphore.withPermit {
                             val out = withTimeoutOrNull(15_000) {
-                                runCatching { ShizukuManager.executeCommand("dumpsys package $pkg").getOrThrow() }
-                                    .getOrElse { "" }
+                                CapabilityExecutor.execute(pipelineContext, Capability.DumpService(service = "package $pkg"))
+                                    .commandResult.output
                             } ?: ""
                             val n = done.incrementAndGet()
                             scanDone = n
