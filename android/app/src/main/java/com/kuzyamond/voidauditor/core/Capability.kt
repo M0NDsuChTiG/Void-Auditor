@@ -16,4 +16,5 @@ sealed class Capability(override val description: String, override val riskScore
     data class NetworkAction(val action: String) : Capability("Network: $action", 60)
     data class ReadSensitiveData(val dataType: String) : Capability("Read $dataType", 65)
     data class CleanCache(val path: String, val safeCommand: String) : Capability("Clean cache: $path", 30)
+    data class ExecuteArbitraryShell(val commandString: String) : Capability("Shell: $commandString", 85)
 }

@@ -21,7 +21,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import com.kuzyamond.voidauditor.core.ShizukuExecutor
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.USFPipeline
 
 private val D = '$'
 
@@ -302,7 +304,7 @@ echo "==========================================="""), "NETWORK"),
                                 GlobalLog.log("RUNNING_${scriptType}_SCRIPT...", "warn", "SCRIPTS")
                                 val cmd = if (scriptType == "BASH") "sh -c \"${scriptContent.replace("\"", "\\\"")}\""
                                 else "python3 -c \"${scriptContent.replace("\"", "\\\"")}\""
-                                val res = ShizukuExecutor.executeCommand(cmd)
+                                val res = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ExecuteArbitraryShell(cmd)).commandResult
                                 if (res.isSuccessful) GlobalLog.log("OUTPUT:\n${res.output}", "ok", "SCRIPTS")
                                 else GlobalLog.log("SCRIPT_ERR: ${res.error}", "crit", "SCRIPTS")
                             }
@@ -327,7 +329,7 @@ echo "==========================================="""), "NETWORK"),
                             scope.launch {
                                 val ext = if (scriptType == "BASH") "sh" else "py"
                                 val path = "/sdcard/Download/script_${System.currentTimeMillis()}.$ext"
-                                val res = ShizukuExecutor.executeCommand("echo '${scriptContent.replace("'", "'\\''")}' > \"$path\"")
+                                val res = CapabilityExecutor.execute(USFPipeline.Context(), Capability.WriteFile(path)).commandResult
                                 if (res.isSuccessful) GlobalLog.log("EXPORTED: $path", "ok", "SCRIPTS")
                                 else GlobalLog.log("EXPORT_ERR: ${res.error}", "crit", "SCRIPTS")
                             }
