@@ -222,6 +222,8 @@ object CapabilityExecutor : USFPipeline {
             is Capability.LaunchActivity -> "am start -n ${cap.component}"
             is Capability.ListDirectory -> "ls -l ${cap.path}"
             is Capability.CalculateDiskUsage -> "du -sh ${cap.path}"
+            is Capability.AdbConnect -> "adb connect ${cap.ipAddress}:${cap.port}"
+            is Capability.AdbScanDevices -> "adb devices"
         }
     }
 

@@ -24,4 +24,6 @@ sealed class Capability(override val description: String, override val riskScore
     data class CalculateDiskUsage(val path: String) : Capability("Disk usage: $path", 10)
     data class DisablePackage(val packageName: String) : Capability("Disable package: $packageName", 60)
     data class EnablePackage(val packageName: String) : Capability("Enable package: $packageName", 30)
+    data class AdbConnect(val ipAddress: String, val port: Int) : Capability("ADB connect: $ipAddress:$port", 50)
+    data object AdbScanDevices : Capability("Scan ADB devices", 10)
 }

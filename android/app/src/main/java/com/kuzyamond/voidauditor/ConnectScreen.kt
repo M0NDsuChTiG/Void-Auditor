@@ -16,6 +16,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.network.NetworkAdb
 import com.kuzyamond.voidauditor.network.NetworkDashboardScreen
 import kotlinx.coroutines.launch
@@ -161,9 +163,12 @@ private fun ConnectTabContent(scope: kotlinx.coroutines.CoroutineScope) {
                     onClick = {
                         scope.launch {
                             GlobalLog.log("CONNECTING_TO: $ipAddress:$port", "warn", "CONN")
-                            val res = ShizukuManager.executeCommand("adb connect $ipAddress:$port")
-                            res.onSuccess { GlobalLog.log("LINK_RESULT: $it", "ok", "CONN") }
-                               .onFailure { GlobalLog.log("LINK_FAILED: ${it.message}", "crit", "CONN") }
+                            val result = CapabilityExecutor.execute(Capability.AdbConnect(ipAddress, port))
+                            if (result.isSuccessful) {
+                                GlobalLog.log("LINK_RESULT: ${result.output}", "ok", "CONN")
+                            } else {
+                                GlobalLog.log("LINK_FAILED: ${result.error}", "crit", "CONN")
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -185,9 +190,12 @@ private fun ConnectTabContent(scope: kotlinx.coroutines.CoroutineScope) {
                     onClick = {
                         scope.launch {
                             GlobalLog.log("SCANNING_USB_DEVICES...", "warn", "CONN")
-                            val res = ShizukuManager.executeCommand("adb devices")
-                            res.onSuccess { GlobalLog.log("DEVICES:\n$it", "ok", "CONN") }
-                               .onFailure { GlobalLog.log("USB_SCAN_ERR: ${it.message}", "crit", "CONN") }
+                            val result = CapabilityExecutor.execute(Capability.AdbScanDevices)
+                            if (result.isSuccessful) {
+                                GlobalLog.log("DEVICES:\n${result.output}", "ok", "CONN")
+                            } else {
+                                GlobalLog.log("USB_SCAN_ERR: ${result.error}", "crit", "CONN")
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
