@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.AuditLogger
+import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.PolicyEngine
 import com.kuzyamond.voidauditor.core.ShizukuExecutor
@@ -389,7 +390,9 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
             "settings get global adb_authorization_timeout"
         )
 
-        val results = ShizukuExecutor.executeBatch(auditCommands)
+        val results = auditCommands.map { cmd ->
+            CapabilityExecutor.execute(Capability.ExecuteArbitraryShell(cmd))
+        }
 
         val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
             .format(java.util.Date())
@@ -461,7 +464,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
 
             bankingPackages.forEach { pkg ->
                 appendLine("[$pkg]")
-                val result = ShizukuExecutor.executeCommand("dumpsys package $pkg")
+                val result = CapabilityExecutor.execute(Capability.ExecuteArbitraryShell("dumpsys package $pkg"))
                 
                 if (result.isSuccessful) {
                     val output = result.output
