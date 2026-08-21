@@ -218,6 +218,8 @@ object CapabilityExecutor : USFPipeline {
             is Capability.ConfigureAdbTcp -> "" // handled by executeConfigureAdbTcp(); unreachable here
             is Capability.DumpPackageActivities -> "dumpsys package ${cap.packageName} | grep -oE '${cap.packageName}/[A-Za-z0-9_.\$]+' | sort -u | head -80"
             is Capability.LaunchActivity -> "am start -n ${cap.component}"
+            is Capability.ListDirectory -> "ls -l ${cap.path}"
+            is Capability.CalculateDiskUsage -> "du -sh ${cap.path}"
         }
     }
 

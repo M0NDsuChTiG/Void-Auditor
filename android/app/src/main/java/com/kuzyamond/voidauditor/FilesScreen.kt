@@ -16,6 +16,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import kotlinx.coroutines.launch
 
 @Composable
@@ -43,12 +45,13 @@ fun FilesScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScop
                         onClick = {
                             scope.launch {
                                 GlobalLog.log("CMD: ls -l \"$filePath\"", "warn", "FS")
-                                val res = ShizukuManager.executeCommand("ls -l \"$filePath\"")
-                                res.onSuccess { 
-                                    val out = if (it.isEmpty()) "DIRECTORY_EMPTY_OR_NO_PERM" else it
-                                    GlobalLog.log(out, "ok", "FS") 
+                                val res = CapabilityExecutor.execute(Capability.ListDirectory(filePath))
+                                if (res.isSuccessful) {
+                                    val out = if (res.output.isEmpty()) "DIRECTORY_EMPTY_OR_NO_PERM" else res.output
+                                    GlobalLog.log(out, "ok", "FS")
+                                } else {
+                                    GlobalLog.log("FS_ERR: ${res.error}", "crit", "FS")
                                 }
-                                .onFailure { GlobalLog.log("FS_ERR: ${it.message}", "crit", "FS") }
                             }
                         },
                         modifier = Modifier.border(1.dp, CyberAccent2).background(CyberSurface)
@@ -70,9 +73,12 @@ fun FilesScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScop
                         onClick = {
                             scope.launch {
                                 GlobalLog.log("CMD: du -sh \"$filePath\"", "warn", "FS")
-                                val res = ShizukuManager.executeCommand("du -sh \"$filePath\"")
-                                res.onSuccess { GlobalLog.log("SIZE_REPORT: $it", "ok", "FS") }
-                                   .onFailure { GlobalLog.log("FS_ERR: ${it.message}", "crit", "FS") }
+                                val res = CapabilityExecutor.execute(Capability.CalculateDiskUsage(filePath))
+                                if (res.isSuccessful) {
+                                    GlobalLog.log("SIZE_REPORT: ${res.output}", "ok", "FS")
+                                } else {
+                                    GlobalLog.log("FS_ERR: ${res.error}", "crit", "FS")
+                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -86,16 +92,17 @@ fun FilesScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScop
                         onClick = {
                             scope.launch {
                                 GlobalLog.log("CMD: cat \"$filePath\"", "warn", "FS")
-                                val res = ShizukuManager.executeCommand("cat \"$filePath\"")
-                                res.onSuccess { 
-                                    if (it.isEmpty()) {
+                                val res = CapabilityExecutor.execute(Capability.ReadFile(filePath))
+                                if (res.isSuccessful) {
+                                    if (res.output.isEmpty()) {
                                         GlobalLog.log("FILE_EMPTY_OR_NOT_READABLE", "warn", "FS")
                                     } else {
-                                        val preview = it.take(1000) + (if (it.length > 1000) "... [TRUNCATED]" else "")
+                                        val preview = res.output.take(1000) + (if (res.output.length > 1000) "... [TRUNCATED]" else "")
                                         GlobalLog.log("CONTENT_PREVIEW:\n$preview", "ok", "FS")
                                     }
+                                } else {
+                                    GlobalLog.log("FS_ERR: ${res.error}", "crit", "FS")
                                 }
-                                .onFailure { GlobalLog.log("FS_ERR: ${it.message}", "crit", "FS") }
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),

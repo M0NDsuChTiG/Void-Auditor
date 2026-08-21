@@ -20,4 +20,6 @@ sealed class Capability(override val description: String, override val riskScore
     data class ConfigureAdbTcp(val port: Int) : Capability("Configure ADB TCP on port $port", 75)
     data class DumpPackageActivities(val packageName: String) : Capability("Dump activities: $packageName", 25)
     data class LaunchActivity(val component: String) : Capability("Launch: $component", 45)
+    data class ListDirectory(val path: String) : Capability("List directory: $path", 15)
+    data class CalculateDiskUsage(val path: String) : Capability("Disk usage: $path", 10)
 }
