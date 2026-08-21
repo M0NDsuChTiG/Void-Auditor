@@ -23,7 +23,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import com.kuzyamond.voidauditor.core.ShizukuExecutor
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
 
 @Composable
 fun TerminalScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScope()) {
@@ -58,7 +59,7 @@ fun TerminalScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineS
                         if (cmd.isNotBlank()) {
                             scope.launch {
                                 GlobalLog.log("TRYING: $cmd", "warn", "SHELL")
-                                val res = ShizukuExecutor.executeCommand(cmd)
+                                val res = CapabilityExecutor.execute(Capability.ExecuteArbitraryShell(cmd))
                                 GlobalLog.log(if (res.isSuccessful) "DONE (${res.executionTimeMs}ms)" else "FAILED", if (res.isSuccessful) "ok" else "crit", "SHELL")
                                 if (res.output.isNotBlank()) GlobalLog.log(res.output, "info", "SHELL")
                                 if (res.error.isNotBlank()) GlobalLog.log(res.error, "crit", "SHELL")
@@ -83,7 +84,7 @@ fun TerminalScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineS
                         if (cmd.isNotBlank()) {
                             scope.launch {
                                 GlobalLog.log("TRYING: $cmd", "warn", "SHELL")
-                                val res = ShizukuExecutor.executeCommand(cmd)
+                                val res = CapabilityExecutor.execute(Capability.ExecuteArbitraryShell(cmd))
                                 GlobalLog.log(if (res.isSuccessful) "DONE (${res.executionTimeMs}ms)" else "FAILED", if (res.isSuccessful) "ok" else "crit", "SHELL")
                                 if (res.output.isNotBlank()) GlobalLog.log(res.output, "info", "SHELL")
                                 if (res.error.isNotBlank()) GlobalLog.log(res.error, "crit", "SHELL")
