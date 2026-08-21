@@ -224,6 +224,11 @@ object CapabilityExecutor : USFPipeline {
             is Capability.CalculateDiskUsage -> "du -sh ${cap.path}"
             is Capability.AdbConnect -> "adb connect ${cap.ipAddress}:${cap.port}"
             is Capability.AdbScanDevices -> "adb devices"
+            is Capability.ListApkFiles -> "ls ${cap.path}*.apk 2>/dev/null"
+            is Capability.InstallApk -> "pm install -r ${cap.filePath} && echo \"OK\""
+            is Capability.GetPackagePath -> "pm path ${cap.packageName}"
+            is Capability.CopyFile -> "cp ${cap.source} ${cap.destination} && echo \"OK\""
+            is Capability.CreateDirectory -> "mkdir -p ${cap.path}"
         }
     }
 

@@ -26,4 +26,9 @@ sealed class Capability(override val description: String, override val riskScore
     data class EnablePackage(val packageName: String) : Capability("Enable package: $packageName", 30)
     data class AdbConnect(val ipAddress: String, val port: Int) : Capability("ADB connect: $ipAddress:$port", 50)
     data object AdbScanDevices : Capability("Scan ADB devices", 10)
+    data class ListApkFiles(val path: String) : Capability("List APK files: $path", 15)
+    data class InstallApk(val filePath: String) : Capability("Install APK: $filePath", 85)
+    data class GetPackagePath(val packageName: String) : Capability("Get package path: $packageName", 15)
+    data class CopyFile(val source: String, val destination: String) : Capability("Copy file: $source → $destination", 50)
+    data class CreateDirectory(val path: String) : Capability("Create directory: $path", 30)
 }

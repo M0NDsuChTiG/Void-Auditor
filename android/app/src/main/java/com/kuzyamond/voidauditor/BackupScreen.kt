@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
 
 data class BackupEntry(val packageName: String, var apkPath: String = "", var status: String = "PENDING")
 data class RestoreEntry(val fileName: String, val filePath: String, var status: String = "PENDING")
@@ -37,11 +39,11 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
         scope.launch {
             isLoading = true
             GlobalLog.log("LOADING_USER_PACKAGES...", "warn", "BACKUP")
-            val res = ShizukuManager.executeCommand("pm list packages -3")
-            val list = res.getOrNull()?.split("\n")
-                ?.filter { it.startsWith("package:") }
-                ?.map { BackupEntry(it.removePrefix("package:").trim()) }
-                ?.sortedBy { it.packageName } ?: emptyList()
+            val result = CapabilityExecutor.execute(Capability.QueryPackages(filter = "-3"))
+            val list = result.output.split("\n")
+                .filter { it.startsWith("package:") }
+                .map { BackupEntry(it.removePrefix("package:").trim()) }
+                .sortedBy { it.packageName }
             packages = list
             GlobalLog.log("FOUND ${packages.size} USER_PACKAGES", "ok", "BACKUP")
             isLoading = false
@@ -55,8 +57,8 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
             val dirs = listOf("/sdcard/Download/ADB_Backups/", "/sdcard/Download/")
             var files = mutableListOf<RestoreEntry>()
             dirs.forEach { dir ->
-                val res = ShizukuManager.executeCommand("ls \"$dir\"*.apk 2>/dev/null")
-                res.getOrNull()?.split("\n")?.filter { it.endsWith(".apk") }?.forEach { path ->
+                val result = CapabilityExecutor.execute(Capability.ListApkFiles(path = dir))
+                result.output.split("\n").filter { it.endsWith(".apk") }.forEach { path ->
                     val name = path.substringAfterLast("/")
                     if (files.none { it.fileName == name }) {
                         files.add(RestoreEntry(name, path, "PENDING"))
@@ -74,13 +76,13 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
             entry.status = "INSTALLING"
             restoreFiles = restoreFiles.toList()
             GlobalLog.log("INSTALLING: ${entry.fileName}", "warn", "RESTORE")
-            val res = ShizukuManager.executeCommand("pm install -r \"${entry.filePath}\" && echo \"OK\"")
-            if (res.isSuccess && res.getOrNull()?.contains("OK") == true) {
+            val result = CapabilityExecutor.execute(Capability.InstallApk(filePath = entry.filePath))
+            if (result.isSuccessful && result.output.contains("OK")) {
                 entry.status = "DONE"
                 GlobalLog.log("INSTALL_OK: ${entry.fileName}", "ok", "RESTORE")
             } else {
                 entry.status = "FAIL"
-                GlobalLog.log("INSTALL_FAILED: ${entry.fileName} — ${res.exceptionOrNull()?.message}", "crit", "RESTORE")
+                GlobalLog.log("INSTALL_FAILED: ${entry.fileName} — ${result.error}", "crit", "RESTORE")
             }
             restoreFiles = restoreFiles.toList()
         }
@@ -89,13 +91,13 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
     fun backupPackage(entry: BackupEntry) {
         scope.launch {
             GlobalLog.log("BACKING_UP: ${entry.packageName}", "warn", "BACKUP")
-            val pathRes = ShizukuManager.executeCommand("pm path ${entry.packageName}")
-            if (pathRes.isFailure) {
+            val pathResult = CapabilityExecutor.execute(Capability.GetPackagePath(packageName = entry.packageName))
+            if (!pathResult.isSuccessful) {
                 entry.status = "NO_PATH"
                 GlobalLog.log("NO_PATH: ${entry.packageName}", "crit", "BACKUP")
                 return@launch
             }
-            val apkPath = pathRes.getOrNull()?.let {
+            val apkPath = pathResult.output.let {
                 val lines = it.split("\n").filter { l -> l.startsWith("package:") }
                 if (lines.isNotEmpty()) lines[0].removePrefix("package:").trim() else null
             } ?: run {
@@ -105,13 +107,13 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
             entry.apkPath = apkPath
             val fileName = "${entry.packageName}_${System.currentTimeMillis()}.apk"
             val target = "/sdcard/Download/$fileName"
-            val cpRes = ShizukuManager.executeCommand("cp \"$apkPath\" \"$target\" && echo \"OK\"")
-            if (cpRes.isSuccess && cpRes.getOrNull()?.contains("OK") == true) {
+            val cpResult = CapabilityExecutor.execute(Capability.CopyFile(source = apkPath, destination = target))
+            if (cpResult.isSuccessful && cpResult.output.contains("OK")) {
                 entry.status = "DONE"
                 GlobalLog.log("SAVED: $target", "ok", "BACKUP")
             } else {
                 entry.status = "FAIL"
-                GlobalLog.log("CP_FAILED: ${entry.packageName} — ${cpRes.exceptionOrNull()?.message}", "crit", "BACKUP")
+                GlobalLog.log("CP_FAILED: ${entry.packageName} — ${cpResult.error}", "crit", "BACKUP")
             }
             packages = packages.toList()
         }
@@ -121,20 +123,20 @@ fun BackupScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSco
         scope.launch {
             isBackingUp = true
             GlobalLog.log("BACKUP_ALL_STARTED...", "warn", "BACKUP")
-            val dirCheck = ShizukuManager.executeCommand("mkdir -p /sdcard/Download/ADB_Backups")
-            dirCheck.onFailure { GlobalLog.log("DIR_ERR: ${it.message}", "crit", "BACKUP") }
+            val dirCheck = CapabilityExecutor.execute(Capability.CreateDirectory(path = "/sdcard/Download/ADB_Backups"))
+            if (!dirCheck.isSuccessful) GlobalLog.log("DIR_ERR: ${dirCheck.error}", "crit", "BACKUP")
             packages.forEach { entry ->
                 if (entry.status != "DONE") {
-                    val pathRes = ShizukuManager.executeCommand("pm path ${entry.packageName}")
-                    val apkPath = pathRes.getOrNull()?.let {
+                    val pathResult = CapabilityExecutor.execute(Capability.GetPackagePath(packageName = entry.packageName))
+                    val apkPath = pathResult.output.let {
                         val lines = it.split("\n").filter { l -> l.startsWith("package:") }
                         if (lines.isNotEmpty()) lines[0].removePrefix("package:").trim() else null
                     }
                     if (apkPath != null && apkPath.isNotBlank()) {
                         entry.apkPath = apkPath
                         val target = "/sdcard/Download/ADB_Backups/${entry.packageName}.apk"
-                        val cp = ShizukuManager.executeCommand("cp \"$apkPath\" \"$target\" && echo \"OK\"")
-                        entry.status = if (cp.isSuccess && cp.getOrNull()?.contains("OK") == true) "DONE" else "FAIL"
+                        val cpResult = CapabilityExecutor.execute(Capability.CopyFile(source = apkPath, destination = target))
+                        entry.status = if (cpResult.isSuccessful && cpResult.output.contains("OK")) "DONE" else "FAIL"
                     } else {
                         entry.status = "NO_PATH"
                     }
