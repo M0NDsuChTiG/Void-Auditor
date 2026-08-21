@@ -18,4 +18,6 @@ sealed class Capability(override val description: String, override val riskScore
     data class CleanCache(val path: String, val safeCommand: String) : Capability("Clean cache: $path", 30)
     data class ExecuteArbitraryShell(val commandString: String) : Capability("Shell: $commandString", 85)
     data class ConfigureAdbTcp(val port: Int) : Capability("Configure ADB TCP on port $port", 75)
+    data class DumpPackageActivities(val packageName: String) : Capability("Dump activities: $packageName", 25)
+    data class LaunchActivity(val component: String) : Capability("Launch: $component", 45)
 }

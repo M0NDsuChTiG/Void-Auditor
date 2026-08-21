@@ -216,6 +216,8 @@ object CapabilityExecutor : USFPipeline {
             is Capability.CleanCache -> cap.safeCommand
             is Capability.ExecuteArbitraryShell -> cap.commandString
             is Capability.ConfigureAdbTcp -> "" // handled by executeConfigureAdbTcp(); unreachable here
+            is Capability.DumpPackageActivities -> "dumpsys package ${cap.packageName} | grep -oE '${cap.packageName}/[A-Za-z0-9_.\$]+' | sort -u | head -80"
+            is Capability.LaunchActivity -> "am start -n ${cap.component}"
         }
     }
 

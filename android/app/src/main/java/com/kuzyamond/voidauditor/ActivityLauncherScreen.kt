@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import kotlinx.coroutines.launch
 
 @Composable
@@ -34,11 +36,11 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
         scope.launch {
             isLoading = true
             GlobalLog.log("LOADING_PACKAGES_FOR_ACTIVITIES...", "warn", "ACTIVITY")
-            val res = ShizukuManager.executeCommand("pm list packages -3")
-            val list = res.getOrNull()?.split("\n")
-                ?.filter { it.startsWith("package:") }
-                ?.map { it.removePrefix("package:").trim() }
-                ?.sorted() ?: emptyList()
+            val res = CapabilityExecutor.execute(Capability.QueryPackages("-3"))
+            val list = res.output.split("\n")
+                .filter { it.startsWith("package:") }
+                .map { it.removePrefix("package:").trim() }
+                .sorted()
             packages = list
             GlobalLog.log("FOUND ${packages.size} USER_PACKAGES", "ok", "ACTIVITY")
             isLoading = false
@@ -51,11 +53,11 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
             selectedPackage = pkg
             activities = emptyList()
             GlobalLog.log("FETCHING_ACTIVITIES_FOR: $pkg", "warn", "ACTIVITY")
-            val res = ShizukuManager.executeCommand("dumpsys package $pkg | grep -oE '$pkg/[A-Za-z0-9_.$]+' | sort -u | head -80")
-            val list = res.getOrNull()?.split("\n")
-                ?.filter { it.isNotBlank() }
-                ?.map { it.removePrefix("$pkg/") }
-                ?.filter { it.isNotBlank() } ?: emptyList()
+            val res = CapabilityExecutor.execute(Capability.DumpPackageActivities(pkg))
+            val list = res.output.split("\n")
+                .filter { it.isNotBlank() }
+                .map { it.removePrefix("$pkg/") }
+                .filter { it.isNotBlank() }
             if (list.isEmpty()) {
                 GlobalLog.log("NO_ACTIVITIES_FOUND (try user-installed packages)", "warn", "ACTIVITY")
             } else {
@@ -69,9 +71,9 @@ fun ActivityLauncherScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCo
     fun launchActivity(pkg: String, activity: String) {
         scope.launch {
             GlobalLog.log("LAUNCHING: $pkg/$activity", "warn", "ACTIVITY")
-            val res = ShizukuManager.executeCommand("am start -n $pkg/$activity")
-            res.onSuccess { GlobalLog.log("LAUNCH_OK: $it", "ok", "ACTIVITY") }
-               .onFailure { GlobalLog.log("LAUNCH_FAILED: ${it.message}", "crit", "ACTIVITY") }
+            val res = CapabilityExecutor.execute(Capability.LaunchActivity("$pkg/$activity"))
+            if (res.success) GlobalLog.log("LAUNCH_OK: ${res.output}", "ok", "ACTIVITY")
+            else GlobalLog.log("LAUNCH_FAILED: ${res.error}", "crit", "ACTIVITY")
         }
     }
 
