@@ -1,33 +1,23 @@
 package com.kuzyamond.voidauditor.network
 
-import com.kuzyamond.voidauditor.core.ShizukuExecutor
-import kotlinx.coroutines.delay
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
 
 object NetworkAdb {
 
     suspend fun enableWifiAdb(port: Int = 5555): Result<String> = try {
-        val setPort = ShizukuExecutor.executeCommand("setprop service.adb.tcp.port $port")
-        if (!setPort.isSuccessful) {
-            Result.failure(Exception(setPort.error.ifBlank { "SETPROP_FAILED (code ${setPort.exitCode})" }))
+        val result = CapabilityExecutor.execute(Capability.ConfigureAdbTcp(port))
+        if (result.success) {
+            Result.success("ADB over WiFi enabled on port $port")
         } else {
-            ShizukuExecutor.executeCommand("stop adbd")
-            ShizukuExecutor.executeCommand("start adbd")
-            delay(800) // дать adbd время подняться после restart
-            val verified = isWifiAdbEnabled(port)
-            if (!verified) {
-                Result.failure(
-                    Exception("VERIFY_FAILED: setprop reported success but port $port not active per getprop")
-                )
-            } else {
-                Result.success("ADB over WiFi enabled on port $port")
-            }
+            Result.failure(Exception(result.error.ifBlank { "EXEC_FAILED (code ${result.exitCode})" }))
         }
     } catch (e: Exception) {
         Result.failure(e)
     }
 
     suspend fun isWifiAdbEnabled(port: Int = 5555): Boolean {
-        val res = ShizukuExecutor.executeCommand("getprop service.adb.tcp.port")
-        return res.isSuccessful && res.output.trim() == port.toString()
+        val result = CapabilityExecutor.execute(Capability.ReadSystemProp("service.adb.tcp.port"))
+        return result.success && result.output.trim() == port.toString()
     }
 }

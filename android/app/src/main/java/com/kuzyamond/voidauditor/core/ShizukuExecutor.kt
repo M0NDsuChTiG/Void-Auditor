@@ -10,6 +10,11 @@ object ShizukuExecutor {
 
     var logListener: ((type: String, message: String) -> Unit)? = null
 
+    data class CompositeStep(
+        val command: String,
+        val result: CommandResult
+    )
+
     data class CommandResult(
         val success: Boolean,
         val output: String,

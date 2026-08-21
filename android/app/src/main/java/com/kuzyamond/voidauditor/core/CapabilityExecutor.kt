@@ -1,6 +1,7 @@
 package com.kuzyamond.voidauditor.core
 
 import com.kuzyamond.voidauditor.RiskLevel
+import kotlinx.coroutines.delay
 
 object CapabilityExecutor : USFPipeline {
     var logListener: ((type: String, message: String) -> Unit)? = null
@@ -137,8 +138,12 @@ object CapabilityExecutor : USFPipeline {
     }
 
     private suspend fun executeRaw(capability: Capability): ShizukuExecutor.CommandResult {
-        val command = capabilityToCommand(capability)
-        val result = ShizukuExecutor.executeCommand(command)
+        val result = if (capability is Capability.ConfigureAdbTcp) {
+            executeConfigureAdbTcp(capability)
+        } else {
+            val command = capabilityToCommand(capability)
+            ShizukuExecutor.executeCommand(command)
+        }
 
         if (result.isSuccessful) {
             passedOps++
@@ -210,6 +215,69 @@ object CapabilityExecutor : USFPipeline {
             is Capability.ReadSensitiveData -> cap.dataType
             is Capability.CleanCache -> cap.safeCommand
             is Capability.ExecuteArbitraryShell -> cap.commandString
+            is Capability.ConfigureAdbTcp -> "" // handled by executeConfigureAdbTcp(); unreachable here
+        }
+    }
+
+    private suspend fun executeConfigureAdbTcp(cap: Capability.ConfigureAdbTcp): ShizukuExecutor.CommandResult {
+        val steps = mutableListOf<ShizukuExecutor.CompositeStep>()
+        val startTime = System.currentTimeMillis()
+
+        // Step 1: setprop — abort on failure
+        val setprop = ShizukuExecutor.executeCommand("setprop service.adb.tcp.port ${cap.port}")
+        steps.add(ShizukuExecutor.CompositeStep("setprop service.adb.tcp.port ${cap.port}", setprop))
+        if (!setprop.isSuccessful) {
+            val elapsed = System.currentTimeMillis() - startTime
+            return ShizukuExecutor.CommandResult(
+                success = false,
+                output = buildCompositeOutput(steps),
+                error = setprop.error.ifBlank { "SETPROP_FAILED (code ${setprop.exitCode})" },
+                exitCode = setprop.exitCode,
+                executionTimeMs = elapsed
+            )
+        }
+
+        // Step 2: stop adbd — record, continue regardless
+        val stop = ShizukuExecutor.executeCommand("stop adbd")
+        steps.add(ShizukuExecutor.CompositeStep("stop adbd", stop))
+
+        // Step 3: start adbd — record, continue regardless
+        val start = ShizukuExecutor.executeCommand("start adbd")
+        steps.add(ShizukuExecutor.CompositeStep("start adbd", start))
+
+        // Step 4: let adbd restart
+        delay(800)
+
+        // Step 5: verify via getprop — VERIFY gate
+        val verify = ShizukuExecutor.executeCommand("getprop service.adb.tcp.port")
+        steps.add(ShizukuExecutor.CompositeStep("getprop service.adb.tcp.port", verify))
+
+        val verified = verify.isSuccessful && verify.output.trim() == cap.port.toString()
+        val elapsed = System.currentTimeMillis() - startTime
+
+        return if (verified) {
+            ShizukuExecutor.CommandResult(
+                success = true,
+                output = buildCompositeOutput(steps),
+                error = "",
+                exitCode = 0,
+                executionTimeMs = elapsed
+            )
+        } else {
+            ShizukuExecutor.CommandResult(
+                success = false,
+                output = buildCompositeOutput(steps),
+                error = "VERIFY_FAILED: setprop reported success but port ${cap.port} not active per getprop",
+                exitCode = -1,
+                executionTimeMs = elapsed
+            )
+        }
+    }
+
+    private fun buildCompositeOutput(steps: List<ShizukuExecutor.CompositeStep>): String {
+        return steps.joinToString("\n") { step ->
+            val status = if (step.result.isSuccessful) "OK" else "FAIL: ${step.result.error.ifBlank { "exit=${step.result.exitCode}" }}"
+            "[${step.command}] -> $status"
         }
     }
 
