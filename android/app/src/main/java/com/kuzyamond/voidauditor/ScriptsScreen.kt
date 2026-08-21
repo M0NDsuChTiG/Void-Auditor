@@ -302,9 +302,8 @@ echo "==========================================="""), "NETWORK"),
                         onClick = {
                             scope.launch {
                                 GlobalLog.log("RUNNING_${scriptType}_SCRIPT...", "warn", "SCRIPTS")
-                                val cmd = if (scriptType == "BASH") "sh -c \"${scriptContent.replace("\"", "\\\"")}\""
-                                else "python3 -c \"${scriptContent.replace("\"", "\\\"")}\""
-                                val res = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ExecuteArbitraryShell(cmd)).commandResult
+                                val language = if (scriptType == "BASH") Capability.ScriptLanguage.BASH else Capability.ScriptLanguage.PYTHON3
+                                val res = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ExecuteScript(language, scriptContent)).commandResult
                                 if (res.isSuccessful) GlobalLog.log("OUTPUT:\n${res.output}", "ok", "SCRIPTS")
                                 else GlobalLog.log("SCRIPT_ERR: ${res.error}", "crit", "SCRIPTS")
                             }

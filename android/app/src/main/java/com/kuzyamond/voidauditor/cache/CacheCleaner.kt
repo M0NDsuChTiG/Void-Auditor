@@ -35,19 +35,17 @@ object CacheCleaner {
 
     suspend fun systemTrim(freeBytesHint: String = "500M"): CleanResult = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
-        val cmd = "pm trim-caches $freeBytesHint"
 
         GlobalLog.log("SYSTEM_TRIM $freeBytesHint", "ok", TAG)
 
-        val dfCmd = "df -k /data 2>/dev/null | tail -1 | awk '{print $(NF-2)}'"
         val beforeKb = CapabilityExecutor.execute(
-            pipelineContext, Capability.RunShellCommand(dfCmd)
+            pipelineContext, Capability.ReadDiskUsage("/data")
         ).commandResult.output.trim().toLongOrNull() ?: 0L
         val result = CapabilityExecutor.execute(
-            pipelineContext, Capability.RunShellCommand(cmd)
+            pipelineContext, Capability.ExecuteSystemTrim(freeBytesHint)
         ).commandResult
         val afterKb = CapabilityExecutor.execute(
-            pipelineContext, Capability.RunShellCommand(dfCmd)
+            pipelineContext, Capability.ReadDiskUsage("/data")
         ).commandResult.output.trim().toLongOrNull() ?: 0L
         val duration = System.currentTimeMillis() - startTime
 
@@ -85,16 +83,13 @@ object CacheCleaner {
         val errors = mutableListOf<String>()
 
         for (path in paths) {
-            val cmd = """du -sb "$path" 2>/dev/null | cut -f1"""
-            val countCmd = """find "$path" -type f 2>/dev/null | wc -l"""
-
             val size = CapabilityExecutor.execute(
-                pipelineContext, Capability.RunShellCommand(cmd)
+                pipelineContext, Capability.ReadDirectorySize(path)
             ).commandResult.run {
                 if (isSuccessful) output.trim().toLongOrNull() ?: 0L else 0L
             }
             val files = CapabilityExecutor.execute(
-                pipelineContext, Capability.RunShellCommand(countCmd)
+                pipelineContext, Capability.ReadFileCount(path)
             ).commandResult.run {
                 if (isSuccessful) output.trim().toIntOrNull() ?: 0 else 0
             }
@@ -136,7 +131,7 @@ object CacheCleaner {
 
         for (path in paths) {
             val sizeBefore = CapabilityExecutor.execute(
-                pipelineContext, Capability.RunShellCommand("""du -sb "$path" 2>/dev/null | cut -f1""")
+                pipelineContext, Capability.ReadDirectorySize(path)
             ).commandResult.run {
                 if (isSuccessful) output.trim().toLongOrNull() ?: 0L else 0L
             }

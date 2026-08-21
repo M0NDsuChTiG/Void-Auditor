@@ -376,22 +376,22 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
     suspend fun performDeviceAudit() {
         isProcessing = true
 
-        val auditCommands = listOf(
-            "getprop ro.build.description",
-            "getprop ro.product.model",
-            "getprop ro.build.version.release",
-            "getprop ro.build.date",
-            "dumpsys battery | grep -E 'level|health|status|temperature|plugged|present'",
-            "dumpsys accessibility",
-            "id && getenforce",
-            "pm list packages -3 | grep -E 'bank|finance|gov|proton|unibank|sima|az\\.'",
-            "dumpsys deviceidle whitelist",
-            "settings get global adb_wifi_enabled",
-            "settings get global adb_authorization_timeout"
+        val auditCapabilities = listOf(
+            Capability.ReadSystemProp("ro.build.description"),
+            Capability.ReadSystemProp("ro.product.model"),
+            Capability.ReadSystemProp("ro.build.version.release"),
+            Capability.ReadSystemProp("ro.build.date"),
+            Capability.DumpService("battery"),
+            Capability.DumpService("accessibility"),
+            Capability.ReadUserIdentity,
+            Capability.QueryPackages("-3"),
+            Capability.DumpService("deviceidle"),
+            Capability.ReadSetting("global", "adb_wifi_enabled"),
+            Capability.ReadSetting("global", "adb_authorization_timeout")
         )
 
-        val results = auditCommands.map { cmd ->
-            CapabilityExecutor.execute(Capability.ExecuteArbitraryShell(cmd))
+        val results = auditCapabilities.map { cap ->
+            CapabilityExecutor.execute(cap)
         }
 
         val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
@@ -464,7 +464,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
 
             bankingPackages.forEach { pkg ->
                 appendLine("[$pkg]")
-                val result = CapabilityExecutor.execute(Capability.ExecuteArbitraryShell("dumpsys package $pkg"))
+                val result = CapabilityExecutor.execute(Capability.ReadPackageDetails(pkg))
                 
                 if (result.isSuccessful) {
                     val output = result.output

@@ -1,7 +1,46 @@
 package com.kuzyamond.voidauditor.core
 
 sealed class Capability(override val description: String, override val riskScore: Int) : USFPipeline.Capability {
+    // READ tier (risk 5-20)
     data class ReadSystemProp(val prop: String = "*") : Capability("Read system property: $prop", 10)
+    data object ReadSystemFeatures : Capability("Read system features", 10)
+    data object ReadUserIdentity : Capability("Read user identity", 10)
+    data class ReadPackageDetails(val packageName: String) : Capability("Read package details: $packageName", 15)
+    data object ReadPackageCount : Capability("Read third-party package count", 10)
+    data object ReadDangerousPermissions : Capability("Read dangerous permissions", 15)
+    data class ReadDiskUsage(val path: String) : Capability("Read disk usage: $path", 10)
+    data class ReadDirectorySize(val path: String) : Capability("Read directory size: $path", 10)
+    data class ReadFileCount(val path: String) : Capability("Read file count: $path", 10)
+    data class ReadLastModified(val path: String) : Capability("Read last modified: $path", 10)
+    data object ReadARPTable : Capability("Read ARP table", 10)
+    data class ReadAppOps(val op: String) : Capability("Read appops: $op", 15)
+    data class ReadSetting(val namespace: String, val key: String) : Capability("Read setting: $namespace/$key", 15)
+    data object ReadDefaultRoute : Capability("Read default network route", 10)
+    data object ReadWifiInfo : Capability("Read Wi-Fi connection information", 15)
+    data class ReadServiceState(val service: String) : Capability("Read service state: $service", 15)
+    data class DiscoverCacheDirectories(val roots: List<String>, val maxDepth: Int) : Capability("Discover cache directories", 15)
+
+    // ACTION tier (risk 25-60)
+    data class ExecuteSystemTrim(val freeBytesHint: String) : Capability("Execute system trim: $freeBytesHint", 50)
+    data class ExecuteDryRun(val capability: String) : Capability("Execute dry run: $capability", 30)
+    data class ExecuteClean(val capability: String) : Capability("Execute clean: $capability", 60)
+    data class ExecuteNetworkScript(val script: String) : Capability("Execute network script", 60)
+
+    // REMEDIATION tier (risk 70+)
+    sealed class RemediationIntent(override val description: String, override val riskScore: Int) : USFPipeline.Capability {
+        data object EnableFirewall : RemediationIntent("Enable system firewall", 80)
+        data object DisableDebuggable : RemediationIntent("Disable debuggable flag", 85)
+        data object HardenSsh : RemediationIntent("Harden SSH configuration", 75)
+        data object DisableService : RemediationIntent("Disable vulnerable service", 70)
+        data class ExecuteFixCommand(val fixCommand: String) : RemediationIntent("Execute remediation: $fixCommand", 85)
+    }
+
+    // ARBITRARY tier (risk 85+)
+    data class ExecuteArbitraryShell(val commandString: String) : Capability("Shell: $commandString", 85)
+    enum class ScriptLanguage { BASH, PYTHON3 }
+    data class ExecuteScript(val language: ScriptLanguage, val payload: String) : Capability("Execute $language script", 85)
+
+    // Existing capabilities (kept for compatibility / specific use cases)
     data class RunShellCommand(val commandHint: String) : Capability("Shell: $commandHint", 30)
     data class QueryPackages(val filter: String = "all") : Capability("Query packages: $filter", 15)
     data class DumpService(val service: String) : Capability("Dumpsys: $service", 20)
@@ -16,7 +55,6 @@ sealed class Capability(override val description: String, override val riskScore
     data class NetworkAction(val action: String) : Capability("Network: $action", 60)
     data class ReadSensitiveData(val dataType: String) : Capability("Read $dataType", 65)
     data class CleanCache(val path: String, val safeCommand: String) : Capability("Clean cache: $path", 30)
-    data class ExecuteArbitraryShell(val commandString: String) : Capability("Shell: $commandString", 85)
     data class ConfigureAdbTcp(val port: Int) : Capability("Configure ADB TCP on port $port", 75)
     data class DumpPackageActivities(val packageName: String) : Capability("Dump activities: $packageName", 25)
     data class LaunchActivity(val component: String) : Capability("Launch: $component", 45)
@@ -31,6 +69,4 @@ sealed class Capability(override val description: String, override val riskScore
     data class GetPackagePath(val packageName: String) : Capability("Get package path: $packageName", 15)
     data class CopyFile(val source: String, val destination: String) : Capability("Copy file: $source → $destination", 50)
     data class CreateDirectory(val path: String) : Capability("Create directory: $path", 30)
-    data object ReadDefaultRoute : Capability("Read default network route", 10)
-    data object ReadWifiInfo : Capability("Read Wi-Fi connection information", 15)
 }

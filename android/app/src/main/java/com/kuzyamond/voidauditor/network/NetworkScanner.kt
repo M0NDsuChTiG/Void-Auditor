@@ -102,7 +102,7 @@ object NetworkScanner {
                     append(validTargets.joinToString(" ") { it.ip })
                     append("; do (ping -c 1 -W 1 \"\$ip\" >/dev/null 2>&1 && echo \"\$ip\") & done; wait")
                 }
-                val result = CapabilityExecutor.execute(pipelineContext, Capability.RunShellCommand(commandHint = script)).commandResult
+                val result = CapabilityExecutor.execute(pipelineContext, Capability.ExecuteNetworkScript(script)).commandResult
                 if (!result.isSuccessful) emptyList()
                 else result.output.lines().map { it.trim() }.filter { line ->
                     line.matches(Regex("^(\\d{1,3}\\.){3}\\d{1,3}$"))
@@ -245,7 +245,7 @@ val scanned = tcpScanPorts(host.ip, ports) { done, total ->
     private suspend fun tryReadMac(ip: String): String {
         return withContext(Dispatchers.IO) {
             try {
-                val result = CapabilityExecutor.execute(pipelineContext, Capability.RunShellCommand(commandHint = "cat /proc/net/arp")).commandResult
+                val result = CapabilityExecutor.execute(pipelineContext, Capability.ReadARPTable).commandResult
                 if (!result.isSuccessful) return@withContext ""
                 val lines = result.output.lines()
 

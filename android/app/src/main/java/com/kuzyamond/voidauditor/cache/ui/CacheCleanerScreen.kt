@@ -208,7 +208,7 @@ fun CacheCleanerScreen(
                     },
                     onDryRun = {
                         ConfirmationManager.requestConfirmation(
-                            intent = Capability.RunShellCommand("cache_dryrun_${selectedCapability.name}"),
+                            intent = Capability.ExecuteDryRun(selectedCapability.name),
                             onConfirm = {
                                 scope.launch {
                                     val cleanResult = CacheCleaner.clean(selectedPaths.toList(), selectedCapability, dryRun = true)
@@ -219,7 +219,7 @@ fun CacheCleanerScreen(
                     },
                     onPurge = {
                         ConfirmationManager.requestConfirmation(
-                            intent = Capability.RunShellCommand("cache_clean_${selectedCapability.name}"),
+                            intent = Capability.ExecuteClean(selectedCapability.name),
                             requiredPhrase = "PURGE",
                             onConfirm = {
                                 scope.launch {
@@ -231,7 +231,7 @@ fun CacheCleanerScreen(
                     },
                     onSystemTrim = {
                         ConfirmationManager.requestConfirmation(
-                            intent = Capability.RunShellCommand("pm trim-caches 500M"),
+                            intent = Capability.ExecuteSystemTrim("500M"),
                             requiredPhrase = "TRIM",
                             onConfirm = {
                                 scope.launch {

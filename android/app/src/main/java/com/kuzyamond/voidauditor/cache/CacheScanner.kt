@@ -52,7 +52,7 @@ object CacheScanner {
         }
 
         val installedPackages = CapabilityExecutor.execute(
-            pipelineContext, Capability.RunShellCommand("pm list packages -3 2>/dev/null | wc -l")
+            pipelineContext, Capability.ReadPackageCount
         ).commandResult.output.trim().toIntOrNull() ?: 0
 
         val stats = CacheStats(
@@ -87,15 +87,8 @@ object CacheScanner {
             CacheCapability.DEEP -> FULL_MAX_DEPTH
             CacheCapability.SYSTEM_TRIM -> 0
         }
-        val nameExpr = buildNameExpr()
-        val cmd = buildString {
-            roots.forEachIndexed { i, root ->
-                if (i > 0) append("\n")
-                append("""find "$root" -mindepth $MIN_DEPTH -maxdepth $maxDepth -type d $nameExpr -prune 2>/dev/null""")
-            }
-        }
         val result = CapabilityExecutor.execute(
-            pipelineContext, Capability.RunShellCommand(cmd)
+            pipelineContext, Capability.DiscoverCacheDirectories(roots, maxDepth)
         ).commandResult.output
         result.lines()
             .filter { it.isNotBlank() }
@@ -106,20 +99,16 @@ object CacheScanner {
     }
 
     private suspend fun inspectDir(path: String): CacheEntry? = withContext(Dispatchers.IO) {
-        val cmd = """du -sb "$path" 2>/dev/null | cut -f1"""
-        val countCmd = """find "$path" -type f 2>/dev/null | wc -l"""
-        val modifiedCmd = """stat -c %Y "$path" 2>/dev/null"""
-
         val sizeBytes = CapabilityExecutor.execute(
-            pipelineContext, Capability.RunShellCommand(cmd)
+            pipelineContext, Capability.ReadDirectorySize(path)
         ).commandResult.output.trim().toLongOrNull() ?: 0L
 
         val fileCount = CapabilityExecutor.execute(
-            pipelineContext, Capability.RunShellCommand(countCmd)
+            pipelineContext, Capability.ReadFileCount(path)
         ).commandResult.output.trim().toIntOrNull() ?: 0
 
         val lastModified = CapabilityExecutor.execute(
-            pipelineContext, Capability.RunShellCommand(modifiedCmd)
+            pipelineContext, Capability.ReadLastModified(path)
         ).commandResult.output.trim().toLongOrNull() ?: 0L
 
         val pkg = PathSanitizer.extractPackage(path) ?: "unknown"

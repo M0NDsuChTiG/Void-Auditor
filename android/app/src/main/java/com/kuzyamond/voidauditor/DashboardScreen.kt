@@ -39,7 +39,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("HW_MAP", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("MAPPING HARDWARE...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.RunShellCommand("pm list features"))
+                            val result = CapabilityExecutor.execute(Capability.ReadSystemFeatures)
                             if (result.isSuccessful) {
                                 val summary = result.output.split("\n").take(5).joinToString(", ")
                                 GlobalLog.log("FEATURES: $summary...", "ok", "AUDIT")
@@ -59,7 +59,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("LOCAL_UID", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("GETTING UID...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.RunShellCommand("id"))
+                            val result = CapabilityExecutor.execute(Capability.ReadUserIdentity)
                             if (result.isSuccessful) GlobalLog.log("UID: ${result.output}", "ok", "AUDIT")
                             else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
@@ -75,7 +75,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("BT_LOG", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("ANALYZING BT_HISTORY...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.RunShellCommand("dumpsys bluetooth_manager | grep -A 15 \"Enable log:\""))
+                            val result = CapabilityExecutor.execute(Capability.ReadServiceState("bluetooth_manager"))
                             if (result.isSuccessful) GlobalLog.log("BT_ACTIVATION_LOG:\n${result.output}", "ok", "AUDIT")
                             else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
@@ -83,7 +83,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("DANGEROUS_OPS", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("CHECKING BT_PERMISSIONS...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.RunShellCommand("appops query-op BLUETOOTH_SCAN allow"))
+                            val result = CapabilityExecutor.execute(Capability.ReadAppOps("BLUETOOTH_SCAN"))
                             if (result.isSuccessful) GlobalLog.log("APPS_WITH_BT_SCAN:\n${result.output}", "ok", "AUDIT")
                             else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
@@ -92,7 +92,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                 AuditButton("GEO_PRECISION_CHECK", CyberAccent2, Modifier.fillMaxWidth()) {
                     scope.launch {
                         GlobalLog.log("CHECKING GOOGLE_LOC_PRECISION...", "warn", "AUDIT")
-                        val result = CapabilityExecutor.execute(Capability.RunShellCommand("settings get secure location_precision_state"))
+                        val result = CapabilityExecutor.execute(Capability.ReadSetting("secure", "location_precision_state"))
                         if (result.isSuccessful) {
                             val status = if(result.output == "1") "ENABLED (DANGEROUS)" else "DISABLED (SAFE)"
                             GlobalLog.log("LOC_PRECISION: $status", if(result.output == "1") "warn" else "ok", "AUDIT")
@@ -121,10 +121,10 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                                 Capability.ReadSystemProp("ro.build.type"),
                                 Capability.ReadSystemProp("ro.debuggable"),
                                 Capability.ReadSystemProp("ro.secure"),
-                                Capability.RunShellCommand("pm list permissions -d -g"),
+                                Capability.ReadDangerousPermissions,
                                 Capability.DumpService("battery"),
-                                Capability.NetworkAction("settings get global airplane_mode_on"),
-                                Capability.ReadSensitiveData("settings get secure location_precision_state")
+                                Capability.ReadSetting("global", "airplane_mode_on"),
+                                Capability.ReadSetting("secure", "location_precision_state")
                             )
 
                             for (check in checks) {
@@ -204,7 +204,9 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                                                     "FIX: ${issue.fixCommand}",
                                                     "ok", "GOV"
                                                 )
-                                                    val result = CapabilityExecutor.execute(Capability.ExecuteArbitraryShell(issue.fixCommand!!))
+                                                    val result = CapabilityExecutor.execute(
+                                                        Capability.RemediationIntent.ExecuteFixCommand(issue.fixCommand!!)
+                                                    )
                                                     if (result.isSuccessful) {
                                                         GlobalLog.log("FIX_OK: ${issue.fixCommand}", "ok", "GOV")
                                                     } else {

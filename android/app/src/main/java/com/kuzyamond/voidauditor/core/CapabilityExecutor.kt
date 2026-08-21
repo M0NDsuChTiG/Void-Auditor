@@ -199,7 +199,51 @@ object CapabilityExecutor : USFPipeline {
 
     private fun capabilityToCommand(cap: Capability): String {
         return when (cap) {
+            // READ tier
             is Capability.ReadSystemProp -> "getprop ${cap.prop}"
+            is Capability.ReadSystemFeatures -> "pm list features"
+            is Capability.ReadUserIdentity -> "id"
+            is Capability.ReadPackageDetails -> "dumpsys package ${cap.packageName}"
+            is Capability.ReadPackageCount -> "pm list packages -3 2>/dev/null | wc -l"
+            is Capability.ReadDangerousPermissions -> "pm list permissions -d -g"
+            is Capability.ReadDiskUsage -> "df -k ${cap.path} 2>/dev/null | tail -1 | awk '{print \$(NF-2)}'"
+            is Capability.ReadDirectorySize -> "du -sb \"${cap.path}\" 2>/dev/null | cut -f1"
+            is Capability.ReadFileCount -> "find \"${cap.path}\" -type f 2>/dev/null | wc -l"
+            is Capability.ReadLastModified -> "stat -c %Y \"${cap.path}\" 2>/dev/null"
+            is Capability.ReadARPTable -> "cat /proc/net/arp"
+            is Capability.ReadAppOps -> "appops query-op ${cap.op} allow"
+            is Capability.ReadSetting -> "settings get ${cap.namespace} ${cap.key}"
+            is Capability.ReadDefaultRoute -> "ip route show default"
+            is Capability.ReadWifiInfo -> "cmd wifi get-wifi-info 2>/dev/null"
+            is Capability.ReadServiceState -> "dumpsys ${cap.service}"
+            is Capability.DiscoverCacheDirectories -> buildString {
+                cap.roots.forEachIndexed { i, root ->
+                    if (i > 0) append("\n")
+                    append("""find "$root" -mindepth 1 -maxdepth ${cap.maxDepth} -type d -name \"cache\" -prune 2>/dev/null""")
+                }
+            }
+
+            // ACTION tier
+            is Capability.ExecuteSystemTrim -> "pm trim-caches ${cap.freeBytesHint}"
+            is Capability.ExecuteDryRun -> "" // handled by caller (CacheCleaner); unreachable here
+            is Capability.ExecuteClean -> "" // handled by caller (CacheCleaner); unreachable here
+            is Capability.ExecuteNetworkScript -> cap.script
+
+            // REMEDIATION tier - mapped per intent
+            is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
+            is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
+            is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
+            is Capability.RemediationIntent.DisableService -> "pm disable-user --user 0 ${cap.fixCommand}"
+            is Capability.RemediationIntent.ExecuteFixCommand -> cap.fixCommand
+
+            // ARBITRARY tier
+            is Capability.ExecuteArbitraryShell -> cap.commandString
+            is Capability.ExecuteScript -> when (cap.language) {
+                Capability.ScriptLanguage.BASH -> "sh -c \"${cap.payload.replace("\"", "\\\\\"")}\""
+                Capability.ScriptLanguage.PYTHON3 -> "python3 -c \"${cap.payload.replace("\"", "\\\\\"")}\""
+            }
+
+            // Existing capabilities
             is Capability.RunShellCommand -> cap.commandHint
             is Capability.QueryPackages -> "pm list packages ${cap.filter}"
             is Capability.DumpService -> "dumpsys ${cap.service}"
@@ -216,8 +260,7 @@ object CapabilityExecutor : USFPipeline {
             is Capability.NetworkAction -> cap.action
             is Capability.ReadSensitiveData -> cap.dataType
             is Capability.CleanCache -> cap.safeCommand
-            is Capability.ExecuteArbitraryShell -> cap.commandString
-            is Capability.ConfigureAdbTcp -> "" // handled by executeConfigureAdbTcp(); unreachable here
+            is Capability.ConfigureAdbTcp -> "" // handled by executeConfigureAdbTcp()
             is Capability.DumpPackageActivities -> "dumpsys package ${cap.packageName} | grep -oE '${cap.packageName}/[A-Za-z0-9_.\$]+' | sort -u | head -80"
             is Capability.LaunchActivity -> "am start -n ${cap.component}"
             is Capability.ListDirectory -> "ls -l ${cap.path}"
@@ -229,8 +272,6 @@ object CapabilityExecutor : USFPipeline {
             is Capability.GetPackagePath -> "pm path ${cap.packageName}"
             is Capability.CopyFile -> "cp ${cap.source} ${cap.destination} && echo \"OK\""
             is Capability.CreateDirectory -> "mkdir -p ${cap.path}"
-            is Capability.ReadDefaultRoute -> "ip route show default"
-            is Capability.ReadWifiInfo -> "cmd wifi get-wifi-info 2>/dev/null"
         }
     }
 
@@ -302,6 +343,15 @@ object CapabilityExecutor : USFPipeline {
             is Capability.InstallPackage -> "settings put global install_non_market_apps 1"
             is Capability.CleanCache -> null
             is Capability.ExecuteArbitraryShell -> null
+            is Capability.ReadSetting -> "pm grant ${cap.namespace} android.permission.WRITE_SECURE_SETTINGS"
+            is Capability.ModifySettings -> "pm grant ${cap.namespace} android.permission.WRITE_SECURE_SETTINGS"
+            is Capability.ExecuteSystemTrim -> "settings put global trim_caches_enabled 1"
+            is Capability.ExecuteClean -> null
+            is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
+            is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
+            is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
+            is Capability.RemediationIntent.DisableService -> null
+            is Capability.RemediationIntent.ExecuteFixCommand -> null
             else -> null
         }
     }
