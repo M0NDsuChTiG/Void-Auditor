@@ -31,4 +31,6 @@ sealed class Capability(override val description: String, override val riskScore
     data class GetPackagePath(val packageName: String) : Capability("Get package path: $packageName", 15)
     data class CopyFile(val source: String, val destination: String) : Capability("Copy file: $source → $destination", 50)
     data class CreateDirectory(val path: String) : Capability("Create directory: $path", 30)
+    data object ReadDefaultRoute : Capability("Read default network route", 10)
+    data object ReadWifiInfo : Capability("Read Wi-Fi connection information", 15)
 }

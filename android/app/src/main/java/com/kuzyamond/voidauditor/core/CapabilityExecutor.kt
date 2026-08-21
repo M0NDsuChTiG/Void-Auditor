@@ -229,6 +229,8 @@ object CapabilityExecutor : USFPipeline {
             is Capability.GetPackagePath -> "pm path ${cap.packageName}"
             is Capability.CopyFile -> "cp ${cap.source} ${cap.destination} && echo \"OK\""
             is Capability.CreateDirectory -> "mkdir -p ${cap.path}"
+            is Capability.ReadDefaultRoute -> "ip route show default"
+            is Capability.ReadWifiInfo -> "cmd wifi get-wifi-info 2>/dev/null"
         }
     }
 

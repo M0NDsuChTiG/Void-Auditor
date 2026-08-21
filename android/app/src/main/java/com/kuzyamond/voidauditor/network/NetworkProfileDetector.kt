@@ -3,6 +3,8 @@ package com.kuzyamond.voidauditor.network
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -85,11 +87,21 @@ object NetworkProfileDetector {
             }
         }
 
-        if (localIp == null) {
-            val defaultDev = tryDetectDefaultInterface()
-            if (defaultDev != null) {
+        // Execute capabilities ONCE early - we may need route for fallback interface
+        val routeResult = CapabilityExecutor.execute(Capability.ReadDefaultRoute)
+        val routeOutput = if (routeResult.isSuccessful) routeResult.output else ""
+
+        if (localIp == null && routeOutput.isNotBlank()) {
+            // Fallback: parse default route interface from ip route output
+            val defaultIface = routeOutput.lines()
+                .firstNotNullOfOrNull { line ->
+                    val parts = line.trim().split("\\s+".toRegex())
+                    val devIdx = parts.indexOf("dev")
+                    if (devIdx >= 0 && devIdx + 1 < parts.size) parts[devIdx + 1] else null
+                } ?: ""
+            if (defaultIface.isNotBlank()) {
                 try {
-                    val intf = NetworkInterface.getByName(defaultDev)
+                    val intf = NetworkInterface.getByName(defaultIface)
                     if (intf != null && intf.isUp) {
                         localIp = intf.inetAddresses
                             .asSequence()
@@ -114,13 +126,11 @@ object NetworkProfileDetector {
                     val addr = inetAddresses.nextElement()
                     if (addr is Inet4Address && !addr.isLoopbackAddress) {
                         localIp = addr
+                        activeInterface = intf
                         break
                     }
                 }
-                if (localIp != null) {
-                    activeInterface = intf
-                    break
-                }
+                if (localIp != null) break
             }
         }
 
@@ -129,13 +139,42 @@ object NetworkProfileDetector {
         }
 
         val localIpStr = localIp.hostAddress ?: ""
-        val interfaceName = activeInterface?.name ?: ""
-        val isTethering = TETHERING_PREFIXES.any { interfaceName.startsWith(it) }
+
+        val wifiResult = CapabilityExecutor.execute(Capability.ReadWifiInfo)
+        val wifiOutput = if (wifiResult.isSuccessful) wifiResult.output else ""
+
+        // Parse interface from route output if we don't have it from ConnectivityManager
+        var finalInterfaceName = activeInterface?.name ?: ""
+        if (finalInterfaceName.isBlank() && routeOutput.isNotBlank()) {
+            finalInterfaceName = routeOutput.lines()
+                .firstNotNullOfOrNull { line ->
+                    val parts = line.trim().split("\\s+".toRegex())
+                    val devIdx = parts.indexOf("dev")
+                    if (devIdx >= 0 && devIdx + 1 < parts.size) parts[devIdx + 1] else null
+                } ?: ""
+        }
+
+        val isTethering = TETHERING_PREFIXES.any { finalInterfaceName.startsWith(it) }
+
+        // Semantic gateway parsing: look for "via" keyword
+        val gatewayIp = routeOutput.lines()
+            .firstNotNullOfOrNull { line ->
+                val parts = line.trim().split("\\s+".toRegex())
+                val viaIdx = parts.indexOf("via")
+                if (viaIdx >= 0 && viaIdx + 1 < parts.size) parts[viaIdx + 1] else null
+            } ?: ""
+
+        val ssid = wifiOutput.lines()
+            .find { it.trim().startsWith("SSID") }
+            ?.substringAfter(":")
+            ?.trim() ?: ""
+
+        val bssid = wifiOutput.lines()
+            .find { it.trim().startsWith("BSSID") }
+            ?.substringAfter(":")
+            ?.trim() ?: ""
 
         val publicIp = tryFetchPublicIp()
-        val gatewayIp = tryDetectGateway()
-        val ssid = tryReadSsid()
-        val bssid = tryReadBssid()
 
         val mode = when {
             isLocalLab(localIp) -> NetworkMode.LOCAL_LAB
@@ -150,7 +189,7 @@ object NetworkProfileDetector {
             localIp = localIpStr,
             publicIp = publicIp,
             gatewayIp = gatewayIp,
-            interfaceName = interfaceName,
+            interfaceName = finalInterfaceName,
             ssid = ssid,
             bssid = bssid,
             subnetMask = 24
@@ -204,59 +243,6 @@ object NetworkProfileDetector {
             iface to ipv4
         } catch (_: Exception) {
             null
-        }
-    }
-
-    private suspend fun tryDetectDefaultInterface(): String = withContext(Dispatchers.IO) {
-        try {
-            val proc = Runtime.getRuntime().exec("ip route show default")
-            val reader = BufferedReader(InputStreamReader(proc.inputStream))
-            val lines = reader.readLines()
-            reader.close()
-            lines.firstNotNullOfOrNull { line ->
-                val parts = line.split("\\s+".toRegex())
-                val devIdx = parts.indexOf("dev")
-                if (devIdx >= 0 && devIdx + 1 < parts.size) parts[devIdx + 1] else null
-            } ?: ""
-        } catch (_: Exception) {
-            ""
-        }
-    }
-
-    private suspend fun tryDetectGateway(): String = withContext(Dispatchers.IO) {
-        try {
-            val proc = Runtime.getRuntime().exec("ip route show default")
-            val reader = BufferedReader(InputStreamReader(proc.inputStream))
-            val line = reader.readLine() ?: return@withContext ""
-            reader.close()
-            val parts = line.split("\\s+".toRegex())
-            parts.getOrNull(2) ?: ""
-        } catch (_: Exception) {
-            ""
-        }
-    }
-
-    private suspend fun tryReadSsid(): String = withContext(Dispatchers.IO) {
-        try {
-            val proc = Runtime.getRuntime().exec("cmd wifi get-wifi-info 2>/dev/null")
-            val reader = BufferedReader(InputStreamReader(proc.inputStream))
-            val lines = reader.readLines()
-            reader.close()
-            lines.find { it.startsWith("SSID") }?.substringAfter(":")?.trim() ?: ""
-        } catch (_: Exception) {
-            ""
-        }
-    }
-
-    private suspend fun tryReadBssid(): String = withContext(Dispatchers.IO) {
-        try {
-            val proc = Runtime.getRuntime().exec("cmd wifi get-wifi-info 2>/dev/null")
-            val reader = BufferedReader(InputStreamReader(proc.inputStream))
-            val lines = reader.readLines()
-            reader.close()
-            lines.find { it.startsWith("BSSID") }?.substringAfter(":")?.trim() ?: ""
-        } catch (_: Exception) {
-            ""
         }
     }
 }
