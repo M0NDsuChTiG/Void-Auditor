@@ -207,6 +207,8 @@ object CapabilityExecutor : USFPipeline {
             is Capability.InstallPackage -> "pm install ${cap.packageName}"
             is Capability.UninstallPackage -> "pm uninstall ${cap.packageName}"
             is Capability.ForceStopPackage -> "am force-stop ${cap.packageName}"
+            is Capability.DisablePackage -> "pm disable-user --user 0 ${cap.packageName}"
+            is Capability.EnablePackage -> "pm enable ${cap.packageName}"
             is Capability.ClearAppData -> "pm clear ${cap.packageName}"
             is Capability.ReadFile -> "cat ${cap.path}"
             is Capability.WriteFile -> "echo > ${cap.path}"

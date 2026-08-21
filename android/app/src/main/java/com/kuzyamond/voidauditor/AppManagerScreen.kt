@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.kuzyamond.voidauditor.core.Capability
+import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import kotlinx.coroutines.launch
 
 enum class AppStatus { WORKING, DISABLED, SLEEPING }
@@ -50,23 +52,23 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
             selectedPackages.clear()
             GlobalLog.log("SCANNING_LOCAL_PACKAGES...", "warn", "APPS")
             
-            val enabledRes = ShizukuManager.executeCommand("pm list packages -e")
-            val disabledRes = ShizukuManager.executeCommand("pm list packages -d")
+            val enabledRes = CapabilityExecutor.execute(Capability.QueryPackages("e"))
+            val disabledRes = CapabilityExecutor.execute(Capability.QueryPackages("d"))
             
-            if (enabledRes.isFailure) {
-                GlobalLog.log("ENABLED_SYNC_ERR: ${enabledRes.exceptionOrNull()?.message}", "crit", "APPS")
+            if (!enabledRes.isSuccessful) {
+                GlobalLog.log("ENABLED_SYNC_ERR: ${enabledRes.error}", "crit", "APPS")
             }
-            if (disabledRes.isFailure) {
-                GlobalLog.log("DISABLED_SYNC_ERR: ${disabledRes.exceptionOrNull()?.message}", "crit", "APPS")
+            if (!disabledRes.isSuccessful) {
+                GlobalLog.log("DISABLED_SYNC_ERR: ${disabledRes.error}", "crit", "APPS")
             }
 
-            val enabledList = enabledRes.getOrNull()?.split("\n")
-                ?.filter { it.startsWith("package:") }
-                ?.map { AppInfo(it.removePrefix("package:").trim(), AppStatus.WORKING) } ?: emptyList()
+            val enabledList = enabledRes.output.split("\n")
+                .filter { it.startsWith("package:") }
+                .map { AppInfo(it.removePrefix("package:").trim(), AppStatus.WORKING) }
                 
-            val disabledList = disabledRes.getOrNull()?.split("\n")
-                ?.filter { it.startsWith("package:") }
-                ?.map { AppInfo(it.removePrefix("package:").trim(), AppStatus.DISABLED) } ?: emptyList()
+            val disabledList = disabledRes.output.split("\n")
+                .filter { it.startsWith("package:") }
+                .map { AppInfo(it.removePrefix("package:").trim(), AppStatus.DISABLED) }
             
             packages = (enabledList + disabledList).sortedBy { it.packageName }
             GlobalLog.log("SYNC_COMPLETE: FOUND ${packages.size} PACKAGES", if (packages.isNotEmpty()) "ok" else "warn", "APPS")
@@ -119,18 +121,20 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
                                 val targets = selectedPackages.filter { it.value }.keys.toList()
                                 GlobalLog.log("BATCH_${label}_${targets.size}_APPS...", "warn", "APPS")
                                 targets.forEach { pkg ->
-                                    val cmd = when(label) {
-                                        "STOP" -> "am force-stop $pkg"
-                                        "OFF" -> "pm disable-user --user 0 $pkg"
-                                        "ON" -> "pm enable $pkg"
-                                        "DEL" -> "pm uninstall --user 0 $pkg"
-                                        else -> ""
+                                    val cap = when(label) {
+                                        "STOP" -> Capability.ForceStopPackage(pkg)
+                                        "OFF"  -> Capability.DisablePackage(pkg)
+                                        "ON"   -> Capability.EnablePackage(pkg)
+                                        "DEL"  -> Capability.UninstallPackage(pkg)
+                                        else   -> null
                                     }
-                                    val res = ShizukuManager.executeCommand(cmd)
-                                    if (res.isSuccess) {
-                                        GlobalLog.log("OK: $pkg", "ok", "APPS")
-                                    } else {
-                                        GlobalLog.log("FAIL: $pkg — ${res.exceptionOrNull()?.message}", "crit", "APPS")
+                                    if (cap != null) {
+                                        val res = CapabilityExecutor.execute(cap)
+                                        if (res.isSuccessful) {
+                                            GlobalLog.log("OK: $pkg", "ok", "APPS")
+                                        } else {
+                                            GlobalLog.log("FAIL: $pkg — ${res.error}", "crit", "APPS")
+                                        }
                                     }
                                 }
                                 selectedPackages.clear()
@@ -182,19 +186,21 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
                                 onAction = { action ->
                                     scope.launch {
                                         GlobalLog.log("EXEC_${action}_${pkg.packageName}...", "warn", "APPS")
-                                        val cmd = when(action) {
-                                            "STOP" -> "am force-stop ${pkg.packageName}"
-                                            "OFF" -> "pm disable-user --user 0 ${pkg.packageName}"
-                                            "ON" -> "pm enable ${pkg.packageName}"
-                                            "DEL" -> "pm uninstall --user 0 ${pkg.packageName}"
-                                            else -> ""
+                                        val cap = when(action) {
+                                            "STOP" -> Capability.ForceStopPackage(pkg.packageName)
+                                            "OFF" -> Capability.DisablePackage(pkg.packageName)
+                                            "ON" -> Capability.EnablePackage(pkg.packageName)
+                                            "DEL" -> Capability.UninstallPackage(pkg.packageName)
+                                            else -> null
                                         }
-                                        val res = ShizukuManager.executeCommand(cmd)
-                                        if (res.isSuccess) {
-                                            GlobalLog.log("SUCCESS", "ok", "APPS")
-                                            refresh()
-                                        } else {
-                                            GlobalLog.log("FAILED: ${res.exceptionOrNull()?.message}", "crit", "APPS")
+                                        if (cap != null) {
+                                            val res = CapabilityExecutor.execute(cap)
+                                            if (res.isSuccessful) {
+                                                GlobalLog.log("SUCCESS", "ok", "APPS")
+                                                refresh()
+                                            } else {
+                                                GlobalLog.log("FAILED: ${res.error}", "crit", "APPS")
+                                            }
                                         }
                                     }
                                 }

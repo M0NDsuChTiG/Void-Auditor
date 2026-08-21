@@ -22,4 +22,6 @@ sealed class Capability(override val description: String, override val riskScore
     data class LaunchActivity(val component: String) : Capability("Launch: $component", 45)
     data class ListDirectory(val path: String) : Capability("List directory: $path", 15)
     data class CalculateDiskUsage(val path: String) : Capability("Disk usage: $path", 10)
+    data class DisablePackage(val packageName: String) : Capability("Disable package: $packageName", 60)
+    data class EnablePackage(val packageName: String) : Capability("Enable package: $packageName", 30)
 }
