@@ -14,7 +14,6 @@ import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.PolicyEngine
 import com.kuzyamond.voidauditor.core.USFPipeline
 import kotlinx.coroutines.launch
-import com.kuzyamond.voidauditor.core.ShizukuExecutor
 
 @Composable
 fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScope()) {
@@ -32,20 +31,19 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("BUILD_PROP", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("FETCHING BUILD_PROP...", "warn", "AUDIT")
-                            val res = ShizukuManager.executeCommand("getprop ro.build.type")
-                            res.onSuccess { GlobalLog.log("BUILD_TYPE: $it", "ok", "AUDIT") }
-                               .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
+                            val result = CapabilityExecutor.execute(Capability.ReadSystemProp("ro.build.type"))
+                            if (result.isSuccessful) GlobalLog.log("BUILD_TYPE: ${result.output}", "ok", "AUDIT")
+                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("HW_MAP", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("MAPPING HARDWARE...", "warn", "AUDIT")
-                            val res = ShizukuManager.executeCommand("pm list features")
-                            res.onSuccess { 
-                                val summary = it.split("\n").take(5).joinToString(", ")
-                                GlobalLog.log("FEATURES: $summary...", "ok", "AUDIT") 
-                            }
-                               .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
+                            val result = CapabilityExecutor.execute(Capability.RunShellCommand("pm list features"))
+                            if (result.isSuccessful) {
+                                val summary = result.output.split("\n").take(5).joinToString(", ")
+                                GlobalLog.log("FEATURES: $summary...", "ok", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                 }
@@ -53,17 +51,17 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("BATTERY", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("DUMPING BATTERY...", "warn", "AUDIT")
-                            val res = ShizukuManager.executeCommand("dumpsys battery")
-                            res.onSuccess { GlobalLog.log("BATTERY_STATUS:\n$it", "ok", "AUDIT") }
-                               .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
+                            val result = CapabilityExecutor.execute(Capability.DumpService("battery"))
+                            if (result.isSuccessful) GlobalLog.log("BATTERY_STATUS:\n${result.output}", "ok", "AUDIT")
+                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("LOCAL_UID", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("GETTING UID...", "warn", "AUDIT")
-                            val res = ShizukuManager.executeCommand("id")
-                            res.onSuccess { GlobalLog.log("UID: $it", "ok", "AUDIT") }
-                               .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
+                            val result = CapabilityExecutor.execute(Capability.RunShellCommand("id"))
+                            if (result.isSuccessful) GlobalLog.log("UID: ${result.output}", "ok", "AUDIT")
+                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                 }
@@ -77,29 +75,28 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("BT_LOG", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("ANALYZING BT_HISTORY...", "warn", "AUDIT")
-                            val res = ShizukuManager.executeCommand("dumpsys bluetooth_manager | grep -A 15 \"Enable log:\"")
-                            res.onSuccess { GlobalLog.log("BT_ACTIVATION_LOG:\n$it", "ok", "AUDIT") }
-                               .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
+                            val result = CapabilityExecutor.execute(Capability.RunShellCommand("dumpsys bluetooth_manager | grep -A 15 \"Enable log:\""))
+                            if (result.isSuccessful) GlobalLog.log("BT_ACTIVATION_LOG:\n${result.output}", "ok", "AUDIT")
+                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("DANGEROUS_OPS", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("CHECKING BT_PERMISSIONS...", "warn", "AUDIT")
-                            val res = ShizukuManager.executeCommand("appops query-op BLUETOOTH_SCAN allow")
-                            res.onSuccess { GlobalLog.log("APPS_WITH_BT_SCAN:\n$it", "ok", "AUDIT") }
-                               .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
+                            val result = CapabilityExecutor.execute(Capability.RunShellCommand("appops query-op BLUETOOTH_SCAN allow"))
+                            if (result.isSuccessful) GlobalLog.log("APPS_WITH_BT_SCAN:\n${result.output}", "ok", "AUDIT")
+                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                 }
                 AuditButton("GEO_PRECISION_CHECK", CyberAccent2, Modifier.fillMaxWidth()) {
                     scope.launch {
                         GlobalLog.log("CHECKING GOOGLE_LOC_PRECISION...", "warn", "AUDIT")
-                        val res = ShizukuManager.executeCommand("settings get secure location_precision_state")
-                        res.onSuccess { 
-                            val status = if(it == "1") "ENABLED (DANGEROUS)" else "DISABLED (SAFE)"
-                            GlobalLog.log("LOC_PRECISION: $status", if(it == "1") "warn" else "ok", "AUDIT") 
-                        }
-                           .onFailure { GlobalLog.log("ERR: ${it.message}", "crit", "AUDIT") }
+                        val result = CapabilityExecutor.execute(Capability.RunShellCommand("settings get secure location_precision_state"))
+                        if (result.isSuccessful) {
+                            val status = if(result.output == "1") "ENABLED (DANGEROUS)" else "DISABLED (SAFE)"
+                            GlobalLog.log("LOC_PRECISION: $status", if(result.output == "1") "warn" else "ok", "AUDIT")
+                        } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                     }
                 }
             }
@@ -207,12 +204,11 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                                                     "FIX: ${issue.fixCommand}",
                                                     "ok", "GOV"
                                                 )
-                                                ShizukuManager.executeCommand(issue.fixCommand!!)
-                                                    .onSuccess {
+                                                    val result = CapabilityExecutor.execute(Capability.ExecuteArbitraryShell(issue.fixCommand!!))
+                                                    if (result.isSuccessful) {
                                                         GlobalLog.log("FIX_OK: ${issue.fixCommand}", "ok", "GOV")
-                                                    }
-                                                    .onFailure {
-                                                        GlobalLog.log("FIX_FAIL: ${it.message}", "crit", "GOV")
+                                                    } else {
+                                                        GlobalLog.log("FIX_FAIL: ${result.error}", "crit", "GOV")
                                                     }
                                             }
                                             auditSummary = null
