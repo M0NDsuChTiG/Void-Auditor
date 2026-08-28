@@ -371,7 +371,6 @@ object CapabilityExecutor : USFPipeline {
             is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
             is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
             is Capability.RemediationIntent.DisableService -> null
-            is Capability.RemediationIntent.ExecuteFixCommand -> null
             else -> null
         }
     }
