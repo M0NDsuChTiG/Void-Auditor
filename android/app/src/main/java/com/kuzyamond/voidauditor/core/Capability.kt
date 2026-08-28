@@ -40,7 +40,6 @@ sealed class Capability(override val description: String, override val riskScore
         data object DisableDebuggable : RemediationIntent("Disable debuggable flag", 85)
         data object HardenSsh : RemediationIntent("Harden SSH configuration", 75)
         data object DisableService : RemediationIntent("Disable vulnerable service", 70)
-        data class ExecuteFixCommand(val fixCommand: String) : RemediationIntent("Execute remediation: $fixCommand", 85)
     }
 
     // ARBITRARY tier (risk 85+)

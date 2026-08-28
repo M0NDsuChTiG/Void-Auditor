@@ -254,8 +254,7 @@ object CapabilityExecutor : USFPipeline {
             is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
             is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
             is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
-            is Capability.RemediationIntent.DisableService -> "pm disable-user --user 0 ${cap.fixCommand}"
-            is Capability.RemediationIntent.ExecuteFixCommand -> cap.fixCommand
+            is Capability.RemediationIntent.DisableService -> "pm disable-user --user 0 com.example.vulnerable"
 
             // ARBITRARY tier
             is Capability.ExecuteArbitraryShell -> cap.commandString

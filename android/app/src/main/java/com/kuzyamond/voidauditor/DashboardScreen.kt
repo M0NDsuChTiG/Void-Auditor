@@ -204,9 +204,9 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                                                     "FIX: ${issue.fixCommand}",
                                                     "ok", "GOV"
                                                 )
-                                                    val result = CapabilityExecutor.execute(
-                                                        Capability.RemediationIntent.ExecuteFixCommand(issue.fixCommand!!)
-                                                    )
+                                                val result = CapabilityExecutor.execute(
+                                                    Capability.RemediationIntent.DisableService
+                                                )
                                                     if (result.isSuccessful) {
                                                         GlobalLog.log("FIX_OK: ${issue.fixCommand}", "ok", "GOV")
                                                     } else {
