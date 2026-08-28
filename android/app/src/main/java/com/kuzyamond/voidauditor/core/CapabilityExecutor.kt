@@ -138,6 +138,17 @@ object CapabilityExecutor : USFPipeline {
     }
 
     private suspend fun executeRaw(capability: Capability): ShizukuExecutor.CommandResult {
+        // Validate parameters before execution
+        val validation = CapabilityValidator.validate(capability)
+        if (validation is CapabilityValidator.ValidationResult.Invalid) {
+            val errorMsg = "VALIDATION_FAILED: ${validation.errors.joinToString(", ")}"
+            logListener?.invoke("VALIDATION", errorMsg)
+            return ShizukuExecutor.CommandResult(
+                success = false, output = "", error = errorMsg,
+                exitCode = -1, executionTimeMs = 0
+            )
+        }
+
         val result = if (capability is Capability.ConfigureAdbTcp) {
             executeConfigureAdbTcp(capability)
         } else {
