@@ -55,7 +55,7 @@ import com.kuzyamond.voidauditor.RiskLevel
 import com.kuzyamond.voidauditor.getRiskColor
 import com.kuzyamond.voidauditor.AuditButton
 import com.kuzyamond.voidauditor.CyberCard
-import com.kuzyamond.voidauditor.cache.CacheCapability
+import com.kuzyamond.voidauditor.cache.CacheCapability as CacheCapabilityEnum
 import com.kuzyamond.voidauditor.cache.CacheCleaner
 import com.kuzyamond.voidauditor.cache.CacheScanner
 import com.kuzyamond.voidauditor.cache.CleanResult
@@ -65,6 +65,13 @@ import com.kuzyamond.voidauditor.core.CacheScanStorage
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.ConfirmationManager
 import kotlinx.coroutines.launch
+
+private fun toCacheCapability(enum: CacheCapabilityEnum): Capability.CacheCapability = when (enum) {
+    CacheCapabilityEnum.QUICK -> Capability.CacheCapability.AppCache
+    CacheCapabilityEnum.FULL -> Capability.CacheCapability.UserCache
+    CacheCapabilityEnum.DEEP -> Capability.CacheCapability.TempFiles
+    CacheCapabilityEnum.SYSTEM_TRIM -> Capability.CacheCapability.SystemCache
+}
 
 private fun formatBytes(bytes: Long): String = when {
     bytes >= 1_000_000_000 -> "%.2f GB".format(bytes / 1_000_000_000.0)
@@ -208,7 +215,7 @@ fun CacheCleanerScreen(
                     },
                     onDryRun = {
                         ConfirmationManager.requestConfirmation(
-                            intent = Capability.ExecuteDryRun(selectedCapability.name),
+                            intent = Capability.ExecuteDryRun(toCacheCapability(selectedCapability)),
                             onConfirm = {
                                 scope.launch {
                                     val cleanResult = CacheCleaner.clean(selectedPaths.toList(), selectedCapability, dryRun = true)
@@ -219,7 +226,7 @@ fun CacheCleanerScreen(
                     },
                     onPurge = {
                         ConfirmationManager.requestConfirmation(
-                            intent = Capability.ExecuteClean(selectedCapability.name),
+                            intent = Capability.ExecuteClean(toCacheCapability(selectedCapability)),
                             requiredPhrase = "PURGE",
                             onConfirm = {
                                 scope.launch {

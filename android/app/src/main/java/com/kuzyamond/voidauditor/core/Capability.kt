@@ -22,8 +22,16 @@ sealed class Capability(override val description: String, override val riskScore
 
     // ACTION tier (risk 25-60)
     data class ExecuteSystemTrim(val freeBytesHint: String) : Capability("Execute system trim: $freeBytesHint", 50)
-    data class ExecuteDryRun(val capability: String) : Capability("Execute dry run: $capability", 30)
-    data class ExecuteClean(val capability: String) : Capability("Execute clean: $capability", 60)
+
+    sealed class CacheCapability(override val description: String) : Capability(description, 30) {
+        data object AppCache : CacheCapability("App cache dry run")
+        data object SystemCache : CacheCapability("System cache dry run")
+        data object TempFiles : CacheCapability("Temp files dry run")
+        data object UserCache : CacheCapability("User cache dry run")
+    }
+
+    data class ExecuteDryRun(val capability: CacheCapability) : Capability("Execute dry run: ${capability.description}", 30)
+    data class ExecuteClean(val capability: CacheCapability) : Capability("Execute clean: ${capability.description}", 60)
     data class ExecuteNetworkScript(val script: String) : Capability("Execute network script", 60)
 
     // REMEDIATION tier (risk 70+)

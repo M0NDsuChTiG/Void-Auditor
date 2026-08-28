@@ -236,8 +236,18 @@ object CapabilityExecutor : USFPipeline {
 
             // ACTION tier
             is Capability.ExecuteSystemTrim -> "pm trim-caches ${cap.freeBytesHint}"
-            is Capability.ExecuteDryRun -> "" // handled by caller (CacheCleaner); unreachable here
-            is Capability.ExecuteClean -> "" // handled by caller (CacheCleaner); unreachable here
+            is Capability.ExecuteDryRun -> when (cap.capability) {
+                is Capability.CacheCapability.AppCache -> "du -sb /data/data 2>/dev/null | awk '{sum+=\$1} END {print sum}'"
+                is Capability.CacheCapability.SystemCache -> "du -sb /data/system 2>/dev/null | awk '{sum+=\$1} END {print sum}'"
+                is Capability.CacheCapability.TempFiles -> "du -sb /data/local/tmp 2>/dev/null | awk '{sum+=\$1} END {print sum}'"
+                is Capability.CacheCapability.UserCache -> "du -sb /sdcard 2>/dev/null | awk '{sum+=\$1} END {print sum}'"
+            }
+            is Capability.ExecuteClean -> when (cap.capability) {
+                is Capability.CacheCapability.AppCache -> "pm trim-caches 100M"
+                is Capability.CacheCapability.SystemCache -> "pm trim-caches 50M"
+                is Capability.CacheCapability.TempFiles -> "rm -rf /data/local/tmp/* 2>/dev/null"
+                is Capability.CacheCapability.UserCache -> "pm trim-caches 200M"
+            }
             is Capability.ExecuteNetworkScript -> cap.script
 
             // REMEDIATION tier - mapped per intent
