@@ -13,6 +13,15 @@ import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.PolicyEngine
 import com.kuzyamond.voidauditor.core.USFPipeline
+import com.kuzyamond.voidauditor.core.EvidenceResult
+import com.kuzyamond.voidauditor.core.SystemFeaturesEvidence
+import com.kuzyamond.voidauditor.core.UserIdentityEvidence
+import com.kuzyamond.voidauditor.core.SettingEvidence
+import com.kuzyamond.voidauditor.core.DangerousPermissionsEvidence
+import com.kuzyamond.voidauditor.core.ServiceDumpEvidence
+import com.kuzyamond.voidauditor.core.AppOpsEvidence
+import com.kuzyamond.voidauditor.core.DangerousPermissionsEvidence
+import com.kuzyamond.voidauditor.core.SystemPropEvidence
 import kotlinx.coroutines.launch
 
 @Composable
@@ -32,8 +41,12 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                         scope.launch {
                             GlobalLog.log("FETCHING BUILD_PROP...", "warn", "AUDIT")
                             val result = CapabilityExecutor.execute(Capability.ReadSystemProp("ro.build.type"))
-                            if (result.isSuccessful) GlobalLog.log("BUILD_TYPE: ${result.output}", "ok", "AUDIT")
-                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            if (result.isSuccessful) {
+                                val value = (result.evidence as? EvidenceResult.Parsed)?.evidence
+                                    ?.let { (it as? SystemPropEvidence)?.value }
+                                    ?: result.commandResult.output
+                                GlobalLog.log("BUILD_TYPE: $value", "ok", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("HW_MAP", CyberAccent, Modifier.weight(1f)) {
@@ -41,7 +54,10 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                             GlobalLog.log("MAPPING HARDWARE...", "warn", "AUDIT")
                             val result = CapabilityExecutor.execute(Capability.ReadSystemFeatures)
                             if (result.isSuccessful) {
-                                val summary = result.output.split("\n").take(5).joinToString(", ")
+                                val features = (result.evidence as? EvidenceResult.Parsed)?.evidence
+                                    ?.let { (it as? SystemFeaturesEvidence)?.features }
+                                    ?: result.commandResult.output.split("\n").take(5)
+                                val summary = features.joinToString(", ")
                                 GlobalLog.log("FEATURES: $summary...", "ok", "AUDIT")
                             } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
@@ -52,16 +68,22 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                         scope.launch {
                             GlobalLog.log("DUMPING BATTERY...", "warn", "AUDIT")
                             val result = CapabilityExecutor.execute(Capability.DumpService("battery"))
-                            if (result.isSuccessful) GlobalLog.log("BATTERY_STATUS:\n${result.output}", "ok", "AUDIT")
-                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            if (result.isSuccessful) {
+                                val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? ServiceDumpEvidence
+                                GlobalLog.log("BATTERY_STATUS:\n${evidence?.output ?: result.commandResult.output}", "ok", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("LOCAL_UID", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("GETTING UID...", "warn", "AUDIT")
                             val result = CapabilityExecutor.execute(Capability.ReadUserIdentity)
-                            if (result.isSuccessful) GlobalLog.log("UID: ${result.output}", "ok", "AUDIT")
-                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            if (result.isSuccessful) {
+                                val uid = (result.evidence as? EvidenceResult.Parsed)?.evidence
+                                    ?.let { (it as? UserIdentityEvidence)?.uid }
+                                    ?: result.commandResult.output
+                                GlobalLog.log("UID: $uid", "ok", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                 }
@@ -76,16 +98,20 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                         scope.launch {
                             GlobalLog.log("ANALYZING BT_HISTORY...", "warn", "AUDIT")
                             val result = CapabilityExecutor.execute(Capability.ReadServiceState("bluetooth_manager"))
-                            if (result.isSuccessful) GlobalLog.log("BT_ACTIVATION_LOG:\n${result.output}", "ok", "AUDIT")
-                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            if (result.isSuccessful) {
+                                val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? ServiceDumpEvidence
+                                GlobalLog.log("BT_ACTIVATION_LOG:\n${evidence?.output ?: result.commandResult.output}", "ok", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("DANGEROUS_OPS", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("CHECKING BT_PERMISSIONS...", "warn", "AUDIT")
                             val result = CapabilityExecutor.execute(Capability.ReadAppOps("BLUETOOTH_SCAN"))
-                            if (result.isSuccessful) GlobalLog.log("APPS_WITH_BT_SCAN:\n${result.output}", "ok", "AUDIT")
-                            else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            if (result.isSuccessful) {
+                                val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? AppOpsEvidence
+                                GlobalLog.log("APPS_WITH_BT_SCAN:\n${evidence?.output ?: result.commandResult.output}", "ok", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                         }
                     }
                 }
@@ -94,8 +120,11 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                         GlobalLog.log("CHECKING GOOGLE_LOC_PRECISION...", "warn", "AUDIT")
                         val result = CapabilityExecutor.execute(Capability.ReadSetting("secure", "location_precision_state"))
                         if (result.isSuccessful) {
-                            val status = if(result.output == "1") "ENABLED (DANGEROUS)" else "DISABLED (SAFE)"
-                            GlobalLog.log("LOC_PRECISION: $status", if(result.output == "1") "warn" else "ok", "AUDIT")
+                            val value = (result.evidence as? EvidenceResult.Parsed)?.evidence
+                                ?.let { (it as? SettingEvidence)?.value }
+                                ?: result.commandResult.output
+                            val status = if (value == "1") "ENABLED (DANGEROUS)" else "DISABLED (SAFE)"
+                            GlobalLog.log("LOC_PRECISION: $status", if (value == "1") "warn" else "ok", "AUDIT")
                         } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
                     }
                 }
