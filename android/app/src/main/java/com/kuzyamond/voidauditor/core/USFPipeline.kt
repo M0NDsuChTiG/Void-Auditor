@@ -39,7 +39,8 @@ interface USFPipeline {
         val commandResult: ShizukuExecutor.CommandResult,
         val decision: PolicyDecision,
         val capability: Capability,
-        val context: Context
+        val context: Context,
+        val evidence: EvidenceResult? = null
     ) {
         val isAllowed: Boolean get() = decision is PolicyDecision.Allowed
         val isDenied: Boolean get() = decision is PolicyDecision.Denied

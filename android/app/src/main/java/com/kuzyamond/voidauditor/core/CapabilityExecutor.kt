@@ -6,6 +6,8 @@ import kotlinx.coroutines.delay
 object CapabilityExecutor : USFPipeline {
     var logListener: ((type: String, message: String) -> Unit)? = null
 
+    private val evidenceParser = DefaultEvidenceParser()
+
     private val auditIssues = mutableListOf<USFPipeline.AuditIssue>()
     private var totalAuditOps = 0
     private var passedOps = 0
@@ -114,10 +116,96 @@ object CapabilityExecutor : USFPipeline {
                     )
                 }
 
-                if (secondConfirmed) executeRaw(coreCapability) else result
+                var evidenceResult: EvidenceResult? = null
+
+        val commandResult = when (decision) {
+            is PolicyDecision.Denied -> {
+                blockedOps++
+                logListener?.invoke("POLICY", "DENIED: ${decision.reason}")
+                AuditLogger.log(
+                    actor = context.actor,
+                    capability = coreCapability::class.simpleName ?: "unknown",
+                    riskLevel = RiskLevel.CRITICAL,
+                    decision = "DENIED",
+                    target = coreCapability.description,
+                    details = decision.reason
+                )
+                auditIssues.add(
+                    USFPipeline.AuditIssue(
+                        capability = coreCapability,
+                        severity = "CRITICAL",
+                        description = "Policy blocked: ${decision.reason}",
+                        fixCommand = null
+                    )
+                )
+                ShizukuExecutor.CommandResult(
+                    success = false, output = "",
+                    error = "DENIED: ${decision.reason}",
+                    exitCode = -1, executionTimeMs = 0
+                )
+            }
+            is PolicyDecision.RequireConfirmation -> {
+                var confirmed = false
+                var result = ShizukuExecutor.CommandResult(
+                    success = false, output = "",
+                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
+                )
+
+                ConfirmationManager.requestConfirmation(
+                    intent = coreCapability,
+                    onConfirm = { confirmed = true },
+                    onCancel = {
+                        blockedOps++
+                        logListener?.invoke("POLICY", "CANCELLED: ${coreCapability.description}")
+                    }
+                )
+
+                if (confirmed) {
+                    val (cmdResult, evResult) = executeRaw(coreCapability)
+                    result = cmdResult
+                    evidenceResult = evResult
+                }
+                result
+            }
+            is PolicyDecision.RequireDoubleConfirmation -> {
+                var firstConfirmed = false
+                var secondConfirmed = false
+                var result = ShizukuExecutor.CommandResult(
+                    success = false, output = "",
+                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
+                )
+
+                ConfirmationManager.requestConfirmation(
+                    intent = coreCapability,
+                    onConfirm = { firstConfirmed = true },
+                    onCancel = {
+                        blockedOps++
+                        logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${coreCapability.description}")
+                    }
+                )
+
+                if (firstConfirmed) {
+                    ConfirmationManager.requestConfirmation(
+                        intent = coreCapability,
+                        onConfirm = { secondConfirmed = true },
+                        onCancel = {
+                            blockedOps++
+                            logListener?.invoke("POLICY", "SECOND_CANCELLED: ${coreCapability.description}")
+                        }
+                    )
+                }
+
+                if (secondConfirmed) {
+                    val (cmdResult, evResult) = executeRaw(coreCapability)
+                    result = cmdResult
+                    evidenceResult = evResult
+                }
+                result
             }
             is PolicyDecision.Allowed -> {
-                executeRaw(coreCapability)
+                val (cmdResult, evResult) = executeRaw(coreCapability)
+                evidenceResult = evResult
+                cmdResult
             }
         }
 
@@ -125,7 +213,8 @@ object CapabilityExecutor : USFPipeline {
             commandResult = commandResult,
             decision = decision,
             capability = coreCapability,
-            context = context
+            context = context,
+            evidence = evidenceResult
         )
     }
 
@@ -137,26 +226,31 @@ object CapabilityExecutor : USFPipeline {
         return result.commandResult
     }
 
-    private suspend fun executeRaw(capability: Capability): ShizukuExecutor.CommandResult {
+    private suspend fun executeRaw(capability: Capability): Pair<ShizukuExecutor.CommandResult, EvidenceResult?> {
         // Validate parameters before execution
         val validation = CapabilityValidator.validate(capability)
         if (validation is CapabilityValidator.ValidationResult.Invalid) {
             val errorMsg = "VALIDATION_FAILED: ${validation.errors.joinToString(", ")}"
             logListener?.invoke("VALIDATION", errorMsg)
-            return ShizukuExecutor.CommandResult(
-                success = false, output = "", error = errorMsg,
-                exitCode = -1, executionTimeMs = 0
+            return Pair(
+                ShizukuExecutor.CommandResult(
+                    success = false, output = "", error = errorMsg,
+                    exitCode = -1, executionTimeMs = 0
+                ),
+                EvidenceResult.ParseFailed(capability.id, "Validation failed: ${validation.errors.joinToString(", ")}", null)
             )
         }
 
-        val result = if (capability is Capability.ConfigureAdbTcp) {
+        val commandResult = if (capability is Capability.ConfigureAdbTcp) {
             executeConfigureAdbTcp(capability)
         } else {
             val command = capabilityToCommand(capability)
             ShizukuExecutor.executeCommand(command)
         }
 
-        if (result.isSuccessful) {
+        val evidenceResult = evidenceParser.parse(capability, commandResult)
+
+        if (commandResult.isSuccessful) {
             passedOps++
             logListener?.invoke("EXEC", "${capability::class.simpleName} -> OK")
             AuditLogger.log(
@@ -165,12 +259,12 @@ object CapabilityExecutor : USFPipeline {
                 riskLevel = PolicyEngine.severityFromScore(capability.riskScore),
                 decision = "ALLOWED",
                 target = capability.description,
-                exitCode = result.exitCode,
-                durationMs = result.executionTimeMs
+                exitCode = commandResult.exitCode,
+                durationMs = commandResult.executionTimeMs
             )
         } else {
             failedOps++
-            logListener?.invoke("EXEC", "${capability::class.simpleName} -> FAIL: ${result.error}")
+            logListener?.invoke("EXEC", "${capability::class.simpleName} -> FAIL: ${commandResult.error}")
 
             AuditLogger.log(
                 actor = ActorType.SYSTEM,
@@ -178,12 +272,12 @@ object CapabilityExecutor : USFPipeline {
                 riskLevel = RiskLevel.HIGH,
                 decision = "DENIED",
                 target = capability.description,
-                exitCode = result.exitCode,
-                durationMs = result.executionTimeMs,
-                details = result.error.take(120)
+                exitCode = commandResult.exitCode,
+                durationMs = commandResult.executionTimeMs,
+                details = commandResult.error.take(120)
             )
 
-            if (result.error.contains("DENIED") || result.error.contains("PERMISSION")) {
+            if (commandResult.error.contains("DENIED") || commandResult.error.contains("PERMISSION")) {
                 auditIssues.add(
                     USFPipeline.AuditIssue(
                         capability = capability,
@@ -195,7 +289,7 @@ object CapabilityExecutor : USFPipeline {
             }
         }
 
-        return result
+        return Pair(commandResult, evidenceResult)
     }
 
     override fun getSummary(): USFPipeline.AuditSummary {
