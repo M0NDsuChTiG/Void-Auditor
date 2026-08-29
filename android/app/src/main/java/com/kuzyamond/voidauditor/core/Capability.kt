@@ -32,7 +32,7 @@ sealed class Capability(override val description: String, override val riskScore
 
     data class ExecuteDryRun(val capability: CacheCapability) : Capability("Execute dry run: ${capability.description}", 30)
     data class ExecuteClean(val capability: CacheCapability) : Capability("Execute clean: ${capability.description}", 60)
-    data class ExecuteNetworkScript(val script: String) : Capability("Execute network script", 60)
+    data class PingSweep(val targets: List<String>) : Capability("Ping sweep: ${targets.size} hosts", 30)
 
     // REMEDIATION tier (risk 70+)
     sealed class RemediationIntent(override val description: String, override val riskScore: Int) : USFPipeline.Capability {

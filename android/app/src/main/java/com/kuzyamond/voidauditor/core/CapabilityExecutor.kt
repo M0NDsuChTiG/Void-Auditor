@@ -248,7 +248,11 @@ object CapabilityExecutor : USFPipeline {
                 is Capability.CacheCapability.TempFiles -> "rm -rf /data/local/tmp/* 2>/dev/null"
                 is Capability.CacheCapability.UserCache -> "pm trim-caches 200M"
             }
-            is Capability.ExecuteNetworkScript -> cap.script
+            is Capability.PingSweep -> buildString {
+                append("for ip in ")
+                append(cap.targets.joinToString(" "))
+                append("; do (ping -c 1 -W 1 \"\\$ip\" >/dev/null 2>&1 && echo \"\\$ip\") & done; wait")
+            }
 
             // REMEDIATION tier - mapped per intent
             is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"

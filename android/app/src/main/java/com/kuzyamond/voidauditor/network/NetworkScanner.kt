@@ -97,12 +97,7 @@ object NetworkScanner {
 
         val aliveIps = try {
             withTimeout(45_000) {
-                val script = buildString {
-                    append("for ip in ")
-                    append(validTargets.joinToString(" ") { it.ip })
-                    append("; do (ping -c 1 -W 1 \"\$ip\" >/dev/null 2>&1 && echo \"\$ip\") & done; wait")
-                }
-                val result = CapabilityExecutor.execute(pipelineContext, Capability.ExecuteNetworkScript(script)).commandResult
+                val result = CapabilityExecutor.execute(pipelineContext, Capability.PingSweep(validTargets.map { it.ip })).commandResult
                 if (!result.isSuccessful) emptyList()
                 else result.output.lines().map { it.trim() }.filter { line ->
                     line.matches(Regex("^(\\d{1,3}\\.){3}\\d{1,3}$"))
