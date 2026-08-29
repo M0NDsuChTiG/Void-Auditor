@@ -41,6 +41,10 @@ class DefaultEvidenceParser : CapabilityEvidenceParser {
         "ReadDangerousPermissions" to DangerousPermissionsParser(),
         "DiscoverCacheDirectories" to CacheDirectoriesParser(),
         "ReadPackageCount" to PackageCountParser(),
+        "ReadDiskUsage" to DiskUsageParser(),
+        "ReadDirectorySize" to DirectorySizeParser(),
+        "ReadFileCount" to FileCountParser(),
+        "ReadLastModified" to LastModifiedParser(),
     ))
 
     override fun parse(
@@ -192,146 +196,50 @@ class SettingParser : CapabilityEvidenceParser {
     }
 }
 
-class PingSweepParser : CapabilityEvidenceParser {
+class DiskUsageParser : CapabilityEvidenceParser {
     override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.PingSweep ?: return null
+        val cap = capability as? Capability.ReadDiskUsage ?: return null
         if (!result.isSuccessful) return null
-
-        val aliveHosts = result.output.lineSequence()
-            .map(String::trim)
-            .filter { it.matches(Regex("^(\\d{1,3}\\.){3}\\d{1,3}$")) }
-            .filter { it.split('.').all { it.toIntOrNull()?.let { it in 0..255 } == true } }
-            .toList()
-        return PingSweepEvidence(
+        val kilobytes = result.output.trim().toLongOrNull()
+        return DiskUsageEvidence(
             capturedAt = System.currentTimeMillis(),
-            aliveHosts = aliveHosts
+            kilobytes = kilobytes
         )
     }
 }
 
-class PackageListParser : CapabilityEvidenceParser {
+class DirectorySizeParser : CapabilityEvidenceParser {
     override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.QueryPackages ?: return null
+        val cap = capability as? Capability.ReadDirectorySize ?: return null
         if (!result.isSuccessful) return null
-
-        val packages = result.output.lineSequence()
-            .map { it.trim() }
-            .filter { it.startsWith("package:") }
-            .map { it.substringAfter("package:") }
-            .filter { it.isNotBlank() }
-            .toList()
-        return PackageListEvidence(
+        val bytes = result.output.trim().toLongOrNull()
+        return DirectorySizeEvidence(
             capturedAt = System.currentTimeMillis(),
-            packages = packages
+            bytes = bytes
         )
     }
 }
 
-class ServiceDumpParser : CapabilityEvidenceParser {
+class FileCountParser : CapabilityEvidenceParser {
     override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.DumpService ?: return null
+        val cap = capability as? Capability.ReadFileCount ?: return null
         if (!result.isSuccessful) return null
-        return ServiceDumpEvidence(
-            capturedAt = System.currentTimeMillis(),
-            service = cap.service,
-            output = result.output
-        )
-    }
-}
-
-class FeaturesParser : CapabilityEvidenceParser {
-    override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.ReadSystemFeatures ?: return null
-        if (!result.isSuccessful) return null
-        val features = result.output.lineSequence()
-            .map(String::trim)
-            .filter { it.isNotBlank() && !it.startsWith("feature:") }
-            .map { it.removePrefix("feature:") }
-            .filter { it.isNotBlank() }
-            .toList()
-        return FeaturesEvidence(
-            capturedAt = System.currentTimeMillis(),
-            features = features
-        )
-    }
-}
-
-class DangerousPermissionsParser : CapabilityEvidenceParser {
-    override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.ReadDangerousPermissions ?: return null
-        if (!result.isSuccessful) return null
-        val permissions = result.output.lineSequence()
-            .map(String::trim)
-            .filter { it.isNotBlank() }
-            .filter { DANGEROUS_PERMISSION_REGEX.matcher(it).matches() }
-            .toList()
-        return DangerousPermissionsEvidence(
-            capturedAt = System.currentTimeMillis(),
-            permissions = permissions
-        )
-    }
-}
-
-class CacheDirectoriesParser : CapabilityEvidenceParser {
-    override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.DiscoverCacheDirectories ?: return null
-        if (!result.isSuccessful) return null
-        val paths = result.output.lineSequence()
-            .filter { it.isNotBlank() }
-            .distinctBy { raw ->
-                raw.replace("/data/user/0/", "/data/data/")
-                    .replace("/storage/emulated/0/", "/sdcard/")
-            }
-            .toList()
-        return CacheDirectoriesEvidence(
-            capturedAt = System.currentTimeMillis(),
-            paths = paths
-        )
-    }
-}
-
-class PackageCountParser : CapabilityEvidenceParser {
-    override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.ReadPackageCount ?: return null
-        if (!result.isSuccessful) return null
-        val count = result.output.trim().toIntOrNull() ?: return null
-        return PackageCountEvidence(
+        val count = result.output.trim().toIntOrNull()
+        return FileCountEvidence(
             capturedAt = System.currentTimeMillis(),
             count = count
         )
     }
 }
 
-class UserIdentityParser : CapabilityEvidenceParser {
+class LastModifiedParser : CapabilityEvidenceParser {
     override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.ReadUserIdentity ?: return null
+        val cap = capability as? Capability.ReadLastModified ?: return null
         if (!result.isSuccessful) return null
-
-        val output = result.output
-        val uid = output.substringAfter("uid=").substringBefore("(").takeIf { it.isNotEmpty() }
-        val gid = output.substringAfter("gid=").substringBefore("(").takeIf { it.isNotEmpty() }
-        val groups = output.substringAfter("groups=").split(",").map { it.trim() }.filter { it.isNotBlank() }
-
-        if (uid == null && gid == null) return null
-        return UserIdentityEvidence(
+        val timestamp = result.output.trim().toLongOrNull()
+        return LastModifiedEvidence(
             capturedAt = System.currentTimeMillis(),
-            uid = uid,
-            gid = gid,
-            groups = groups
-        )
-    }
-}
-
-class SettingParser : CapabilityEvidenceParser {
-    override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): CapabilityEvidence? {
-        val cap = capability as? Capability.ReadSetting ?: return null
-        if (!result.isSuccessful) return null
-        val value = result.output.trim().takeIf { it.isNotBlank() }
-        return SettingEvidence(
-            capturedAt = System.currentTimeMillis(),
-            namespace = cap.namespace,
-            key = cap.key,
-            value = value
+            timestamp = timestamp
         )
     }
 }

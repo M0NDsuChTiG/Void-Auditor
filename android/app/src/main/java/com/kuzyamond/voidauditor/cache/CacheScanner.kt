@@ -7,6 +7,12 @@ import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
+import com.kuzyamond.voidauditor.core.CacheDirectoriesEvidence
+import com.kuzyamond.voidauditor.core.PackageCountEvidence
+import com.kuzyamond.voidauditor.core.DirectorySizeEvidence
+import com.kuzyamond.voidauditor.core.FileCountEvidence
+import com.kuzyamond.voidauditor.core.LastModifiedEvidence
+import com.kuzyamond.voidauditor.core.EvidenceResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -51,9 +57,11 @@ object CacheScanner {
             else -> com.kuzyamond.voidauditor.RiskLevel.LOW
         }
 
-        val installedPackages = CapabilityExecutor.execute(
+        val installedPackagesResult = CapabilityExecutor.execute(
             pipelineContext, Capability.ReadPackageCount
-        ).commandResult.output.trim().toIntOrNull() ?: 0
+        )
+        val installedPackagesEvidence = (installedPackagesResult.evidence as? EvidenceResult.Parsed)?.evidence as? PackageCountEvidence
+        val installedPackages = installedPackagesEvidence?.count ?: installedPackagesResult.commandResult.output.trim().toIntOrNull() ?: 0
 
         val stats = CacheStats(
             totalSizeBytes = totalSize,
@@ -89,27 +97,29 @@ object CacheScanner {
         }
         val result = CapabilityExecutor.execute(
             pipelineContext, Capability.DiscoverCacheDirectories(roots, maxDepth)
-        ).commandResult.output
-        result.lines()
+        )
+        val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? CacheDirectoriesEvidence
+        val paths = evidence?.paths ?: result.commandResult.output.lines()
             .filter { it.isNotBlank() }
             .distinctBy { raw ->
                 raw.replace("/data/user/0/", "/data/data/")
                     .replace("/storage/emulated/0/", "/sdcard/")
             }
+        return paths
     }
 
     private suspend fun inspectDir(path: String): CacheEntry? = withContext(Dispatchers.IO) {
-        val sizeBytes = CapabilityExecutor.execute(
-            pipelineContext, Capability.ReadDirectorySize(path)
-        ).commandResult.output.trim().toLongOrNull() ?: 0L
+        val sizeResult = CapabilityExecutor.execute(pipelineContext, Capability.ReadDirectorySize(path))
+        val sizeEvidence = (sizeResult.evidence as? EvidenceResult.Parsed)?.evidence as? DirectorySizeEvidence
+        val sizeBytes = sizeEvidence?.bytes ?: sizeResult.commandResult.output.trim().toLongOrNull() ?: 0L
 
-        val fileCount = CapabilityExecutor.execute(
-            pipelineContext, Capability.ReadFileCount(path)
-        ).commandResult.output.trim().toIntOrNull() ?: 0
+        val fileResult = CapabilityExecutor.execute(pipelineContext, Capability.ReadFileCount(path))
+        val fileEvidence = (fileResult.evidence as? EvidenceResult.Parsed)?.evidence as? FileCountEvidence
+        val fileCount = fileEvidence?.count ?: fileResult.commandResult.output.trim().toIntOrNull() ?: 0
 
-        val lastModified = CapabilityExecutor.execute(
-            pipelineContext, Capability.ReadLastModified(path)
-        ).commandResult.output.trim().toLongOrNull() ?: 0L
+        val modifiedResult = CapabilityExecutor.execute(pipelineContext, Capability.ReadLastModified(path))
+        val modifiedEvidence = (modifiedResult.evidence as? EvidenceResult.Parsed)?.evidence as? LastModifiedEvidence
+        val lastModified = modifiedEvidence?.timestamp ?: modifiedResult.commandResult.output.trim().toLongOrNull() ?: 0L
 
         val pkg = PathSanitizer.extractPackage(path) ?: "unknown"
 
