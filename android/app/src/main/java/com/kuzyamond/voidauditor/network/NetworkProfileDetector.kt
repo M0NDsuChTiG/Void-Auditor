@@ -5,6 +5,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.DefaultRouteEvidence
+import com.kuzyamond.voidauditor.core.EvidenceResult
+import com.kuzyamond.voidauditor.core.WifiEvidence
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -89,29 +92,26 @@ object NetworkProfileDetector {
 
         // Execute capabilities ONCE early - we may need route for fallback interface
         val routeResult = CapabilityExecutor.execute(Capability.ReadDefaultRoute)
-        val routeOutput = if (routeResult.isSuccessful) routeResult.output else ""
 
-        if (localIp == null && routeOutput.isNotBlank()) {
-            // Fallback: parse default route interface from ip route output
-            val defaultIface = routeOutput.lines()
-                .firstNotNullOfOrNull { line ->
-                    val parts = line.trim().split("\\s+".toRegex())
-                    val devIdx = parts.indexOf("dev")
-                    if (devIdx >= 0 && devIdx + 1 < parts.size) parts[devIdx + 1] else null
-                } ?: ""
-            if (defaultIface.isNotBlank()) {
-                try {
-                    val intf = NetworkInterface.getByName(defaultIface)
-                    if (intf != null && intf.isUp) {
-                        localIp = intf.inetAddresses
-                            .asSequence()
-                            .filterIsInstance<Inet4Address>()
-                            .firstOrNull { !it.isLoopbackAddress }
-                        if (localIp != null) activeInterface = intf
+        if (localIp == null) {
+            val routeEvidence = routeResult.evidence
+            if (routeEvidence is EvidenceResult.Parsed && routeEvidence.evidence is DefaultRouteEvidence) {
+                val evidence = routeEvidence.evidence as DefaultRouteEvidence
+                evidence.interfaceName?.let { defaultIface ->
+                    if (defaultIface.isNotBlank()) {
+                        try {
+                            val intf = NetworkInterface.getByName(defaultIface)
+                            if (intf != null && intf.isUp) {
+                                localIp = intf.inetAddresses
+                                    .asSequence()
+                                    .filterIsInstance<Inet4Address>()
+                                    .firstOrNull { !it.isLoopbackAddress }
+                                if (localIp != null) activeInterface = intf
+                            }
+                        } catch (_: Exception) {
+                            // ignore
+                        }
                     }
-                } catch (_: Exception) {
-                    // ignore
-                }
             }
         }
 
@@ -141,38 +141,28 @@ object NetworkProfileDetector {
         val localIpStr = localIp.hostAddress ?: ""
 
         val wifiResult = CapabilityExecutor.execute(Capability.ReadWifiInfo)
-        val wifiOutput = if (wifiResult.isSuccessful) wifiResult.output else ""
 
-        // Parse interface from route output if we don't have it from ConnectivityManager
+        // Parse interface from route evidence if we don't have it from ConnectivityManager
+        val routeEvidence = routeResult.evidence
         var finalInterfaceName = activeInterface?.name ?: ""
-        if (finalInterfaceName.isBlank() && routeOutput.isNotBlank()) {
-            finalInterfaceName = routeOutput.lines()
-                .firstNotNullOfOrNull { line ->
-                    val parts = line.trim().split("\\s+".toRegex())
-                    val devIdx = parts.indexOf("dev")
-                    if (devIdx >= 0 && devIdx + 1 < parts.size) parts[devIdx + 1] else null
-                } ?: ""
+        if (finalInterfaceName.isBlank()) {
+            val evidence = (routeResult.evidence as? EvidenceResult.Parsed)?.evidence
+            if (evidence is DefaultRouteEvidence) {
+                finalInterfaceName = evidence.interfaceName ?: ""
+            }
         }
 
         val isTethering = TETHERING_PREFIXES.any { finalInterfaceName.startsWith(it) }
 
-        // Semantic gateway parsing: look for "via" keyword
-        val gatewayIp = routeOutput.lines()
-            .firstNotNullOfOrNull { line ->
-                val parts = line.trim().split("\\s+".toRegex())
-                val viaIdx = parts.indexOf("via")
-                if (viaIdx >= 0 && viaIdx + 1 < parts.size) parts[viaIdx + 1] else null
-            } ?: ""
+        // Gateway from route evidence
+        val gatewayIp = (routeResult.evidence as? EvidenceResult.Parsed)?.evidence
+            ?.let { (it as? DefaultRouteEvidence)?.gateway } ?: ""
 
-        val ssid = wifiOutput.lines()
-            .find { it.trim().startsWith("SSID") }
-            ?.substringAfter(":")
-            ?.trim() ?: ""
-
-        val bssid = wifiOutput.lines()
-            .find { it.trim().startsWith("BSSID") }
-            ?.substringAfter(":")
-            ?.trim() ?: ""
+        val wifiEvidence = wifiResult.evidence
+        val ssid = (wifiEvidence as? EvidenceResult.Parsed)?.evidence
+            ?.let { (it as? WifiEvidence)?.ssid } ?: ""
+        val bssid = (wifiEvidence as? EvidenceResult.Parsed)?.evidence
+            ?.let { (it as? WifiEvidence)?.bssid } ?: ""
 
         val publicIp = tryFetchPublicIp()
 
