@@ -5,6 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import java.util.stream.Stream
+import org.junit.jupiter.api.Assertions.*
 
 class EvidenceParserTest {
 
@@ -19,7 +20,7 @@ class EvidenceParserTest {
     fun testDefaultRouteParser(capability: Capability.ReadDefaultRoute, result: ShizukuExecutor.CommandResult, expectedInterface: String?, expectedGateway: String?) {
         val evidence = defaultRouteParser.parse(capability, result) as? DefaultRouteEvidence
         if (expectedInterface == null && expectedGateway == null) {
-            assert(evidence == null) { "Expected null for failed command" }
+            assertNull(evidence) { "Expected null for failed/malformed command" }
         } else {
             assertNotNull(evidence) { "Expected parsed evidence" }
             assertEquals(expectedInterface, evidence.interfaceName)
@@ -27,9 +28,43 @@ class EvidenceParserTest {
         }
     }
 
+    // --- WifiInfoParser tests ---
+
+    @ParameterizedTest
+    @MethodSource("wifiInfoCases")
+    fun testWifiInfoParser(capability: Capability.ReadWifiInfo, result: ShizukuExecutor.CommandResult, expectedSsid: String?, expectedBssid: String?) {
+        val evidence = wifiInfoParser.parse(capability, result) as? WifiEvidence
+        if (expectedSsid == null && expectedBssid == null) {
+            assertNull(evidence) { "Expected null for failed/malformed command" }
+        } else {
+            assertNotNull(evidence) { "Expected parsed evidence" }
+            assertEquals(expectedSsid, evidence.ssid)
+            assertEquals(expectedBssid, evidence.bssid)
+        }
+    }
+
+    // --- PackageDetailsParser tests ---
+
+    @ParameterizedTest
+    @MethodSource("packageDetailsCases")
+    fun testPackageDetailsParser(capability: Capability.ReadPackageDetails, result: ShizukuExecutor.CommandResult,
+                                 expectedVersionName: String?, expectedVersionCode: Long?, expectedInstaller: String?, expectedPermissions: List<String>) {
+        val evidence = packageDetailsParser.parse(capability, result) as? PackageDetailsEvidence
+        if (expectedVersionName == null && expectedVersionCode == null && expectedInstaller == null && expectedPermissions.isEmpty()) {
+            assertNull(evidence) { "Expected null for failed/malformed command" }
+        } else {
+            assertNotNull(evidence) { "Expected parsed evidence" }
+            assertEquals(capability.packageName, evidence.packageName)
+            assertEquals(expectedVersionName, evidence.versionName)
+            assertEquals(expectedVersionCode, evidence.versionCode)
+            assertEquals(expectedInstaller, evidence.installerPackageName)
+            assertEquals(expectedPermissions.toSet(), evidence.permissions.toSet())
+        }
+    }
+
     companion object {
         @JvmStatic
-        fun defaultRouteCases(): Stream<Arguments> = Stream.of(
+        fun defaultRouteCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
             // Valid route with interface and gateway
             Arguments.of(
                 Capability.ReadDefaultRoute(),
@@ -54,7 +89,7 @@ class EvidenceParserTest {
                 ShizukuExecutor.CommandResult(success = true, output = "default via 192.168.1.1 metric 50", error = "", exitCode = 0, executionTimeMs = 10),
                 null, "192.168.1.1"
             ),
-            // Empty output
+            // Empty output (success but no default route)
             Arguments.of(
                 Capability.ReadDefaultRoute(),
                 ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
@@ -72,33 +107,16 @@ class EvidenceParserTest {
                 ShizukuExecutor.CommandResult(success = true, output = "not a route line", error = "", exitCode = 0, executionTimeMs = 10),
                 null, null
             ),
-            // Multiple routes - first one used
+            // Multiple routes - first default used
             Arguments.of(
                 Capability.ReadDefaultRoute(),
                 ShizukuExecutor.CommandResult(success = true, output = "default via 192.168.1.1 dev wlan0\n192.168.2.0/24 dev eth0", error = "", exitCode = 0, executionTimeMs = 10),
                 "wlan0", "192.168.1.1"
             )
         )
-    }
 
-    // --- WifiInfoParser tests ---
-
-    @ParameterizedTest
-    @MethodSource("wifiInfoCases")
-    fun testWifiInfoParser(capability: Capability.ReadWifiInfo, result: ShizukuExecutor.CommandResult, expectedSsid: String?, expectedBssid: String?) {
-        val evidence = wifiInfoParser.parse(capability, result) as? WifiEvidence
-        if (expectedSsid == null && expectedBssid == null) {
-            assert(evidence == null) { "Expected null for failed command" }
-        } else {
-            assertNotNull(evidence) { "Expected parsed evidence" }
-            assertEquals(expectedSsid, evidence.ssid)
-            assertEquals(expectedBssid, evidence.bssid)
-        }
-    }
-
-    companion object {
         @JvmStatic
-        fun wifiInfoCases(): Stream<Arguments> = Stream.of(
+        fun wifiInfoCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
             // Both SSID and BSSID present
             Arguments.of(
                 Capability.ReadWifiInfo(),
@@ -117,7 +135,7 @@ class EvidenceParserTest {
                 ShizukuExecutor.CommandResult(success = true, output = "BSSID: 11:22:33:44:55:66\nRSSI: -50", error = "", exitCode = 0, executionTimeMs = 10),
                 null, "11:22:33:44:55:66"
             ),
-            // Empty output
+            // Empty output (success but no wifi info)
             Arguments.of(
                 Capability.ReadWifiInfo(),
                 ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
@@ -142,30 +160,9 @@ class EvidenceParserTest {
                 "My Network", "aa:bb:cc:dd:ee:ff"
             )
         )
-    }
 
-    // --- PackageDetailsParser tests ---
-
-    @ParameterizedTest
-    @MethodSource("packageDetailsCases")
-    fun testPackageDetailsParser(capability: Capability.ReadPackageDetails, result: ShizukuExecutor.CommandResult,
-                                 expectedVersionName: String?, expectedVersionCode: Long?, expectedInstaller: String?, expectedPermissions: List<String>) {
-        val evidence = packageDetailsParser.parse(capability, result) as? PackageDetailsEvidence
-        if (expectedVersionName == null && expectedVersionCode == null && expectedInstaller == null && expectedPermissions.isEmpty()) {
-            assert(evidence == null) { "Expected null for failed command" }
-        } else {
-            assertNotNull(evidence) { "Expected parsed evidence" }
-            assertEquals(capability.packageName, evidence.packageName)
-            assertEquals(expectedVersionName, evidence.versionName)
-            assertEquals(expectedVersionCode, evidence.versionCode)
-            assertEquals(expectedInstaller, evidence.installerPackageName)
-            assertEquals(expectedPermissions.toSet(), evidence.permissions.toSet())
-        }
-    }
-
-    companion object {
         @JvmStatic
-        fun packageDetailsCases(): Stream<Arguments> = Stream.of(
+        fun packageDetailsCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
             // Complete package details
             Arguments.of(
                 Capability.ReadPackageDetails("com.example.app"),
@@ -245,7 +242,7 @@ class EvidenceParserTest {
                 null, null, null,
                 emptyList()
             ),
-            // Empty output
+            // Empty output (success but no package info)
             Arguments.of(
                 Capability.ReadPackageDetails("com.example.app"),
                 ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
