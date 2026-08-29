@@ -110,3 +110,48 @@ data class PackageCountEvidence(
     override val capturedAt: Long = System.currentTimeMillis(),
     val count: Int
 ) : CapabilityEvidence
+
+data class DiskUsageEvidence(
+    override val capabilityId: String = "ReadDiskUsage",
+    override val capturedAt: Long = System.currentTimeMillis(),
+    val kilobytes: Long?
+) : CapabilityEvidence
+
+data class DirectorySizeEvidence(
+    override val capabilityId: String = "ReadDirectorySize",
+    override val capturedAt: Long = System.currentTimeMillis(),
+    val bytes: Long?
+) : CapabilityEvidence
+
+data class FileCountEvidence(
+    override val capabilityId: String = "ReadFileCount",
+    override val capturedAt: Long = System.currentTimeMillis(),
+    val count: Int?
+) : CapabilityEvidence
+
+data class LastModifiedEvidence(
+    override val capabilityId: String = "ReadLastModified",
+    override val capturedAt: Long = System.currentTimeMillis(),
+    val timestamp: Long?
+) : CapabilityEvidence
+
+data class SystemPropEvidence(
+    override val capabilityId: String = "ReadSystemProp",
+    override val capturedAt: Long = System.currentTimeMillis(),
+    val prop: String,
+    val value: String?
+) : CapabilityEvidence
+
+data class AppOpsEvidence(
+    override val capabilityId: String = "ReadAppOps",
+    override val capturedAt: Long = System.currentTimeMillis(),
+    val op: String,
+    val output: String
+) : CapabilityEvidence
+
+data class ServiceStateEvidence(
+    override val capabilityId: String = "ReadServiceState",
+    override val capturedAt: Long = System.currentTimeMillis(),
+    val service: String,
+    val output: String
+) : CapabilityEvidence
