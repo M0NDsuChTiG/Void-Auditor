@@ -5,6 +5,11 @@ import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
+import com.kuzyamond.voidauditor.core.DiskUsageEvidence
+import com.kuzyamond.voidauditor.core.DirectorySizeEvidence
+import com.kuzyamond.voidauditor.core.FileCountEvidence
+import com.kuzyamond.voidauditor.core.LastModifiedEvidence
+import com.kuzyamond.voidauditor.core.EvidenceResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -38,15 +43,20 @@ object CacheCleaner {
 
         GlobalLog.log("SYSTEM_TRIM $freeBytesHint", "ok", TAG)
 
-        val beforeKb = CapabilityExecutor.execute(
+        val beforeResult = CapabilityExecutor.execute(
             pipelineContext, Capability.ReadDiskUsage("/data")
-        ).commandResult.output.trim().toLongOrNull() ?: 0L
+        )
+        val beforeEvidence = (beforeResult.evidence as? EvidenceResult.Parsed)?.evidence as? DiskUsageEvidence
+        val beforeKb = beforeResult.evidence?.let { (it as? EvidenceResult.Parsed)?.evidence as? DiskUsageEvidence }?.kilobytes
+            ?: beforeResult.commandResult.output.trim().toLongOrNull() ?: 0L
         val result = CapabilityExecutor.execute(
             pipelineContext, Capability.ExecuteSystemTrim(freeBytesHint)
-        ).commandResult
-        val afterKb = CapabilityExecutor.execute(
+        )
+        val afterResult = CapabilityExecutor.execute(
             pipelineContext, Capability.ReadDiskUsage("/data")
-        ).commandResult.output.trim().toLongOrNull() ?: 0L
+        )
+        val afterKb = afterResult.evidence?.let { (it as? EvidenceResult.Parsed)?.evidence as? DiskUsageEvidence }?.kilobytes
+            ?: afterResult.commandResult.output.trim().toLongOrNull() ?: 0L
         val duration = System.currentTimeMillis() - startTime
 
         if (result.isSuccessful) {
@@ -83,16 +93,17 @@ object CacheCleaner {
         val errors = mutableListOf<String>()
 
         for (path in paths) {
-            val size = CapabilityExecutor.execute(
+            val sizeResult = CapabilityExecutor.execute(
                 pipelineContext, Capability.ReadDirectorySize(path)
-            ).commandResult.run {
-                if (isSuccessful) output.trim().toLongOrNull() ?: 0L else 0L
-            }
-            val files = CapabilityExecutor.execute(
+            )
+            val sizeEvidence = (sizeResult.evidence as? EvidenceResult.Parsed)?.evidence as? DirectorySizeEvidence
+            val size = sizeEvidence?.bytes ?: sizeResult.commandResult.output.trim().toLongOrNull() ?: 0L
+
+            val filesResult = CapabilityExecutor.execute(
                 pipelineContext, Capability.ReadFileCount(path)
-            ).commandResult.run {
-                if (isSuccessful) output.trim().toIntOrNull() ?: 0 else 0
-            }
+            )
+            val filesEvidence = (filesResult.evidence as? EvidenceResult.Parsed)?.evidence as? FileCountEvidence
+            val files = filesEvidence?.count ?: filesResult.commandResult.output.trim().toIntOrNull() ?: 0
 
             if (size > 0 || files > 0) {
                 totalFiles += files
@@ -130,11 +141,11 @@ object CacheCleaner {
         val errors = mutableListOf<String>()
 
         for (path in paths) {
-            val sizeBefore = CapabilityExecutor.execute(
+            val sizeResult = CapabilityExecutor.execute(
                 pipelineContext, Capability.ReadDirectorySize(path)
-            ).commandResult.run {
-                if (isSuccessful) output.trim().toLongOrNull() ?: 0L else 0L
-            }
+            )
+            val sizeEvidence = (sizeResult.evidence as? EvidenceResult.Parsed)?.evidence as? DirectorySizeEvidence
+            val sizeBefore = sizeEvidence?.bytes ?: sizeResult.commandResult.output.trim().toLongOrNull() ?: 0L
 
             val safeCmd = PathSanitizer.safeCleanCommand(path)
             if (safeCmd == null) {
