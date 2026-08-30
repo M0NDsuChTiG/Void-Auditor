@@ -4,6 +4,9 @@ import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
+import com.kuzyamond.voidauditor.core.ARPTableEvidence
+import com.kuzyamond.voidauditor.core.PingSweepEvidence
+import com.kuzyamond.voidauditor.core.EvidenceResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -97,11 +100,9 @@ object NetworkScanner {
 
         val aliveIps = try {
             withTimeout(45_000) {
-                val result = CapabilityExecutor.execute(pipelineContext, Capability.PingSweep(validTargets.map { it.ip })).commandResult
-                if (!result.isSuccessful) emptyList()
-                else result.output.lines().map { it.trim() }.filter { line ->
-                    line.matches(Regex("^(\\d{1,3}\\.){3}\\d{1,3}$"))
-                }
+                val result = CapabilityExecutor.execute(pipelineContext, Capability.PingSweep(validTargets.map { it.ip }))
+                val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? PingSweepEvidence
+                if (evidence == null) emptyList() else evidence.aliveHosts
             }
         } catch (_: Exception) {
             emptyList()
@@ -240,15 +241,14 @@ val scanned = tcpScanPorts(host.ip, ports) { done, total ->
     private suspend fun tryReadMac(ip: String): String {
         return withContext(Dispatchers.IO) {
             try {
-                val result = CapabilityExecutor.execute(pipelineContext, Capability.ReadARPTable).commandResult
-                if (!result.isSuccessful) return@withContext ""
-                val lines = result.output.lines()
+                val result = CapabilityExecutor.execute(pipelineContext, Capability.ReadARPTable)
+                val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? ARPTableEvidence
+                val entries = evidence?.entries ?: return@withContext ""
 
-                for (line in lines.drop(1)) {
-                    val parts = line.split("\\s+".toRegex())
-                    if (parts.size >= 4 && parts[0] == ip) {
-                        val mac = parts[3]
-                        if (mac.matches(Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"))) {
+                for (entry in entries) {
+                    if (entry.ipAddress == ip) {
+                        val mac = entry.hwAddress
+                        if (mac != null && mac.matches(Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"))) {
                             return@withContext mac.uppercase()
                         }
                     }
