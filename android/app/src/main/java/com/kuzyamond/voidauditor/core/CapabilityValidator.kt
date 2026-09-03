@@ -12,7 +12,7 @@ object CapabilityValidator {
     private val CACHE_ROOTS_REGEX = Regex("^(/data|/sdcard|/storage)(/.*)?$")
 
     sealed class ValidationResult {
-        data class Valid : ValidationResult()
+        object Valid : ValidationResult()
         data class Invalid(val errors: List<String>) : ValidationResult()
     }
 

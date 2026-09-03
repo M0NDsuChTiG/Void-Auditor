@@ -14,14 +14,14 @@ import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.PolicyEngine
 import com.kuzyamond.voidauditor.core.USFPipeline
 import com.kuzyamond.voidauditor.core.EvidenceResult
-import com.kuzyamond.voidauditor.core.SystemFeaturesEvidence
+import com.kuzyamond.voidauditor.core.FeaturesEvidence
 import com.kuzyamond.voidauditor.core.UserIdentityEvidence
 import com.kuzyamond.voidauditor.core.SettingEvidence
 import com.kuzyamond.voidauditor.core.DangerousPermissionsEvidence
 import com.kuzyamond.voidauditor.core.ServiceDumpEvidence
 import com.kuzyamond.voidauditor.core.AppOpsEvidence
-import com.kuzyamond.voidauditor.core.DangerousPermissionsEvidence
 import com.kuzyamond.voidauditor.core.SystemPropEvidence
+import com.kuzyamond.voidauditor.core.Capability.RemediationIntent
 import kotlinx.coroutines.launch
 
 @Composable
@@ -40,26 +40,26 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("BUILD_PROP", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("FETCHING BUILD_PROP...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.ReadSystemProp("ro.build.type"))
-                            if (result.isSuccessful) {
+                            val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ReadSystemProp("ro.build.type"))
+                            if (result.commandResult.isSuccessful) {
                                 val value = (result.evidence as? EvidenceResult.Parsed)?.evidence
                                     ?.let { (it as? SystemPropEvidence)?.value }
                                     ?: result.commandResult.output
                                 GlobalLog.log("BUILD_TYPE: $value", "ok", "AUDIT")
-                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.commandResult.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("HW_MAP", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("MAPPING HARDWARE...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.ReadSystemFeatures)
-                            if (result.isSuccessful) {
+                            val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ReadSystemFeatures)
+                            if (result.commandResult.isSuccessful) {
                                 val features = (result.evidence as? EvidenceResult.Parsed)?.evidence
-                                    ?.let { (it as? SystemFeaturesEvidence)?.features }
+                                    ?.let { (it as? FeaturesEvidence)?.features }
                                     ?: result.commandResult.output.split("\n").take(5)
                                 val summary = features.joinToString(", ")
                                 GlobalLog.log("FEATURES: $summary...", "ok", "AUDIT")
-                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.commandResult.error}", "crit", "AUDIT")
                         }
                     }
                 }
@@ -67,23 +67,23 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("BATTERY", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("DUMPING BATTERY...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.DumpService("battery"))
-                            if (result.isSuccessful) {
+                            val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.DumpService("battery"))
+                            if (result.commandResult.isSuccessful) {
                                 val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? ServiceDumpEvidence
                                 GlobalLog.log("BATTERY_STATUS:\n${evidence?.output ?: result.commandResult.output}", "ok", "AUDIT")
-                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.commandResult.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("LOCAL_UID", CyberAccent, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("GETTING UID...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.ReadUserIdentity)
-                            if (result.isSuccessful) {
+                            val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ReadUserIdentity)
+                            if (result.commandResult.isSuccessful) {
                                 val uid = (result.evidence as? EvidenceResult.Parsed)?.evidence
                                     ?.let { (it as? UserIdentityEvidence)?.uid }
                                     ?: result.commandResult.output
                                 GlobalLog.log("UID: $uid", "ok", "AUDIT")
-                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.commandResult.error}", "crit", "AUDIT")
                         }
                     }
                 }
@@ -97,35 +97,35 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                     AuditButton("BT_LOG", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("ANALYZING BT_HISTORY...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.ReadServiceState("bluetooth_manager"))
-                            if (result.isSuccessful) {
+                            val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ReadServiceState("bluetooth_manager"))
+                            if (result.commandResult.isSuccessful) {
                                 val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? ServiceDumpEvidence
                                 GlobalLog.log("BT_ACTIVATION_LOG:\n${evidence?.output ?: result.commandResult.output}", "ok", "AUDIT")
-                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.commandResult.error}", "crit", "AUDIT")
                         }
                     }
                     AuditButton("DANGEROUS_OPS", CyberAccent2, Modifier.weight(1f)) {
                         scope.launch {
                             GlobalLog.log("CHECKING BT_PERMISSIONS...", "warn", "AUDIT")
-                            val result = CapabilityExecutor.execute(Capability.ReadAppOps("BLUETOOTH_SCAN"))
-                            if (result.isSuccessful) {
+                            val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ReadAppOps("BLUETOOTH_SCAN"))
+                            if (result.commandResult.isSuccessful) {
                                 val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? AppOpsEvidence
                                 GlobalLog.log("APPS_WITH_BT_SCAN:\n${evidence?.output ?: result.commandResult.output}", "ok", "AUDIT")
-                            } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                            } else GlobalLog.log("ERR: ${result.commandResult.error}", "crit", "AUDIT")
                         }
                     }
                 }
                 AuditButton("GEO_PRECISION_CHECK", CyberAccent2, Modifier.fillMaxWidth()) {
                     scope.launch {
                         GlobalLog.log("CHECKING GOOGLE_LOC_PRECISION...", "warn", "AUDIT")
-                        val result = CapabilityExecutor.execute(Capability.ReadSetting("secure", "location_precision_state"))
-                        if (result.isSuccessful) {
+                        val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ReadSetting("secure", "location_precision_state"))
+                        if (result.commandResult.isSuccessful) {
                             val value = (result.evidence as? EvidenceResult.Parsed)?.evidence
                                 ?.let { (it as? SettingEvidence)?.value }
                                 ?: result.commandResult.output
                             val status = if (value == "1") "ENABLED (DANGEROUS)" else "DISABLED (SAFE)"
                             GlobalLog.log("LOC_PRECISION: $status", if (value == "1") "warn" else "ok", "AUDIT")
-                        } else GlobalLog.log("ERR: ${result.error}", "crit", "AUDIT")
+                        } else GlobalLog.log("ERR: ${result.commandResult.error}", "crit", "AUDIT")
                     }
                 }
             }
@@ -157,7 +157,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                             )
 
                             for (check in checks) {
-                                CapabilityExecutor.execute(check)
+                                CapabilityExecutor.execute(USFPipeline.Context(), check)
                             }
 
                             auditSummary = CapabilityExecutor.getSummary()
@@ -233,13 +233,11 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                                                     "FIX: ${issue.fixCommand}",
                                                     "ok", "GOV"
                                                 )
-                                                val result = CapabilityExecutor.execute(
-                                                    Capability.RemediationIntent.DisableService
-                                                )
-                                                    if (result.isSuccessful) {
+                                                val result = CapabilityExecutor.execute(USFPipeline.Context(), RemediationIntent.DisableService)
+if (result.commandResult.isSuccessful) {
                                                         GlobalLog.log("FIX_OK: ${issue.fixCommand}", "ok", "GOV")
                                                     } else {
-                                                        GlobalLog.log("FIX_FAIL: ${result.error}", "crit", "GOV")
+                                                        GlobalLog.log("FIX_FAIL: ${result.commandResult.error}", "crit", "GOV")
                                                     }
                                             }
                                             auditSummary = null

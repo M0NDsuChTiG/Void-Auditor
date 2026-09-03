@@ -96,6 +96,8 @@ dependencies {
     implementation "androidx.biometric:biometric:1.1.0"
 
     testImplementation "junit:junit:4.13.2"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.0"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:5.10.0"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.4"
     testImplementation "io.mockk:mockk:1.13.10"
     // Реальная реализация org.json для локальных unit-тестов (android.jar предоставляет заглушки)

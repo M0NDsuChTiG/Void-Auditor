@@ -105,7 +105,7 @@ object CacheScanner {
                 raw.replace("/data/user/0/", "/data/data/")
                     .replace("/storage/emulated/0/", "/sdcard/")
             }
-        return paths
+        paths
     }
 
     private suspend fun inspectDir(path: String): CacheEntry? = withContext(Dispatchers.IO) {

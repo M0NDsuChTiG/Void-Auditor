@@ -35,7 +35,7 @@ sealed class Capability(override val description: String, override val riskScore
     data class PingSweep(val targets: List<String>) : Capability("Ping sweep: ${targets.size} hosts", 30)
 
     // REMEDIATION tier (risk 70+)
-    sealed class RemediationIntent(override val description: String, override val riskScore: Int) : USFPipeline.Capability {
+    sealed class RemediationIntent(override val description: String, override val riskScore: Int) : Capability(description, riskScore) {
         data object EnableFirewall : RemediationIntent("Enable system firewall", 80)
         data object DisableDebuggable : RemediationIntent("Disable debuggable flag", 85)
         data object HardenSsh : RemediationIntent("Harden SSH configuration", 75)

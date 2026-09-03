@@ -268,8 +268,8 @@ fun CacheCleanerScreen(
 
 @Composable
 private fun CapabilitySelector(
-    selected: CacheCapability,
-    onSelect: (CacheCapability) -> Unit,
+    selected: CacheCapabilityEnum,
+    onSelect: (CacheCapabilityEnum) -> Unit,
     cyberAccent: Color,
     cyberWarning: Color,
     cyberSurface: Color,
@@ -282,13 +282,13 @@ private fun CapabilitySelector(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-            CacheCapability.entries.filter { it != CacheCapability.SYSTEM_TRIM }.forEach { cap ->
+            CacheCapabilityEnum.entries.filter { it != CacheCapabilityEnum.SYSTEM_TRIM }.forEach { cap ->
             val isSelected = cap == selected
             val color = when (cap) {
-                CacheCapability.QUICK -> cyberAccent
-                CacheCapability.FULL -> cyberWarning
-                CacheCapability.DEEP -> Color(0xFFFF2D55)
-                CacheCapability.SYSTEM_TRIM -> Color(0xFFFF8C00)
+                CacheCapabilityEnum.QUICK -> cyberAccent
+                CacheCapabilityEnum.FULL -> cyberWarning
+                CacheCapabilityEnum.DEEP -> Color(0xFFFF2D55)
+                CacheCapabilityEnum.SYSTEM_TRIM -> Color(0xFFFF8C00)
             }
             OutlinedButton(
                 onClick = { onSelect(cap) },

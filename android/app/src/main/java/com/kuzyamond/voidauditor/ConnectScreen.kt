@@ -54,7 +54,7 @@ fun ConnectScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineSc
 @Composable
 private fun ConnectTabContent(scope: kotlinx.coroutines.CoroutineScope) {
     var ipAddress by remember { mutableStateOf("") }
-    var port by remember { mutableStateOf("5555") }
+    var port by remember { mutableStateOf(5555) }
     var wifiAdbStatus by remember { mutableStateOf("UNKNOWN") }
     val clipboardManager = LocalClipboardManager.current
 
@@ -147,8 +147,8 @@ private fun ConnectTabContent(scope: kotlinx.coroutines.CoroutineScope) {
                         )
                     )
                     OutlinedTextField(
-                        value = port,
-                        onValueChange = { port = it },
+                        value = port.toString(),
+                        onValueChange = { port = it.toIntOrNull() ?: 5555 },
                         modifier = Modifier.weight(1f),
                         placeholder = { Text("PORT", color = Color.Gray, fontSize = 11.sp) },
                         textStyle = TextStyle(color = Color.White, fontSize = 11.sp),

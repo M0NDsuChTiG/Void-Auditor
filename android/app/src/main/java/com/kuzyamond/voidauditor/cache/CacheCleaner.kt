@@ -46,21 +46,18 @@ object CacheCleaner {
         val beforeResult = CapabilityExecutor.execute(
             pipelineContext, Capability.ReadDiskUsage("/data")
         )
-        val beforeEvidence = (beforeResult.evidence as? EvidenceResult.Parsed)?.evidence as? DiskUsageEvidence
-        val beforeKb = beforeResult.evidence?.let { (it as? EvidenceResult.Parsed)?.evidence as? DiskUsageEvidence }?.kilobytes
-            ?: beforeResult.commandResult.output.trim().toLongOrNull() ?: 0L
+        val beforeKb = beforeResult.commandResult.output.trim().toLongOrNull() ?: 0L
         val result = CapabilityExecutor.execute(
             pipelineContext, Capability.ExecuteSystemTrim(freeBytesHint)
         )
         val afterResult = CapabilityExecutor.execute(
             pipelineContext, Capability.ReadDiskUsage("/data")
         )
-        val afterKb = afterResult.evidence?.let { (it as? EvidenceResult.Parsed)?.evidence as? DiskUsageEvidence }?.kilobytes
-            ?: afterResult.commandResult.output.trim().toLongOrNull() ?: 0L
+        val afterKb = afterResult.commandResult.output.trim().toLongOrNull() ?: 0L
         val duration = System.currentTimeMillis() - startTime
 
-        if (result.isSuccessful) {
-            GlobalLog.log("SYSTEM_TRIM ok: ${result.output}", "ok", TAG)
+        if (result.commandResult.isSuccessful) {
+            GlobalLog.log("SYSTEM_TRIM ok: ${result.commandResult.output}", "ok", TAG)
             CleanResult(
                 cleanedDirs = setOf("system"),
                 deletedFiles = 0,
@@ -70,7 +67,7 @@ object CacheCleaner {
                 dryRun = false
             )
         } else {
-            val errMsg = result.error.ifBlank { "exit code ${result.exitCode}" }
+            val errMsg = result.commandResult.error.ifBlank { "exit code ${result.commandResult.exitCode}" }
             GlobalLog.log("SYSTEM_TRIM fail: $errMsg", "crit", TAG)
             CleanResult(
                 cleanedDirs = emptySet(),
@@ -157,13 +154,13 @@ object CacheCleaner {
 
             val result = CapabilityExecutor.execute(
                 pipelineContext, Capability.CleanCache(path, safeCmd)
-            ).commandResult
-            if (result.isSuccessful) {
+            )
+            if (result.commandResult.isSuccessful) {
                 succeeded.add(path)
                 totalDeleted += sizeBefore.toInt() / 1024 + 1
                 totalFreed += sizeBefore
             } else {
-                val errMsg = result.error.ifBlank { "exit code ${result.exitCode}" }
+                val errMsg = result.commandResult.error.ifBlank { "exit code ${result.commandResult.exitCode}" }
                 errors.add("FAILED:$path:$errMsg")
                 GlobalLog.log("FAILED: $path → $errMsg", "crit", TAG)
             }

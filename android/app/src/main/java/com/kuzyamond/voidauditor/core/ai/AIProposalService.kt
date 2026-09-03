@@ -61,7 +61,7 @@ object AIProposalService {
             confidence = confidence,
             proposer = "AI",
             proposalStatus = ProposalStatus.PENDING,
-            auditHash = json.optString("auditHash", null)
+            auditHash = json.optString("auditHash")
         )
     }
 

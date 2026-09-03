@@ -29,6 +29,12 @@ object CapabilityExecutor : USFPipeline {
         context: USFPipeline.Context,
         capability: USFPipeline.Capability
     ): USFPipeline.Result {
+        // Handle RemediationIntent first (separate sealed hierarchy)
+        val remediationIntent = capability as? Capability.RemediationIntent
+        if (remediationIntent != null) {
+            return executeRemediation(context, remediationIntent)
+        }
+
         val coreCapability = capability as? Capability
             ?: return USFPipeline.Result(
                 commandResult = ShizukuExecutor.CommandResult(
@@ -44,79 +50,7 @@ object CapabilityExecutor : USFPipeline {
         totalAuditOps++
         val decision = PolicyEngine.evaluate(coreCapability)
 
-        val commandResult = when (decision) {
-            is PolicyDecision.Denied -> {
-                blockedOps++
-                logListener?.invoke("POLICY", "DENIED: ${decision.reason}")
-                AuditLogger.log(
-                    actor = context.actor,
-                    capability = coreCapability::class.simpleName ?: "unknown",
-                    riskLevel = RiskLevel.CRITICAL,
-                    decision = "DENIED",
-                    target = coreCapability.description,
-                    details = decision.reason
-                )
-                auditIssues.add(
-                    USFPipeline.AuditIssue(
-                        capability = coreCapability,
-                        severity = "CRITICAL",
-                        description = "Policy blocked: ${decision.reason}",
-                        fixCommand = null
-                    )
-                )
-                ShizukuExecutor.CommandResult(
-                    success = false, output = "",
-                    error = "DENIED: ${decision.reason}",
-                    exitCode = -1, executionTimeMs = 0
-                )
-            }
-            is PolicyDecision.RequireConfirmation -> {
-                var confirmed = false
-                var result = ShizukuExecutor.CommandResult(
-                    success = false, output = "",
-                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                )
-
-                ConfirmationManager.requestConfirmation(
-                    intent = coreCapability,
-                    onConfirm = { confirmed = true },
-                    onCancel = {
-                        blockedOps++
-                        logListener?.invoke("POLICY", "CANCELLED: ${coreCapability.description}")
-                    }
-                )
-
-                if (confirmed) executeRaw(coreCapability) else result
-            }
-            is PolicyDecision.RequireDoubleConfirmation -> {
-                var firstConfirmed = false
-                var secondConfirmed = false
-                var result = ShizukuExecutor.CommandResult(
-                    success = false, output = "",
-                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                )
-
-                ConfirmationManager.requestConfirmation(
-                    intent = coreCapability,
-                    onConfirm = { firstConfirmed = true },
-                    onCancel = {
-                        blockedOps++
-                        logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${coreCapability.description}")
-                    }
-                )
-
-                if (firstConfirmed) {
-                    ConfirmationManager.requestConfirmation(
-                        intent = coreCapability,
-                        onConfirm = { secondConfirmed = true },
-                        onCancel = {
-                            blockedOps++
-                            logListener?.invoke("POLICY", "SECOND_CANCELLED: ${coreCapability.description}")
-                        }
-                    )
-                }
-
-                var evidenceResult: EvidenceResult? = null
+        var evidenceResult: EvidenceResult? = null
 
         val commandResult = when (decision) {
             is PolicyDecision.Denied -> {
@@ -162,10 +96,11 @@ object CapabilityExecutor : USFPipeline {
 
                 if (confirmed) {
                     val (cmdResult, evResult) = executeRaw(coreCapability)
-                    result = cmdResult
                     evidenceResult = evResult
+                    cmdResult
+                } else {
+                    result
                 }
-                result
             }
             is PolicyDecision.RequireDoubleConfirmation -> {
                 var firstConfirmed = false
@@ -197,10 +132,11 @@ object CapabilityExecutor : USFPipeline {
 
                 if (secondConfirmed) {
                     val (cmdResult, evResult) = executeRaw(coreCapability)
-                    result = cmdResult
                     evidenceResult = evResult
+                    cmdResult
+                } else {
+                    result
                 }
-                result
             }
             is PolicyDecision.Allowed -> {
                 val (cmdResult, evResult) = executeRaw(coreCapability)
@@ -213,6 +149,117 @@ object CapabilityExecutor : USFPipeline {
             commandResult = commandResult,
             decision = decision,
             capability = coreCapability,
+            context = context,
+            evidence = evidenceResult
+        )
+    }
+
+    private suspend fun executeRemediation(
+        context: USFPipeline.Context,
+        intent: Capability.RemediationIntent
+    ): USFPipeline.Result {
+        totalAuditOps++
+        val decision = PolicyEngine.evaluate(intent)
+
+        var evidenceResult: EvidenceResult? = null
+
+        val commandResult = when (decision) {
+            is PolicyDecision.Denied -> {
+                blockedOps++
+                logListener?.invoke("POLICY", "DENIED: ${decision.reason}")
+                AuditLogger.log(
+                    actor = context.actor,
+                    capability = intent::class.simpleName ?: "unknown",
+                    riskLevel = RiskLevel.CRITICAL,
+                    decision = "DENIED",
+                    target = intent.description,
+                    details = decision.reason
+                )
+                auditIssues.add(
+                    USFPipeline.AuditIssue(
+                        capability = intent,
+                        severity = "CRITICAL",
+                        description = "Policy blocked: ${decision.reason}",
+                        fixCommand = null
+                    )
+                )
+                ShizukuExecutor.CommandResult(
+                    success = false, output = "",
+                    error = "DENIED: ${decision.reason}",
+                    exitCode = -1, executionTimeMs = 0
+                )
+            }
+            is PolicyDecision.RequireConfirmation -> {
+                var confirmed = false
+                var result = ShizukuExecutor.CommandResult(
+                    success = false, output = "",
+                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
+                )
+
+                ConfirmationManager.requestConfirmation(
+                    intent = intent,
+                    onConfirm = { confirmed = true },
+                    onCancel = {
+                        blockedOps++
+                        logListener?.invoke("POLICY", "CANCELLED: ${intent.description}")
+                    }
+                )
+
+                if (confirmed) {
+                    val (cmdResult, evResult) = executeRaw(intent)
+                    evidenceResult = evResult
+                    cmdResult
+                } else {
+                    result
+                }
+            }
+            is PolicyDecision.RequireDoubleConfirmation -> {
+                var firstConfirmed = false
+                var secondConfirmed = false
+                var result = ShizukuExecutor.CommandResult(
+                    success = false, output = "",
+                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
+                )
+
+                ConfirmationManager.requestConfirmation(
+                    intent = intent,
+                    onConfirm = { firstConfirmed = true },
+                    onCancel = {
+                        blockedOps++
+                        logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${intent.description}")
+                    }
+                )
+
+                if (firstConfirmed) {
+                    ConfirmationManager.requestConfirmation(
+                        intent = intent,
+                        onConfirm = { secondConfirmed = true },
+                        onCancel = {
+                            blockedOps++
+                            logListener?.invoke("POLICY", "SECOND_CANCELLED: ${intent.description}")
+                        }
+                    )
+                }
+
+                if (secondConfirmed) {
+                    val (cmdResult, evResult) = executeRawRemediation(intent)
+                    evidenceResult = evResult
+                    cmdResult
+                } else {
+                    result
+                }
+            }
+            is PolicyDecision.Allowed -> {
+                val (cmdResult, evResult) = executeRawRemediation(intent)
+                evidenceResult = evResult
+                cmdResult
+            }
+        }
+
+        return USFPipeline.Result(
+            commandResult = commandResult,
+            decision = decision,
+            capability = intent,
             context = context,
             evidence = evidenceResult
         )
@@ -237,7 +284,7 @@ object CapabilityExecutor : USFPipeline {
                     success = false, output = "", error = errorMsg,
                     exitCode = -1, executionTimeMs = 0
                 ),
-                EvidenceResult.ParseFailed(capability.id, "Validation failed: ${validation.errors.joinToString(", ")}", null)
+                EvidenceResult.ParseFailed(capability.description, "Validation failed: ${validation.errors.joinToString(", ")}", null)
             )
         }
 
@@ -292,6 +339,59 @@ object CapabilityExecutor : USFPipeline {
         return Pair(commandResult, evidenceResult)
     }
 
+    private suspend fun executeRawRemediation(intent: Capability.RemediationIntent): Pair<ShizukuExecutor.CommandResult, EvidenceResult?> {
+        // RemediationIntent doesn't go through parameter validation
+        val commandResult = when (intent) {
+            is Capability.RemediationIntent.EnableFirewall -> ShizukuExecutor.executeCommand("settings put global firewall_enabled 1")
+            is Capability.RemediationIntent.DisableDebuggable -> ShizukuExecutor.executeCommand("setprop ro.debuggable 0")
+            is Capability.RemediationIntent.HardenSsh -> ShizukuExecutor.executeCommand("settings put secure ssh_hardened 1")
+            is Capability.RemediationIntent.DisableService -> ShizukuExecutor.executeCommand("pm disable-user --user 0 com.example.vulnerable")
+        }
+
+        val evidenceResult = evidenceParser.parse(intent, commandResult)
+
+        if (commandResult.isSuccessful) {
+            passedOps++
+            logListener?.invoke("EXEC", "${intent::class.simpleName} -> OK")
+            AuditLogger.log(
+                actor = ActorType.SYSTEM,
+                capability = intent::class.simpleName ?: "unknown",
+                riskLevel = PolicyEngine.severityFromScore(intent.riskScore),
+                decision = "ALLOWED",
+                target = intent.description,
+                exitCode = commandResult.exitCode,
+                durationMs = commandResult.executionTimeMs
+            )
+        } else {
+            failedOps++
+            logListener?.invoke("EXEC", "${intent::class.simpleName} -> FAIL: ${commandResult.error}")
+
+            AuditLogger.log(
+                actor = ActorType.SYSTEM,
+                capability = intent::class.simpleName ?: "unknown",
+                riskLevel = RiskLevel.HIGH,
+                decision = "DENIED",
+                target = intent.description,
+                exitCode = commandResult.exitCode,
+                durationMs = commandResult.executionTimeMs,
+                details = commandResult.error.take(120)
+            )
+
+            if (commandResult.error.contains("DENIED") || commandResult.error.contains("PERMISSION")) {
+                auditIssues.add(
+                    USFPipeline.AuditIssue(
+                        capability = intent,
+                        severity = "HIGH",
+                        description = "Permission denied for: ${intent.description}",
+                        fixCommand = null
+                    )
+                )
+            }
+        }
+
+        return Pair(commandResult, evidenceResult)
+    }
+
     override fun getSummary(): USFPipeline.AuditSummary {
         return USFPipeline.AuditSummary(
             total = totalAuditOps,
@@ -327,6 +427,7 @@ object CapabilityExecutor : USFPipeline {
                     append("""find "$root" -mindepth 1 -maxdepth ${cap.maxDepth} -type d -name \"cache\" -prune 2>/dev/null""")
                 }
             }
+            is Capability.CacheCapability -> ""
 
             // ACTION tier
             is Capability.ExecuteSystemTrim -> "pm trim-caches ${cap.freeBytesHint}"
@@ -345,14 +446,22 @@ object CapabilityExecutor : USFPipeline {
             is Capability.PingSweep -> buildString {
                 append("for ip in ")
                 append(cap.targets.joinToString(" "))
-                append("; do (ping -c 1 -W 1 \"\\$ip\" >/dev/null 2>&1 && echo \"\\$ip\") & done; wait")
+                append("; do (ping -c 1 -W 1 \"")
+                append('\$')
+                append("ip\" >/dev/null 2>&1 && echo \"")
+                append('\$')
+                append("ip\") & done; wait")
             }
 
             // REMEDIATION tier - mapped per intent
-            is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
-            is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
-            is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
-            is Capability.RemediationIntent.DisableService -> "pm disable-user --user 0 com.example.vulnerable"
+            is Capability.RemediationIntent -> cap.let { intent ->
+                when (intent) {
+                    is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
+                    is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
+                    is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
+                    is Capability.RemediationIntent.DisableService -> "pm disable-user --user 0 com.example.vulnerable"
+                }
+            }
 
             // ARBITRARY tier
             is Capability.ExecuteArbitraryShell -> cap.commandString
@@ -462,13 +571,14 @@ object CapabilityExecutor : USFPipeline {
             is Capability.CleanCache -> null
             is Capability.ExecuteArbitraryShell -> null
             is Capability.ReadSetting -> "pm grant ${cap.namespace} android.permission.WRITE_SECURE_SETTINGS"
-            is Capability.ModifySettings -> "pm grant ${cap.namespace} android.permission.WRITE_SECURE_SETTINGS"
             is Capability.ExecuteSystemTrim -> "settings put global trim_caches_enabled 1"
             is Capability.ExecuteClean -> null
-            is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
-            is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
-            is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
-            is Capability.RemediationIntent.DisableService -> null
+            is Capability.RemediationIntent -> when (cap) {
+                is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
+                is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
+                is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
+                is Capability.RemediationIntent.DisableService -> null
+            }
             else -> null
         }
     }

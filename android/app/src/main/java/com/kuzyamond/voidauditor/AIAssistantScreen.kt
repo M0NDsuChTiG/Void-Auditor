@@ -39,7 +39,6 @@ import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.AuditLogger
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
-import com.kuzyamond.voidauditor.core.PackageDetailsEvidence
 import com.kuzyamond.voidauditor.core.PolicyEngine
 import com.kuzyamond.voidauditor.core.ShizukuExecutor
 import com.kuzyamond.voidauditor.core.ai.AIProposalService
@@ -47,10 +46,11 @@ import com.kuzyamond.voidauditor.core.ai.IntentProposal
 import com.kuzyamond.voidauditor.core.ai.extractProposalJson
 import com.kuzyamond.voidauditor.core.ai.proposalToCapability
 import com.kuzyamond.voidauditor.core.EvidenceResult
+import com.kuzyamond.voidauditor.core.USFPipeline
 import com.kuzyamond.voidauditor.core.PackageDetailsEvidence
 import com.kuzyamond.voidauditor.core.DangerousPermissionsEvidence
 import com.kuzyamond.voidauditor.core.UserIdentityEvidence
-import com.kuzyamond.voidauditor.core.SystemFeaturesEvidence
+import com.kuzyamond.voidauditor.core.FeaturesEvidence
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStreamWriter
@@ -229,11 +229,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
         scope.launch {
             val result = CapabilityExecutor.execute(capability)
             val outcome = if (result.isSuccessful) {
-                val evidencePreview = result.evidence?.let { (it as? EvidenceResult.Parsed)?.evidence }
-                    ?.toString()
-                    ?.take(300)
-                    ?: result.commandResult.output.take(500)
-                "✅ EXECUTED: ${capability.description}\n$evidencePreview"
+                "✅ EXECUTED: ${capability.description}\n${result.output.take(500)}"
             } else {
                 "❌ NOT_EXECUTED: ${result.error}"
             }
@@ -264,7 +260,7 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
             val c = candidates.optJSONObject(0) ?: return null
             val content = c.optJSONObject("content") ?: return null
             val parts = content.optJSONArray("parts") ?: return null
-            parts.optJSONObject(0)?.optString("text", null)
+            parts.optJSONObject(0)?.optString("text")
         } catch (_: Exception) { null }
     }
 
@@ -400,24 +396,26 @@ fun AIAssistantScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCorouti
             Capability.ReadSetting("global", "adb_authorization_timeout")
         )
 
-        val results = auditCapabilities.map { cap ->
-            CapabilityExecutor.execute(cap)
+        val results: List<USFPipeline.Result> = auditCapabilities.map { cap ->
+            CapabilityExecutor.execute(USFPipeline.Context(), cap)
         }
 
         val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
             .format(java.util.Date())
 
-val auditReport = buildString {
+        val auditReport = buildString {
             appendLine("=== DEVICE SECURITY AUDIT REPORT ===")
             appendLine("Timestamp: $timestamp")
-            appendLine("Device Model: ${results.getOrNull(1)?.evidence?.let { (it as? EvidenceResult.Parsed)?.evidence as? SystemFeaturesEvidence }?.features?.joinToString(\", \") ?: results.getOrNull(1)?.commandResult.output ?: \"Unknown\"}\n")
+            val deviceModel = results.getOrNull(1)?.evidence?.let { evidenceResult ->
+            (evidenceResult as? EvidenceResult.Parsed)?.evidence as? FeaturesEvidence
+        }?.features?.joinToString(", ") ?: results.getOrNull(1)?.commandResult?.output ?: "Unknown"
+            appendLine("Device Model: $deviceModel\n")
 
             results.forEachIndexed { i, res ->
                 appendLine("[Command ${i + 1}] ${auditCapabilities[i].description.take(65)}")
                 appendLine(res.commandResult.fullOutput.ifBlank { "<empty>" })
                 appendLine("\u2500".repeat(60))
             }
-        }
         }
 
         val prompt = """
@@ -473,27 +471,22 @@ val auditReport = buildString {
             appendLine("Timestamp: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}")
             appendLine("Target: Azerbaijani + Proton Banking Apps\n")
 
-bankingPackages.forEach { pkg ->
+            bankingPackages.forEach { pkg ->
                 appendLine("[$pkg]")
-                val result = CapabilityExecutor.execute(Capability.ReadPackageDetails(pkg))
+                val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ReadPackageDetails(pkg))
                 
                 val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? PackageDetailsEvidence
-                if (result.isSuccessful && evidence != null) {
-                    appendLine("• Version: ${evidence.versionName ?: \"N/A\"}")
-                    appendLine("• Installer: ${evidence.installerPackageName ?: \"N/A\"}")
+                if (result.commandResult.isSuccessful && evidence != null) {
+                    appendLine("• Version: ${evidence.versionName ?: "N/A"}")
+                    appendLine("• Installer: ${evidence.installerPackageName ?: "N/A"}")
                     
                     // Опасные разрешения: используем типизированные evidence
-                    appendLine("• Dangerous Permissions: ${if (evidence.permissions.isNotEmpty()) \"DETECTED ⚠ ${evidence.permissions.joinToString(\", \")}\" else \"None\"}")
+                    appendLine("• Dangerous Permissions: ${if (evidence.permissions.isNotEmpty()) "DETECTED ⚠ ${evidence.permissions.joinToString(", ")}" else "None"}")
                     
                     // Exported activities - fallback to command result output
                     if (result.commandResult.output.contains("exported=true")) {
                         appendLine("• Exported Activities: FOUND (Possible attack surface)")
                     }
-                } else {
-                    appendLine("• Package not found or access denied")
-                }
-                appendLine("─".repeat(60))
-            }
                 } else {
                     appendLine("• Package not found or access denied")
                 }
@@ -868,7 +861,10 @@ fun loadMessages(prefs: android.content.SharedPreferences): List<ChatMessage> {
         val arr = JSONArray(raw)
         (0 until arr.length()).mapNotNull { i ->
             val obj = arr.getJSONObject(i)
-            ChatMessage(obj.getString("r"), obj.getString("t"), obj.optString("rl", null))
+            val role = obj.getString("r") as String
+            val text = obj.getString("t") as String
+            val risk = obj.optString("rl")
+            ChatMessage(role, text, risk)
         }
     } catch (_: Exception) { emptyList() }
 }
