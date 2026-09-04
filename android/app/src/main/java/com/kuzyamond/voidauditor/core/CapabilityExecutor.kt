@@ -79,63 +79,52 @@ object CapabilityExecutor : USFPipeline {
                 )
             }
             is PolicyDecision.RequireConfirmation -> {
-                var confirmed = false
-                var result = ShizukuExecutor.CommandResult(
-                    success = false, output = "",
-                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                )
-
-                ConfirmationManager.requestConfirmation(
+                val confirmed = ConfirmationManager.awaitConfirmation(
                     intent = coreCapability,
-                    onConfirm = { confirmed = true },
                     onCancel = {
                         blockedOps++
                         logListener?.invoke("POLICY", "CANCELLED: ${coreCapability.description}")
                     }
                 )
-
                 if (confirmed) {
                     val (cmdResult, evResult) = executeRaw(coreCapability)
                     evidenceResult = evResult
                     cmdResult
                 } else {
-                    result
+                    ShizukuExecutor.CommandResult(
+                        success = false, output = "",
+                        error = "CANCELLED", exitCode = -1, executionTimeMs = 0
+                    )
                 }
             }
             is PolicyDecision.RequireDoubleConfirmation -> {
-                var firstConfirmed = false
-                var secondConfirmed = false
-                var result = ShizukuExecutor.CommandResult(
-                    success = false, output = "",
-                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                )
-
-                ConfirmationManager.requestConfirmation(
+                val firstConfirmed = ConfirmationManager.awaitConfirmation(
                     intent = coreCapability,
-                    onConfirm = { firstConfirmed = true },
                     onCancel = {
                         blockedOps++
                         logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${coreCapability.description}")
                     }
                 )
-
-                if (firstConfirmed) {
-                    ConfirmationManager.requestConfirmation(
+                val secondConfirmed = if (firstConfirmed) {
+                    ConfirmationManager.awaitConfirmation(
                         intent = coreCapability,
-                        onConfirm = { secondConfirmed = true },
                         onCancel = {
                             blockedOps++
                             logListener?.invoke("POLICY", "SECOND_CANCELLED: ${coreCapability.description}")
                         }
                     )
+                } else {
+                    false
                 }
-
                 if (secondConfirmed) {
                     val (cmdResult, evResult) = executeRaw(coreCapability)
                     evidenceResult = evResult
                     cmdResult
                 } else {
-                    result
+                    ShizukuExecutor.CommandResult(
+                        success = false, output = "",
+                        error = "CANCELLED", exitCode = -1, executionTimeMs = 0
+                    )
                 }
             }
             is PolicyDecision.Allowed -> {
@@ -190,63 +179,52 @@ object CapabilityExecutor : USFPipeline {
                 )
             }
             is PolicyDecision.RequireConfirmation -> {
-                var confirmed = false
-                var result = ShizukuExecutor.CommandResult(
-                    success = false, output = "",
-                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                )
-
-                ConfirmationManager.requestConfirmation(
+                val confirmed = ConfirmationManager.awaitConfirmation(
                     intent = intent,
-                    onConfirm = { confirmed = true },
                     onCancel = {
                         blockedOps++
                         logListener?.invoke("POLICY", "CANCELLED: ${intent.description}")
                     }
                 )
-
                 if (confirmed) {
                     val (cmdResult, evResult) = executeRaw(intent)
                     evidenceResult = evResult
                     cmdResult
                 } else {
-                    result
+                    ShizukuExecutor.CommandResult(
+                        success = false, output = "",
+                        error = "CANCELLED", exitCode = -1, executionTimeMs = 0
+                    )
                 }
             }
             is PolicyDecision.RequireDoubleConfirmation -> {
-                var firstConfirmed = false
-                var secondConfirmed = false
-                var result = ShizukuExecutor.CommandResult(
-                    success = false, output = "",
-                    error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                )
-
-                ConfirmationManager.requestConfirmation(
+                val firstConfirmed = ConfirmationManager.awaitConfirmation(
                     intent = intent,
-                    onConfirm = { firstConfirmed = true },
                     onCancel = {
                         blockedOps++
                         logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${intent.description}")
                     }
                 )
-
-                if (firstConfirmed) {
-                    ConfirmationManager.requestConfirmation(
+                val secondConfirmed = if (firstConfirmed) {
+                    ConfirmationManager.awaitConfirmation(
                         intent = intent,
-                        onConfirm = { secondConfirmed = true },
                         onCancel = {
                             blockedOps++
                             logListener?.invoke("POLICY", "SECOND_CANCELLED: ${intent.description}")
                         }
                     )
+                } else {
+                    false
                 }
-
                 if (secondConfirmed) {
                     val (cmdResult, evResult) = executeRawRemediation(intent)
                     evidenceResult = evResult
                     cmdResult
                 } else {
-                    result
+                    ShizukuExecutor.CommandResult(
+                        success = false, output = "",
+                        error = "CANCELLED", exitCode = -1, executionTimeMs = 0
+                    )
                 }
             }
             is PolicyDecision.Allowed -> {
@@ -402,7 +380,7 @@ object CapabilityExecutor : USFPipeline {
         )
     }
 
-    private fun capabilityToCommand(cap: Capability): String {
+    internal fun capabilityToCommand(cap: Capability): String {
         return when (cap) {
             // READ tier
             is Capability.ReadSystemProp -> "getprop ${cap.prop}"
