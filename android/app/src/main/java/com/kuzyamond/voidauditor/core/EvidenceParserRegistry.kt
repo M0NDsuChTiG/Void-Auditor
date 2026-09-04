@@ -22,7 +22,7 @@ class EvidenceParserRegistry(
         result: ShizukuExecutor.CommandResult
     ): EvidenceResult? {
         if (!result.isSuccessful) return null
-        return parsers[capability.description]?.parse(capability, result)
+        return parsers[capability::class.simpleName]?.parse(capability, result)
     }
 }
 

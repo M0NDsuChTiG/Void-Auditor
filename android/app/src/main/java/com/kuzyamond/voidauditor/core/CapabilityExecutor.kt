@@ -402,7 +402,7 @@ object CapabilityExecutor : USFPipeline {
             is Capability.DiscoverCacheDirectories -> buildString {
                 cap.roots.forEachIndexed { i, root ->
                     if (i > 0) append("\n")
-                    append("""find "$root" -mindepth 1 -maxdepth ${cap.maxDepth} -type d -name \"cache\" -prune 2>/dev/null""")
+                    append("""find "$root" -mindepth 1 -maxdepth ${cap.maxDepth} -type d -name "cache" -prune 2>/dev/null""")
                 }
             }
             is Capability.CacheCapability -> ""
