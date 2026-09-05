@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
@@ -32,7 +31,7 @@ private fun sh(raw: String): String = raw.replace("{D}", "$D")
 data class ScriptPreset(val label: String, val content: String, val category: String)
 
 @Composable
-fun ScriptsScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScope()) {
+fun ScriptsScreen() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("void_auditor_scripts", Context.MODE_PRIVATE) }
 
@@ -300,7 +299,7 @@ echo "==========================================="""), "NETWORK"),
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                            scope.launch {
+                            ScriptRunner.execute {
                                 GlobalLog.log("RUNNING_${scriptType}_SCRIPT...", "warn", "SCRIPTS")
                                 val language = if (scriptType == "BASH") Capability.ScriptLanguage.BASH else Capability.ScriptLanguage.PYTHON3
                                 val res = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ExecuteScript(language, scriptContent)).commandResult
@@ -325,7 +324,7 @@ echo "==========================================="""), "NETWORK"),
                     ) { Icon(Icons.Default.Save, contentDescription = "Save script", tint = CyberAccent) }
                     IconButton(
                         onClick = {
-                            scope.launch {
+                            ScriptRunner.execute {
                                 val ext = if (scriptType == "BASH") "sh" else "py"
                                 val path = "/sdcard/Download/script_${System.currentTimeMillis()}.$ext"
                                 val res = CapabilityExecutor.execute(USFPipeline.Context(), Capability.WriteFile(path)).commandResult

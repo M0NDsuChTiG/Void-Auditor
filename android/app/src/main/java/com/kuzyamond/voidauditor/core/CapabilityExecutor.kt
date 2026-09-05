@@ -444,8 +444,17 @@ object CapabilityExecutor : USFPipeline {
             // ARBITRARY tier
             is Capability.ExecuteArbitraryShell -> cap.commandString
             is Capability.ExecuteScript -> when (cap.language) {
-                Capability.ScriptLanguage.BASH -> "sh -c \"${cap.payload.replace("\"", "\\\\\"")}\""
-                Capability.ScriptLanguage.PYTHON3 -> "python3 -c \"${cap.payload.replace("\"", "\\\\\"")}\""
+                // ShizukuManager already wraps every command in `sh -c <cmd>` (one shell
+                // layer). Wrapping the payload in a SECOND `sh -c "..."` here corrupted it:
+                // the outer shell turned each escaped `\"` into `\` + an UNESCAPED quote that
+                // closed the string, so `(` in e.g. `echo "... (Accessibility ON)"` became
+                // bare shell syntax (`sh: syntax error: unexpected '('`). A BASH payload is a
+                // script: pass it verbatim to the existing single `sh -c` layer, exactly like
+                // ExecuteArbitraryShell. PYTHON3 needs an interpreter, so hand it as a
+                // single-quoted `python3 -c '...'` argument (payload `'` escaped as `'\''`)
+                // so the shell layer cannot expand `$` or break quotes inside the code.
+                Capability.ScriptLanguage.BASH -> cap.payload
+                Capability.ScriptLanguage.PYTHON3 -> "python3 -c '${cap.payload.replace("'", "'\\''")}'"
             }
 
             // Existing capabilities
