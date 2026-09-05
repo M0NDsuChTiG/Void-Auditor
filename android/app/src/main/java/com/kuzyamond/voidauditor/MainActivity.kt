@@ -250,6 +250,12 @@ fun MainLayout() {
                     GlobalLog.setExpanded(false)
                 }
             }
+            if (navStyle == NavStyle.TABS && activeTab != "AUDIT") {
+                BackHandler {
+                    activeTab = "AUDIT"
+                    GlobalLog.setExpanded(false)
+                }
+            }
 
             if (navStyle == NavStyle.TABS) {
                 Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).background(Color(0xFF090F1A)).border(1.dp, CyberBorder).horizontalScroll(rememberScrollState())) {
@@ -392,7 +398,7 @@ fun InfoDialog(navStyle: NavStyle, onNavStyleChange: (NavStyle) -> Unit, onDismi
         text = {
             Column {
                 Text("APP: VOID Auditor — CyberHack Edition", color = CyberAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text("VERSION: V12.5 [LIME_SHOCK]", color = CyberAccent2, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
+                Text("VERSION: v${BuildConfig.VERSION_NAME}", color = CyberAccent2, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 Spacer(Modifier.height(15.dp))
                 Text(
                     "Автономный хакерский комплекс для глубокого аудита и управления Android-системами. " +
@@ -609,6 +615,14 @@ fun SecurityGate(error: String?, onRetry: () -> Unit) {
                 color = Color.White,
                 letterSpacing = 2.sp,
                 fontSize = 24.sp
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "v${BuildConfig.VERSION_NAME}",
+                color = CyberAccent2,
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                letterSpacing = 2.sp
             )
             Spacer(Modifier.height(24.dp))
             if (error != null) {

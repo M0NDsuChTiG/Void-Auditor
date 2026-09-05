@@ -9,8 +9,8 @@ android {
         applicationId "com.kuzyamond.voidauditor"
         minSdkVersion 26
         targetSdkVersion 35
-        versionCode 7
-        versionName "1.4.3"
+        versionCode 8
+        versionName "1.4.4"
         buildConfigField "boolean", "SKIP_BIOMETRIC", "false"
     }
 
@@ -40,7 +40,7 @@ android {
     buildTypes {
         debug {
             // ChromeOS / ARC / без отпечатка
-            buildConfigField "boolean", "SKIP_BIOMETRIC", "true"
+            buildConfigField "boolean", "SKIP_BIOMETRIC", "false"
         }
         release {
             minifyEnabled false
