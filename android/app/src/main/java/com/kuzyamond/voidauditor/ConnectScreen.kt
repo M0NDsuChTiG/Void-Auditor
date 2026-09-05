@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +57,7 @@ private fun ConnectTabContent(scope: kotlinx.coroutines.CoroutineScope) {
     var ipAddress by remember { mutableStateOf("") }
     var port by remember { mutableStateOf(5555) }
     var wifiAdbStatus by remember { mutableStateOf("UNKNOWN") }
+    val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
 
     LaunchedEffect(Unit) {
@@ -75,7 +77,7 @@ private fun ConnectTabContent(scope: kotlinx.coroutines.CoroutineScope) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("WIFI_ADB_LINK", color = CyberInfo, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("WIRELESS_DEBUGGING", color = CyberInfo, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "STATUS: $wifiAdbStatus",
@@ -92,10 +94,10 @@ private fun ConnectTabContent(scope: kotlinx.coroutines.CoroutineScope) {
                                 .padding(start = 8.dp)
                                 .cyberClickable {
                                     scope.launch {
-                                        GlobalLog.log("CHECKING_WIFI_ADB_STATUS...", "warn", "CONN")
+                                        GlobalLog.log("CHECKING_WIRELESS_DEBUGGING...", "warn", "CONN")
                                         val enabled = NetworkAdb.isWifiAdbEnabled()
                                         wifiAdbStatus = if (enabled) "ENABLED" else "DISABLED"
-                                        GlobalLog.log("WIFI_ADB_STATUS: $wifiAdbStatus (getprop service.adb.tcp.port)", "ok", "CONN")
+                                        GlobalLog.log("WIRELESS_DEBUG_STATUS: $wifiAdbStatus", "ok", "CONN")
                                     }
                                 }
                         )
@@ -115,23 +117,29 @@ private fun ConnectTabContent(scope: kotlinx.coroutines.CoroutineScope) {
                     }
                 }
 
+                Text(
+                    "VOID Auditor cannot enable Wireless Debugging automatically.\n" +
+                    "Open Developer Options → Wireless Debugging to enable it.",
+                    color = Color(0xFF94A3B8), fontSize = 10.sp, lineHeight = 14.sp
+                )
+
                 Button(
                     onClick = {
-                        scope.launch {
-                            GlobalLog.log("ENABLING_WIFI_ADB...", "warn", "CONN")
-                            val res = NetworkAdb.enableWifiAdb()
-                            res.onSuccess { GlobalLog.log("WIFI_ADB_RESULT: $it", "ok", "CONN") }
-                               .onFailure { GlobalLog.log("WIFI_ADB_FAILED: ${it.message}", "crit", "CONN") }
+                        try {
+                            context.startActivity(NetworkAdb.openDeveloperSettingsIntent())
+                            GlobalLog.log("OPENED_DEVELOPER_SETTINGS", "ok", "CONN")
+                        } catch (e: Exception) {
+                            GlobalLog.log("OPEN_SETTINGS_FAILED: ${e.message}", "crit", "CONN")
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = CyberWarning.copy(alpha = 0.85f),
+                        containerColor = CyberInfo,
                         contentColor = CyberBackground
                     ),
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
                 ) {
-                    Text("ENABLE_WIFI_ADB (adb tcpip 5555)", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Text("OPEN DEVELOPER OPTIONS", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

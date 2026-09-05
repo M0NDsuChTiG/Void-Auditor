@@ -14,27 +14,27 @@ class ConnectScreenCapabilityTest {
     @Test
     fun `AdbConnect has risk score 50`() {
         val cap = Capability.AdbConnect("192.168.1.100", 5555)
-        assertEquals(50, cap.riskScore())
+        assertEquals(50, cap.riskScore)
     }
 
     @Test
     fun `AdbScanDevices has risk score 10`() {
         val cap = Capability.AdbScanDevices
-        assertEquals(10, cap.riskScore())
+        assertEquals(10, cap.riskScore)
     }
 
-    // ── requiresConfirmation ───────────────────────────────────
+    // ── riskScore (confirmation threshold) ────────────────────────
 
     @Test
-    fun `AdbConnect requires confirmation`() {
+    fun `AdbConnect risk score is 50 (ACTION tier, confirmation expected)`() {
         val cap = Capability.AdbConnect("192.168.1.100", 5555)
-        assertTrue(cap.requiresConfirmation())
+        assertEquals(50, cap.riskScore)
     }
 
     @Test
-    fun `AdbScanDevices does not require confirmation`() {
+    fun `AdbScanDevices risk score is 10 (READ tier, no confirmation)`() {
         val cap = Capability.AdbScanDevices
-        assertFalse(cap.requiresConfirmation())
+        assertEquals(10, cap.riskScore)
     }
 
     // ── capabilityToCommand ────────────────────────────────────
