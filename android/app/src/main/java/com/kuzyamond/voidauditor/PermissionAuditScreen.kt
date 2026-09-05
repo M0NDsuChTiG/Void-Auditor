@@ -37,10 +37,12 @@ import com.kuzyamond.voidauditor.core.AuditLogger
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
@@ -203,6 +205,24 @@ object DumpsysPermissionParser {
     }
 }
 
+/**
+ * Чистая агрегация результатов permission-скана (без Android/Compose-зависимостей).
+ *
+ * Должна вызываться строго с фонового dispatcher (Dispatchers.Default):
+ * `auditFromDumpsys` делает несколько regex-проходов по полному выводу `dumpsys
+ * package` на каждый пакет. Выполнение этой агрегации на главном потоке замораживает
+ * UI (smoke-тур: ~95с «зависания» на 371 пакете при уже собранных 371/371).
+ */
+object PermissionAuditEngine {
+    fun buildAudits(
+        results: List<Pair<String, String>>,
+        systemSet: Set<String>
+    ): List<AppPermissionAudit> = results
+        .filter { it.second.isNotBlank() }
+        .map { (pkg, out) -> DumpsysPermissionParser.auditFromDumpsys(pkg, out, pkg in systemSet) }
+        .sortedWith(compareByDescending<AppPermissionAudit> { it.score }.thenBy { it.packageName })
+}
+
 // =============================================================================
 // Экран
 // =============================================================================
@@ -269,10 +289,14 @@ fun PermissionAuditScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCor
                 }.awaitAll()
             }
 
-            apps = results
-                .filter { it.second.isNotBlank() }
-                .map { (pkg, out) -> DumpsysPermissionParser.auditFromDumpsys(pkg, out, pkg in systemSet) }
-                .sortedWith(compareByDescending<AppPermissionAudit> { it.score }.thenBy { it.packageName })
+            // Сбор завершён: показываем честный прогресс-этап парсинга.
+            scanDone = scanTotal
+            GlobalLog.log("PERM_AUDIT: parsing ${results.size} dumpsys outputs (off main thread)...", "info", "PERMS")
+            // Тяжёлая агрегация (regex по полным дампам на каждый пакет) — НЕ на главном
+            // потоке: раньше ~95с блокировки UI при уже собранных 371/371.
+            apps = withContext(Dispatchers.Default) {
+                PermissionAuditEngine.buildAudits(results, systemSet)
+            }
 
             val high = apps.count { it.risk == AuditRisk.HIGH || it.risk == AuditRisk.CRITICAL }
             GlobalLog.log(
@@ -435,7 +459,8 @@ fun PermissionAuditScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCor
                 modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("SCANNING_PERMISSIONS $scanDone/$scanTotal", color = CyberAccent2, fontSize = 9.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
+                val phase = if (scanDone >= scanTotal && scanTotal > 0) "PARSING_DUMPSYS" else "SCANNING_PERMISSIONS"
+                Text("$phase $scanDone/$scanTotal", color = CyberAccent2, fontSize = 9.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
             }
             LinearProgressIndicator(
                 progress = if (scanTotal > 0) scanDone.toFloat() / scanTotal else 0f,

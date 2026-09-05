@@ -114,4 +114,40 @@ class PermissionAuditTest {
         val third = DumpsysPermissionParser.auditFromDumpsys("com.aefyr.sai.fdroid", oneUiDump, isSystem = false)
         assertFalse(third.isSystem)
     }
+
+    // ── PermissionAuditEngine (чистая агрегация, вызывается с Dispatchers.Default) ──
+
+    @Test
+    fun `engine drops blank dumpsys outputs and sorts by risk then name`() {
+        val results = listOf(
+            "com.example.spy" to aospDump,          // HIGH (6)
+            "com.blank.pkg" to "",                  // должен быть отброшен
+            "com.aefyr.sai.fdroid" to oneUiDump      // LOW (2)
+        )
+        val audits = PermissionAuditEngine.buildAudits(results, emptySet())
+        assertEquals(2, audits.size)
+        // Сортировка: риск по убыванию → HIGH(6) раньше LOW(2)
+        assertEquals("com.example.spy", audits[0].packageName)
+        assertEquals(AuditRisk.HIGH, audits[0].risk)
+        assertEquals("com.aefyr.sai.fdroid", audits[1].packageName)
+        assertEquals(AuditRisk.LOW, audits[1].risk)
+    }
+
+    @Test
+    fun `engine propagates system flag from collected system set`() {
+        val results = listOf(
+            "com.android.shell" to oneUiDump,
+            "com.aefyr.sai.fdroid" to oneUiDump
+        )
+        val audits = PermissionAuditEngine.buildAudits(results, setOf("com.android.shell"))
+        assertEquals(2, audits.size)
+        assertTrue(audits.first { it.packageName == "com.android.shell" }.isSystem)
+        assertFalse(audits.first { it.packageName == "com.aefyr.sai.fdroid" }.isSystem)
+    }
+
+    @Test
+    fun `engine stays stable on fully empty collection`() {
+        val audits = PermissionAuditEngine.buildAudits(emptyList(), emptySet())
+        assertTrue(audits.isEmpty())
+    }
 }
