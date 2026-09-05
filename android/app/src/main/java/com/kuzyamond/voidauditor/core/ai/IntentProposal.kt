@@ -1,5 +1,6 @@
 package com.kuzyamond.voidauditor.core.ai
 
+import com.kuzyamond.voidauditor.core.RiskLevel
 import java.time.Instant
 
 /**
@@ -56,12 +57,6 @@ enum class TrustLevel {
     UNKNOWN
 }
 
-enum class RiskLevel {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
-}
 
 enum class ProposalStatus {
     PENDING,

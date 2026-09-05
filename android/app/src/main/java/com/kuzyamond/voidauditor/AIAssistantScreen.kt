@@ -40,6 +40,7 @@ import com.kuzyamond.voidauditor.core.AuditLogger
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.PolicyEngine
+import com.kuzyamond.voidauditor.core.RiskLevel
 import com.kuzyamond.voidauditor.core.ShizukuExecutor
 import com.kuzyamond.voidauditor.core.ai.AIProposalService
 import com.kuzyamond.voidauditor.core.ai.IntentProposal
@@ -62,10 +63,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 data class ChatMessage(val role: String, val text: String, val riskLevel: String? = null)
-
-enum class RiskLevel {
-    LOW, MEDIUM, HIGH, CRITICAL, UNKNOWN, TIER_1_REVERSIBLE
-}
 
 fun parseRiskLevel(text: String): RiskLevel {
     val upper = text.uppercase()

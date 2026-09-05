@@ -1,6 +1,5 @@
 package com.kuzyamond.voidauditor.core
 
-import com.kuzyamond.voidauditor.RiskLevel
 
 object PolicyEngine {
     private var confirmationThreshold = 50

@@ -1,7 +1,6 @@
 package com.kuzyamond.voidauditor.core
 
 import com.kuzyamond.voidauditor.GlobalLog
-import com.kuzyamond.voidauditor.RiskLevel
 import com.kuzyamond.voidauditor.ShizukuManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

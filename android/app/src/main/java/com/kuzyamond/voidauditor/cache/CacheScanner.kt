@@ -13,6 +13,7 @@ import com.kuzyamond.voidauditor.core.DirectorySizeEvidence
 import com.kuzyamond.voidauditor.core.FileCountEvidence
 import com.kuzyamond.voidauditor.core.LastModifiedEvidence
 import com.kuzyamond.voidauditor.core.EvidenceResult
+import com.kuzyamond.voidauditor.core.RiskLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -52,9 +53,9 @@ object CacheScanner {
         val totalSize = entries.sumOf { it.sizeBytes }
         val totalFiles = entries.sumOf { it.fileCount }
         val risk = when {
-            entries.any { it.sizeBytes > 100_000_000L } -> com.kuzyamond.voidauditor.RiskLevel.HIGH
-            entries.any { it.sizeBytes > 10_000_000L } -> com.kuzyamond.voidauditor.RiskLevel.MEDIUM
-            else -> com.kuzyamond.voidauditor.RiskLevel.LOW
+            entries.any { it.sizeBytes > 100_000_000L } -> RiskLevel.HIGH
+            entries.any { it.sizeBytes > 10_000_000L } -> RiskLevel.MEDIUM
+            else -> RiskLevel.LOW
         }
 
         val installedPackagesResult = CapabilityExecutor.execute(
@@ -75,7 +76,7 @@ object CacheScanner {
 
         GlobalLog.log(
             "SCAN_DONE: ${entries.size} dirs, ${formatSize(totalSize)} in ${duration}ms",
-            if (risk.ordinal >= com.kuzyamond.voidauditor.RiskLevel.HIGH.ordinal) "warn" else "ok",
+            if (risk.ordinal >= RiskLevel.HIGH.ordinal) "warn" else "ok",
             TAG
         )
 

@@ -1,6 +1,6 @@
 package com.kuzyamond.voidauditor.cache
 
-import com.kuzyamond.voidauditor.RiskLevel
+import com.kuzyamond.voidauditor.core.RiskLevel
 
 enum class CacheCapability(val displayName: String, val riskLevel: RiskLevel, val description: String) {
     QUICK("QUICK_CACHE_RESCAN", RiskLevel.LOW, "Scan recently modified cache dirs (<7d)"),

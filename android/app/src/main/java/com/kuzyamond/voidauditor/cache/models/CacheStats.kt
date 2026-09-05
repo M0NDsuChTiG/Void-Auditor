@@ -1,6 +1,6 @@
 package com.kuzyamond.voidauditor.cache.models
 
-import com.kuzyamond.voidauditor.RiskLevel
+import com.kuzyamond.voidauditor.core.RiskLevel
 
 data class CacheStats(
     val totalSizeBytes: Long = 0L,

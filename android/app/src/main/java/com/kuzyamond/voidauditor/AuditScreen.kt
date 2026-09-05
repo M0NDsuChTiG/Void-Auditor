@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.kuzyamond.voidauditor.core.AuditEvent
 import com.kuzyamond.voidauditor.core.AuditLogger
 import com.kuzyamond.voidauditor.core.AuditStats
+import com.kuzyamond.voidauditor.core.RiskLevel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

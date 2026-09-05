@@ -1,6 +1,6 @@
 package com.kuzyamond.voidauditor.core
 
-import com.kuzyamond.voidauditor.RiskLevel
+
 import kotlinx.coroutines.delay
 
 object CapabilityExecutor : USFPipeline {
@@ -24,17 +24,15 @@ object CapabilityExecutor : USFPipeline {
 
     /**
      * USFPipeline entry point — all privileged operations route here.
+     *
+     * Delegates confirmation orchestration to [ConfirmationFlow] and command
+     * building to [CommandMapper], keeping this class focused on execution,
+     * evidence parsing, and audit logging.
      */
     override suspend fun execute(
         context: USFPipeline.Context,
         capability: USFPipeline.Capability
     ): USFPipeline.Result {
-        // Handle RemediationIntent first (separate sealed hierarchy)
-        val remediationIntent = capability as? Capability.RemediationIntent
-        if (remediationIntent != null) {
-            return executeRemediation(context, remediationIntent)
-        }
-
         val coreCapability = capability as? Capability
             ?: return USFPipeline.Result(
                 commandResult = ShizukuExecutor.CommandResult(
@@ -50,194 +48,58 @@ object CapabilityExecutor : USFPipeline {
         totalAuditOps++
         val decision = PolicyEngine.evaluate(coreCapability)
 
-        var evidenceResult: EvidenceResult? = null
-
-        val commandResult = when (decision) {
-            is PolicyDecision.Denied -> {
+        // Confirmation gate — shared for all capability types
+        val gateResult = ConfirmationFlow.gate(
+            capability = coreCapability,
+            decision = decision,
+            onCancel = {
                 blockedOps++
-                logListener?.invoke("POLICY", "DENIED: ${decision.reason}")
-                AuditLogger.log(
-                    actor = context.actor,
-                    capability = coreCapability::class.simpleName ?: "unknown",
-                    riskLevel = RiskLevel.CRITICAL,
-                    decision = "DENIED",
-                    target = coreCapability.description,
-                    details = decision.reason
+                logListener?.invoke("POLICY", "CANCELLED: ${coreCapability.description}")
+            }
+        )
+
+        // If denied/blocked, log and return early
+        if (gateResult is ConfirmationFlow.GateResult.Blocked) {
+            val reason = gateResult.reason
+            logListener?.invoke("POLICY", "DENIED: $reason")
+            AuditLogger.log(
+                actor = context.actor,
+                capability = coreCapability::class.simpleName ?: "unknown",
+                riskLevel = RiskLevel.CRITICAL,
+                decision = "DENIED",
+                target = coreCapability.description,
+                details = reason
+            )
+            auditIssues.add(
+                USFPipeline.AuditIssue(
+                    capability = coreCapability,
+                    severity = "CRITICAL",
+                    description = "Policy blocked: $reason",
+                    fixCommand = null
                 )
-                auditIssues.add(
-                    USFPipeline.AuditIssue(
-                        capability = coreCapability,
-                        severity = "CRITICAL",
-                        description = "Policy blocked: ${decision.reason}",
-                        fixCommand = null
-                    )
-                )
-                ShizukuExecutor.CommandResult(
+            )
+            return USFPipeline.Result(
+                commandResult = ShizukuExecutor.CommandResult(
                     success = false, output = "",
-                    error = "DENIED: ${decision.reason}",
-                    exitCode = -1, executionTimeMs = 0
-                )
-            }
-            is PolicyDecision.RequireConfirmation -> {
-                val confirmed = ConfirmationManager.awaitConfirmation(
-                    intent = coreCapability,
-                    onCancel = {
-                        blockedOps++
-                        logListener?.invoke("POLICY", "CANCELLED: ${coreCapability.description}")
-                    }
-                )
-                if (confirmed) {
-                    val (cmdResult, evResult) = executeRaw(coreCapability)
-                    evidenceResult = evResult
-                    cmdResult
-                } else {
-                    ShizukuExecutor.CommandResult(
-                        success = false, output = "",
-                        error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                    )
-                }
-            }
-            is PolicyDecision.RequireDoubleConfirmation -> {
-                val firstConfirmed = ConfirmationManager.awaitConfirmation(
-                    intent = coreCapability,
-                    onCancel = {
-                        blockedOps++
-                        logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${coreCapability.description}")
-                    }
-                )
-                val secondConfirmed = if (firstConfirmed) {
-                    ConfirmationManager.awaitConfirmation(
-                        intent = coreCapability,
-                        onCancel = {
-                            blockedOps++
-                            logListener?.invoke("POLICY", "SECOND_CANCELLED: ${coreCapability.description}")
-                        }
-                    )
-                } else {
-                    false
-                }
-                if (secondConfirmed) {
-                    val (cmdResult, evResult) = executeRaw(coreCapability)
-                    evidenceResult = evResult
-                    cmdResult
-                } else {
-                    ShizukuExecutor.CommandResult(
-                        success = false, output = "",
-                        error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                    )
-                }
-            }
-            is PolicyDecision.Allowed -> {
-                val (cmdResult, evResult) = executeRaw(coreCapability)
-                evidenceResult = evResult
-                cmdResult
-            }
+                    error = reason, exitCode = -1, executionTimeMs = 0
+                ),
+                decision = decision,
+                capability = coreCapability,
+                context = context
+            )
+        }
+
+        // Execute — RemediationIntent uses its own execution path
+        val (commandResult, evidenceResult) = if (coreCapability is Capability.RemediationIntent) {
+            executeRawRemediation(coreCapability)
+        } else {
+            executeRaw(coreCapability)
         }
 
         return USFPipeline.Result(
             commandResult = commandResult,
             decision = decision,
             capability = coreCapability,
-            context = context,
-            evidence = evidenceResult
-        )
-    }
-
-    private suspend fun executeRemediation(
-        context: USFPipeline.Context,
-        intent: Capability.RemediationIntent
-    ): USFPipeline.Result {
-        totalAuditOps++
-        val decision = PolicyEngine.evaluate(intent)
-
-        var evidenceResult: EvidenceResult? = null
-
-        val commandResult = when (decision) {
-            is PolicyDecision.Denied -> {
-                blockedOps++
-                logListener?.invoke("POLICY", "DENIED: ${decision.reason}")
-                AuditLogger.log(
-                    actor = context.actor,
-                    capability = intent::class.simpleName ?: "unknown",
-                    riskLevel = RiskLevel.CRITICAL,
-                    decision = "DENIED",
-                    target = intent.description,
-                    details = decision.reason
-                )
-                auditIssues.add(
-                    USFPipeline.AuditIssue(
-                        capability = intent,
-                        severity = "CRITICAL",
-                        description = "Policy blocked: ${decision.reason}",
-                        fixCommand = null
-                    )
-                )
-                ShizukuExecutor.CommandResult(
-                    success = false, output = "",
-                    error = "DENIED: ${decision.reason}",
-                    exitCode = -1, executionTimeMs = 0
-                )
-            }
-            is PolicyDecision.RequireConfirmation -> {
-                val confirmed = ConfirmationManager.awaitConfirmation(
-                    intent = intent,
-                    onCancel = {
-                        blockedOps++
-                        logListener?.invoke("POLICY", "CANCELLED: ${intent.description}")
-                    }
-                )
-                if (confirmed) {
-                    val (cmdResult, evResult) = executeRaw(intent)
-                    evidenceResult = evResult
-                    cmdResult
-                } else {
-                    ShizukuExecutor.CommandResult(
-                        success = false, output = "",
-                        error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                    )
-                }
-            }
-            is PolicyDecision.RequireDoubleConfirmation -> {
-                val firstConfirmed = ConfirmationManager.awaitConfirmation(
-                    intent = intent,
-                    onCancel = {
-                        blockedOps++
-                        logListener?.invoke("POLICY", "DOUBLE_CANCELLED: ${intent.description}")
-                    }
-                )
-                val secondConfirmed = if (firstConfirmed) {
-                    ConfirmationManager.awaitConfirmation(
-                        intent = intent,
-                        onCancel = {
-                            blockedOps++
-                            logListener?.invoke("POLICY", "SECOND_CANCELLED: ${intent.description}")
-                        }
-                    )
-                } else {
-                    false
-                }
-                if (secondConfirmed) {
-                    val (cmdResult, evResult) = executeRawRemediation(intent)
-                    evidenceResult = evResult
-                    cmdResult
-                } else {
-                    ShizukuExecutor.CommandResult(
-                        success = false, output = "",
-                        error = "CANCELLED", exitCode = -1, executionTimeMs = 0
-                    )
-                }
-            }
-            is PolicyDecision.Allowed -> {
-                val (cmdResult, evResult) = executeRawRemediation(intent)
-                evidenceResult = evResult
-                cmdResult
-            }
-        }
-
-        return USFPipeline.Result(
-            commandResult = commandResult,
-            decision = decision,
-            capability = intent,
             context = context,
             evidence = evidenceResult
         )
@@ -380,114 +242,8 @@ object CapabilityExecutor : USFPipeline {
         )
     }
 
-    internal fun capabilityToCommand(cap: Capability): String {
-        return when (cap) {
-            // READ tier
-            is Capability.ReadSystemProp -> "getprop ${cap.prop}"
-            is Capability.ReadSystemFeatures -> "pm list features"
-            is Capability.ReadUserIdentity -> "id"
-            is Capability.ReadPackageDetails -> "dumpsys package ${cap.packageName}"
-            is Capability.ReadPackageCount -> "pm list packages -3 2>/dev/null | wc -l"
-            is Capability.ReadDangerousPermissions -> "pm list permissions -d -g"
-            is Capability.ReadDiskUsage -> "df -k ${cap.path} 2>/dev/null | tail -1 | awk '{print \$(NF-2)}'"
-            is Capability.ReadDirectorySize -> "du -sb \"${cap.path}\" 2>/dev/null | cut -f1"
-            is Capability.ReadFileCount -> "find \"${cap.path}\" -type f 2>/dev/null | wc -l"
-            is Capability.ReadLastModified -> "stat -c %Y \"${cap.path}\" 2>/dev/null"
-            is Capability.ReadARPTable -> "cat /proc/net/arp"
-            is Capability.ReadAppOps -> "appops query-op ${cap.op} allow"
-            is Capability.ReadSetting -> "settings get ${cap.namespace} ${cap.key}"
-            is Capability.ReadDefaultRoute -> "ip route show default"
-            is Capability.ReadWifiInfo -> "cmd wifi get-wifi-info 2>/dev/null"
-            is Capability.ReadServiceState -> "dumpsys ${cap.service}"
-            is Capability.DiscoverCacheDirectories -> buildString {
-                cap.roots.forEachIndexed { i, root ->
-                    if (i > 0) append("\n")
-                    append("""find "$root" -mindepth 1 -maxdepth ${cap.maxDepth} -type d -name "cache" -prune 2>/dev/null""")
-                }
-            }
-            is Capability.CacheCapability -> ""
-
-            // ACTION tier
-            is Capability.ExecuteSystemTrim -> "pm trim-caches ${cap.freeBytesHint}"
-            is Capability.ExecuteDryRun -> when (cap.capability) {
-                is Capability.CacheCapability.AppCache -> "du -sb /data/data 2>/dev/null | awk '{sum+=\$1} END {print sum}'"
-                is Capability.CacheCapability.SystemCache -> "du -sb /data/system 2>/dev/null | awk '{sum+=\$1} END {print sum}'"
-                is Capability.CacheCapability.TempFiles -> "du -sb /data/local/tmp 2>/dev/null | awk '{sum+=\$1} END {print sum}'"
-                is Capability.CacheCapability.UserCache -> "du -sb /sdcard 2>/dev/null | awk '{sum+=\$1} END {print sum}'"
-            }
-            is Capability.ExecuteClean -> when (cap.capability) {
-                is Capability.CacheCapability.AppCache -> "pm trim-caches 100M"
-                is Capability.CacheCapability.SystemCache -> "pm trim-caches 50M"
-                is Capability.CacheCapability.TempFiles -> "rm -rf /data/local/tmp/* 2>/dev/null"
-                is Capability.CacheCapability.UserCache -> "pm trim-caches 200M"
-            }
-            is Capability.PingSweep -> buildString {
-                append("for ip in ")
-                append(cap.targets.joinToString(" "))
-                append("; do (ping -c 1 -W 1 \"")
-                append('\$')
-                append("ip\" >/dev/null 2>&1 && echo \"")
-                append('\$')
-                append("ip\") & done; wait")
-            }
-
-            // REMEDIATION tier - mapped per intent
-            is Capability.RemediationIntent -> cap.let { intent ->
-                when (intent) {
-                    is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
-                    is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
-                    is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
-                    is Capability.RemediationIntent.DisableService -> "pm disable-user --user 0 com.example.vulnerable"
-                }
-            }
-
-            // ARBITRARY tier
-            is Capability.ExecuteArbitraryShell -> cap.commandString
-            is Capability.ExecuteScript -> when (cap.language) {
-                // ShizukuManager already wraps every command in `sh -c <cmd>` (one shell
-                // layer). Wrapping the payload in a SECOND `sh -c "..."` here corrupted it:
-                // the outer shell turned each escaped `\"` into `\` + an UNESCAPED quote that
-                // closed the string, so `(` in e.g. `echo "... (Accessibility ON)"` became
-                // bare shell syntax (`sh: syntax error: unexpected '('`). A BASH payload is a
-                // script: pass it verbatim to the existing single `sh -c` layer, exactly like
-                // ExecuteArbitraryShell. PYTHON3 needs an interpreter, so hand it as a
-                // single-quoted `python3 -c '...'` argument (payload `'` escaped as `'\''`)
-                // so the shell layer cannot expand `$` or break quotes inside the code.
-                Capability.ScriptLanguage.BASH -> cap.payload
-                Capability.ScriptLanguage.PYTHON3 -> "python3 -c '${cap.payload.replace("'", "'\\''")}'"
-            }
-
-            // Existing capabilities
-            is Capability.RunShellCommand -> cap.commandHint
-            is Capability.QueryPackages -> "pm list packages ${cap.filter}"
-            is Capability.DumpService -> "dumpsys ${cap.service}"
-            is Capability.ModifySettings -> "settings put ${cap.namespace} ${cap.key}"
-            is Capability.InstallPackage -> "pm install ${cap.packageName}"
-            is Capability.UninstallPackage -> "pm uninstall ${cap.packageName}"
-            is Capability.ForceStopPackage -> "am force-stop ${cap.packageName}"
-            is Capability.DisablePackage -> "pm disable-user --user 0 ${cap.packageName}"
-            is Capability.EnablePackage -> "pm enable ${cap.packageName}"
-            is Capability.ClearAppData -> "pm clear ${cap.packageName}"
-            is Capability.ReadFile -> "cat ${cap.path}"
-            is Capability.WriteFile -> "echo > ${cap.path}"
-            is Capability.RunAsRoot -> cap.commandHint
-            is Capability.NetworkAction -> cap.action
-            is Capability.ReadSensitiveData -> cap.dataType
-            is Capability.CleanCache -> cap.safeCommand
-            is Capability.ConfigureAdbTcp -> "" // handled by executeConfigureAdbTcp()
-            is Capability.DumpPackageActivities -> "dumpsys package ${cap.packageName} | grep -oE '${cap.packageName}/[A-Za-z0-9_.\$]+' | sort -u | head -80"
-            is Capability.LaunchActivity -> "am start -n ${cap.component}"
-            is Capability.ListDirectory -> "ls -l ${cap.path}"
-            is Capability.CalculateDiskUsage -> "du -sh ${cap.path}"
-            is Capability.AdbConnect -> "adb connect ${cap.ipAddress}:${cap.port}"
-            is Capability.AdbScanDevices -> "adb devices"
-            is Capability.ListApkFiles -> "ls ${cap.path}*.apk 2>/dev/null"
-            is Capability.InstallApk -> "pm install -r ${cap.filePath} && echo \"OK\""
-            is Capability.GetPackagePath -> "pm path ${cap.packageName}"
-            is Capability.CopyFile -> "cp ${cap.source} ${cap.destination} && echo \"OK\""
-            is Capability.CreateDirectory -> "mkdir -p ${cap.path}"
-        }
-    }
+    /** Delegates to [CommandMapper.toCommand] — kept for backward compatibility. */
+    internal fun capabilityToCommand(cap: Capability): String = CommandMapper.toCommand(cap)
 
     private suspend fun executeConfigureAdbTcp(cap: Capability.ConfigureAdbTcp): ShizukuExecutor.CommandResult {
         val steps = mutableListOf<ShizukuExecutor.CompositeStep>()
@@ -551,22 +307,6 @@ object CapabilityExecutor : USFPipeline {
         }
     }
 
-    private fun capabilityToFixCommand(cap: Capability): String? {
-        return when (cap) {
-            is Capability.ModifySettings -> "pm grant ${cap.namespace} android.permission.WRITE_SECURE_SETTINGS"
-            is Capability.InstallPackage -> "settings put global install_non_market_apps 1"
-            is Capability.CleanCache -> null
-            is Capability.ExecuteArbitraryShell -> null
-            is Capability.ReadSetting -> "pm grant ${cap.namespace} android.permission.WRITE_SECURE_SETTINGS"
-            is Capability.ExecuteSystemTrim -> "settings put global trim_caches_enabled 1"
-            is Capability.ExecuteClean -> null
-            is Capability.RemediationIntent -> when (cap) {
-                is Capability.RemediationIntent.EnableFirewall -> "settings put global firewall_enabled 1"
-                is Capability.RemediationIntent.DisableDebuggable -> "setprop ro.debuggable 0"
-                is Capability.RemediationIntent.HardenSsh -> "settings put secure ssh_hardened 1"
-                is Capability.RemediationIntent.DisableService -> null
-            }
-            else -> null
-        }
-    }
+    /** Delegates to [CommandMapper.fixCommand] — kept for backward compatibility. */
+    private fun capabilityToFixCommand(cap: Capability): String? = CommandMapper.fixCommand(cap)
 }

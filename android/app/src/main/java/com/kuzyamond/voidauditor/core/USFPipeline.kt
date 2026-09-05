@@ -1,6 +1,5 @@
 package com.kuzyamond.voidauditor.core
 
-import com.kuzyamond.voidauditor.RiskLevel
 
 /**
  * Unified System Framework — formalizes the implicit pipeline:

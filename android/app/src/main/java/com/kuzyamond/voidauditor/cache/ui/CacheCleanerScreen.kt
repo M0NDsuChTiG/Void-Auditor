@@ -51,7 +51,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kuzyamond.voidauditor.RiskLevel
+import com.kuzyamond.voidauditor.core.RiskLevel
 import com.kuzyamond.voidauditor.getRiskColor
 import com.kuzyamond.voidauditor.AuditButton
 import com.kuzyamond.voidauditor.CyberCard

@@ -36,6 +36,7 @@ import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.AuditLogger
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.RiskLevel
 import com.kuzyamond.voidauditor.core.USFPipeline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async

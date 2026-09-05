@@ -1,7 +1,6 @@
 package com.kuzyamond.voidauditor.core
 
 import com.kuzyamond.voidauditor.GlobalLog
-import com.kuzyamond.voidauditor.RiskLevel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
