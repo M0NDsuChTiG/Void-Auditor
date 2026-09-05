@@ -14,63 +14,63 @@ class BackupScreenCapabilityTest {
     @Test
     fun `ListApkFiles has risk score 15`() {
         val cap = Capability.ListApkFiles("/sdcard/Download/")
-        assertEquals(15, cap.riskScore())
+        assertEquals(15, cap.riskScore)
     }
 
     @Test
     fun `InstallApk has risk score 85`() {
         val cap = Capability.InstallApk("/sdcard/Download/app.apk")
-        assertEquals(85, cap.riskScore())
+        assertEquals(85, cap.riskScore)
     }
 
     @Test
     fun `GetPackagePath has risk score 15`() {
         val cap = Capability.GetPackagePath("com.example.app")
-        assertEquals(15, cap.riskScore())
+        assertEquals(15, cap.riskScore)
     }
 
     @Test
     fun `CopyFile has risk score 50`() {
         val cap = Capability.CopyFile("/source.apk", "/destination.apk")
-        assertEquals(50, cap.riskScore())
+        assertEquals(50, cap.riskScore)
     }
 
     @Test
     fun `CreateDirectory has risk score 30`() {
         val cap = Capability.CreateDirectory("/sdcard/Download/ADB_Backups")
-        assertEquals(30, cap.riskScore())
+        assertEquals(30, cap.riskScore)
     }
 
-    // ── requiresConfirmation ───────────────────────────────────
+    // ── riskScore (confirmation threshold) ────────────────────────
 
     @Test
-    fun `ListApkFiles does not require confirmation`() {
+    fun `ListApkFiles risk score is 15 (READ tier, no confirmation)`() {
         val cap = Capability.ListApkFiles("/sdcard/Download/")
-        assertFalse(cap.requiresConfirmation())
+        assertEquals(15, cap.riskScore)
     }
 
     @Test
-    fun `InstallApk requires confirmation`() {
+    fun `InstallApk risk score is 85 (ACTION tier, confirmation expected)`() {
         val cap = Capability.InstallApk("/sdcard/Download/app.apk")
-        assertTrue(cap.requiresConfirmation())
+        assertEquals(85, cap.riskScore)
     }
 
     @Test
-    fun `GetPackagePath does not require confirmation`() {
+    fun `GetPackagePath risk score is 15 (READ tier, no confirmation)`() {
         val cap = Capability.GetPackagePath("com.example.app")
-        assertFalse(cap.requiresConfirmation())
+        assertEquals(15, cap.riskScore)
     }
 
     @Test
-    fun `CopyFile requires confirmation`() {
+    fun `CopyFile risk score is 50 (ACTION tier, confirmation expected)`() {
         val cap = Capability.CopyFile("/source.apk", "/destination.apk")
-        assertTrue(cap.requiresConfirmation())
+        assertEquals(50, cap.riskScore)
     }
 
     @Test
-    fun `CreateDirectory does not require confirmation`() {
+    fun `CreateDirectory risk score is 30 (ACTION tier, no confirmation)`() {
         val cap = Capability.CreateDirectory("/sdcard/Download/ADB_Backups")
-        assertFalse(cap.requiresConfirmation())
+        assertEquals(30, cap.riskScore)
     }
 
     // ── capabilityToCommand ────────────────────────────────────

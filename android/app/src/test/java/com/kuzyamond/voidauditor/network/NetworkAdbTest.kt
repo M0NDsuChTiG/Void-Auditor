@@ -2,15 +2,30 @@ package com.kuzyamond.voidauditor.network
 
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.PolicyDecision
 import com.kuzyamond.voidauditor.core.ShizukuExecutor
+import com.kuzyamond.voidauditor.core.USFPipeline
 import io.mockk.coEvery
 import io.mockk.mockkObject
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * Tests for the current NetworkAdb implementation.
+ *
+ * Current API:
+ * - isWifiAdbEnabled(): Boolean — no parameters, checks modern adb_wifi_enabled
+ *   setting first, then falls back to legacy service.adb.tcp.port.
+ * - openDeveloperSettingsIntent(): Intent — returns an ACTION_APPLICATION_DEVELOPMENT_SETTINGS intent.
+ *
+ * The old enableWifiAdb() function has been removed because VOID Auditor cannot
+ * programmatically enable Wireless Debugging. Tests for that function are intentionally
+ * omitted.
+ */
 class NetworkAdbTest {
 
     private fun okResult() = ShizukuExecutor.CommandResult(
@@ -18,122 +33,182 @@ class NetworkAdbTest {
         exitCode = 0, executionTimeMs = 0L
     )
 
-    @Test
-    fun `enableWifiAdb fails when getprop does not reflect the port`() = runTest {
-        mockkObject(CapabilityExecutor)
-        coEvery { CapabilityExecutor.execute(any<Capability>()) } answers {
-            val cap = firstArg<Capability>()
-            when {
-                cap is Capability.ConfigureAdbTcp && cap.port == 5555 ->
-                    ShizukuExecutor.CommandResult(
-                        success = true, output = "[setprop] OK\n[stop adbd] OK\n[start adbd] OK\n[getprop] FAIL: exit=-1",
-                        error = "VERIFY_FAILED: setprop reported success but port 5555 not active per getprop",
-                        exitCode = -1, executionTimeMs = 850L
-                    )
-                cap is Capability.ReadSystemProp -> okResult().copy(output = "5554")
-                else -> okResult()
-            }
-        }
+    private fun okPipelineResult(capability: Capability = Capability.ReadSetting("global", "adb_wifi_enabled")) = USFPipeline.Result(
+        commandResult = okResult(),
+        decision = PolicyDecision.Allowed,
+        capability = capability,
+        context = USFPipeline.Context()
+    )
 
-        val res = NetworkAdb.enableWifiAdb(5555)
-
-        assertTrue(res.isFailure)
-        val msg = res.exceptionOrNull()?.message ?: ""
-        assertTrue("expected VERIFY_FAILED, got: $msg", msg.contains("VERIFY_FAILED"))
-    }
+    // --- isWifiAdbEnabled() ---
 
     @Test
-    fun `success when setprop got reflected in getprop`() = runTest {
+    fun `isWifiAdbEnabled returns true when modern setting is 1`() = runTest {
         mockkObject(CapabilityExecutor)
-        coEvery { CapabilityExecutor.execute(any<Capability>()) } answers {
-            val cap = firstArg<Capability>()
-            when {
-                cap is Capability.ConfigureAdbTcp && cap.port == 5555 ->
-                    ShizukuExecutor.CommandResult(
-                        success = true,
-                        output = "[setprop] OK\n[stop adbd] OK\n[start adbd] OK\n[getprop] OK",
-                        error = "",
-                        exitCode = 0, executionTimeMs = 850L
-                    )
-                cap is Capability.ReadSystemProp -> okResult().copy(output = "5555\n")
-                else -> okResult()
-            }
-        }
-
-        val res = NetworkAdb.enableWifiAdb(5555)
-
-        assertTrue(res.isSuccess)
-        assertEquals("ADB over WiFi enabled on port 5555", res.getOrNull())
-    }
-
-    @Test
-    fun `setprop failure surfaces SETPROP_FAILED message when error is blank`() = runTest {
-        mockkObject(CapabilityExecutor)
-        coEvery { CapabilityExecutor.execute(any<Capability>()) } answers {
-            val cap = firstArg<Capability>()
+        coEvery { CapabilityExecutor.execute(any(), any()) } answers {
+            val context = firstArg<USFPipeline.Context>()
+            val cap = secondArg<Capability>()
             when (cap) {
-                is Capability.ConfigureAdbTcp ->
-                    ShizukuExecutor.CommandResult(
-                        success = false,
-                        output = "[setprop service.adb.tcp.port 5555] -> FAIL: exit=1",
-                        error = "",
-                        exitCode = 1, executionTimeMs = 10L
+                is Capability.ReadSetting ->
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = "1\n"),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
                     )
-                is Capability.ReadSystemProp -> okResult()
-                else -> okResult()
+                else -> okPipelineResult()
             }
         }
 
-        val res = NetworkAdb.enableWifiAdb(5555)
-
-        assertTrue(res.isFailure)
-        val msg = res.exceptionOrNull()?.message ?: ""
-        assertTrue("unexpected message: $msg", msg.contains("EXEC_FAILED (code 1)"))
+        assertTrue(NetworkAdb.isWifiAdbEnabled())
     }
 
     @Test
-    fun `setprop failure surfaces error text when present`() = runTest {
+    fun `isWifiAdbEnabled returns true when legacy TCP port is set`() = runTest {
         mockkObject(CapabilityExecutor)
-        coEvery { CapabilityExecutor.execute(any<Capability>()) } answers {
-            val cap = firstArg<Capability>()
+        coEvery { CapabilityExecutor.execute(any(), any()) } answers {
+            val context = firstArg<USFPipeline.Context>()
+            val cap = secondArg<Capability>()
             when (cap) {
-                is Capability.ConfigureAdbTcp ->
-                    ShizukuExecutor.CommandResult(
-                        success = false,
-                        output = "[setprop] -> FAIL: Operation not permitted",
-                        error = "Operation not permitted",
-                        exitCode = 1, executionTimeMs = 10L
+                is Capability.ReadSetting ->
+                    // Modern setting returns empty or "0"
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = "0\n"),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
                     )
-                is Capability.ReadSystemProp -> okResult()
-                else -> okResult()
+                is Capability.ReadSystemProp ->
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = "5555\n"),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
+                    )
+                else -> okPipelineResult()
             }
         }
 
-        val res = NetworkAdb.enableWifiAdb(5555)
-
-        assertTrue(res.isFailure)
-        val msg = res.exceptionOrNull()?.message ?: ""
-        assertEquals("Operation not permitted", msg)
+        assertTrue(NetworkAdb.isWifiAdbEnabled())
     }
 
     @Test
-    fun `isWifiAdbEnabled returns true when port matches`() = runTest {
+    fun `isWifiAdbEnabled returns false when both modern and legacy are inactive`() = runTest {
         mockkObject(CapabilityExecutor)
-        coEvery { CapabilityExecutor.execute(any<Capability.ReadSystemProp>()) } returns
-            okResult().copy(output = "5555")
+        coEvery { CapabilityExecutor.execute(any(), any()) } answers {
+            val context = firstArg<USFPipeline.Context>()
+            val cap = secondArg<Capability>()
+            when (cap) {
+                is Capability.ReadSetting ->
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = "0\n"),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
+                    )
+                is Capability.ReadSystemProp ->
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = "0\n"),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
+                    )
+                else -> okPipelineResult()
+            }
+        }
 
-        assertTrue(NetworkAdb.isWifiAdbEnabled(5555))
+        assertFalse(NetworkAdb.isWifiAdbEnabled())
     }
 
     @Test
-    fun `isWifiAdbEnabled returns false on failure`() = runTest {
+    fun `isWifiAdbEnabled returns false when both queries fail`() = runTest {
         mockkObject(CapabilityExecutor)
-        coEvery { CapabilityExecutor.execute(any<Capability.ReadSystemProp>()) } returns
-            ShizukuExecutor.CommandResult(
-                success = false, output = "", error = "DENIED",
-                exitCode = -1, executionTimeMs = 0L
-            )
+        coEvery { CapabilityExecutor.execute(any(), any()) } answers {
+            val context = firstArg<USFPipeline.Context>()
+            val cap = secondArg<Capability>()
+            when (cap) {
+                is Capability.ReadSetting ->
+                    USFPipeline.Result(
+                        commandResult = ShizukuExecutor.CommandResult(
+                            success = false, output = "", error = "DENIED",
+                            exitCode = -1, executionTimeMs = 0L
+                        ),
+                        decision = PolicyDecision.Denied("DENIED"),
+                        capability = cap,
+                        context = context
+                    )
+                is Capability.ReadSystemProp ->
+                    USFPipeline.Result(
+                        commandResult = ShizukuExecutor.CommandResult(
+                            success = false, output = "", error = "DENIED",
+                            exitCode = -1, executionTimeMs = 0L
+                        ),
+                        decision = PolicyDecision.Denied("DENIED"),
+                        capability = cap,
+                        context = context
+                    )
+                else -> okPipelineResult()
+            }
+        }
 
-        assertFalse(NetworkAdb.isWifiAdbEnabled(5555))
+        assertFalse(NetworkAdb.isWifiAdbEnabled())
     }
+
+    @Test
+    fun `isWifiAdbEnabled returns false when legacy port is 0`() = runTest {
+        mockkObject(CapabilityExecutor)
+        coEvery { CapabilityExecutor.execute(any(), any()) } answers {
+            val context = firstArg<USFPipeline.Context>()
+            val cap = secondArg<Capability>()
+            when (cap) {
+                is Capability.ReadSetting ->
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = ""),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
+                    )
+                is Capability.ReadSystemProp ->
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = "0\n"),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
+                    )
+                else -> okPipelineResult()
+            }
+        }
+
+        assertFalse(NetworkAdb.isWifiAdbEnabled())
+    }
+
+    @Test
+    fun `isWifiAdbEnabled returns false when legacy port is -1`() = runTest {
+        mockkObject(CapabilityExecutor)
+        coEvery { CapabilityExecutor.execute(any(), any()) } answers {
+            val context = firstArg<USFPipeline.Context>()
+            val cap = secondArg<Capability>()
+            when (cap) {
+                is Capability.ReadSetting ->
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = ""),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
+                    )
+                is Capability.ReadSystemProp ->
+                    USFPipeline.Result(
+                        commandResult = okResult().copy(output = "-1\n"),
+                        decision = PolicyDecision.Allowed,
+                        capability = cap,
+                        context = context
+                    )
+                else -> okPipelineResult()
+            }
+        }
+
+        assertFalse(NetworkAdb.isWifiAdbEnabled())
+    }
+
+// openDeveloperSettingsIntent() tests require Android framework (instrumented tests).
 }

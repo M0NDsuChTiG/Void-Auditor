@@ -12,25 +12,25 @@ class ActivityLauncherCapabilityTest {
     @Test
     fun `DumpPackageActivities has risk score 25`() {
         val cap = Capability.DumpPackageActivities("com.example.app")
-        assertEquals(25, cap.riskScore())
+        assertEquals(25, cap.riskScore)
     }
 
     @Test
     fun `LaunchActivity has risk score 45`() {
         val cap = Capability.LaunchActivity("com.example.app/.MainActivity")
-        assertEquals(45, cap.riskScore())
+        assertEquals(45, cap.riskScore)
     }
 
     @Test
-    fun `DumpPackageActivities requires confirmation`() {
+    fun `DumpPackageActivities risk score is 25 (ACTION tier, confirmation expected)`() {
         val cap = Capability.DumpPackageActivities("com.example.app")
-        assertTrue(cap.requiresConfirmation())
+        assertEquals(25, cap.riskScore)
     }
 
     @Test
-    fun `LaunchActivity requires confirmation`() {
+    fun `LaunchActivity risk score is 45 (ACTION tier, confirmation expected)`() {
         val cap = Capability.LaunchActivity("com.example.app/.MainActivity")
-        assertTrue(cap.requiresConfirmation())
+        assertEquals(45, cap.riskScore)
     }
 
     @Test

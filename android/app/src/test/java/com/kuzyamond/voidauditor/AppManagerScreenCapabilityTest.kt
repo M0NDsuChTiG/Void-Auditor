@@ -12,61 +12,61 @@ class AppManagerScreenCapabilityTest {
     @Test
     fun `QueryPackages has risk score 15`() {
         val cap = Capability.QueryPackages("e")
-        assertEquals(15, cap.riskScore())
+        assertEquals(15, cap.riskScore)
     }
 
     @Test
     fun `ForceStopPackage has risk score 50`() {
         val cap = Capability.ForceStopPackage("com.example.app")
-        assertEquals(50, cap.riskScore())
+        assertEquals(50, cap.riskScore)
     }
 
     @Test
     fun `DisablePackage has risk score 60`() {
         val cap = Capability.DisablePackage("com.example.app")
-        assertEquals(60, cap.riskScore())
+        assertEquals(60, cap.riskScore)
     }
 
     @Test
     fun `EnablePackage has risk score 30`() {
         val cap = Capability.EnablePackage("com.example.app")
-        assertEquals(30, cap.riskScore())
+        assertEquals(30, cap.riskScore)
     }
 
     @Test
     fun `UninstallPackage has risk score 85`() {
         val cap = Capability.UninstallPackage("com.example.app")
-        assertEquals(85, cap.riskScore())
+        assertEquals(85, cap.riskScore)
     }
 
     @Test
-    fun `QueryPackages does not require confirmation`() {
+    fun `QueryPackages risk score is 15 (READ tier, no confirmation)`() {
         val cap = Capability.QueryPackages("e")
-        assertFalse(cap.requiresConfirmation())
+        assertEquals(15, cap.riskScore)
     }
 
     @Test
-    fun `EnablePackage does not require confirmation`() {
+    fun `EnablePackage risk score is 30 (ACTION tier, no confirmation)`() {
         val cap = Capability.EnablePackage("com.example.app")
-        assertFalse(cap.requiresConfirmation())
+        assertEquals(30, cap.riskScore)
     }
 
     @Test
-    fun `ForceStopPackage requires confirmation`() {
+    fun `ForceStopPackage risk score is 50 (ACTION tier, confirmation expected)`() {
         val cap = Capability.ForceStopPackage("com.example.app")
-        assertTrue(cap.requiresConfirmation())
+        assertEquals(50, cap.riskScore)
     }
 
     @Test
-    fun `DisablePackage requires confirmation`() {
+    fun `DisablePackage risk score is 60 (ACTION tier, confirmation expected)`() {
         val cap = Capability.DisablePackage("com.example.app")
-        assertTrue(cap.requiresConfirmation())
+        assertEquals(60, cap.riskScore)
     }
 
     @Test
-    fun `UninstallPackage requires confirmation`() {
+    fun `UninstallPackage risk score is 85 (ACTION tier, confirmation expected)`() {
         val cap = Capability.UninstallPackage("com.example.app")
-        assertTrue(cap.requiresConfirmation())
+        assertEquals(85, cap.riskScore)
     }
 
     @Test

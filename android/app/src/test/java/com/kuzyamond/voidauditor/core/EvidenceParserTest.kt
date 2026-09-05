@@ -23,8 +23,8 @@ class EvidenceParserTest {
             assertNull(evidence) { "Expected null for failed/malformed command" }
         } else {
             assertNotNull(evidence) { "Expected parsed evidence" }
-            assertEquals(expectedInterface, evidence.interfaceName)
-            assertEquals(expectedGateway, evidence.gateway)
+            assertEquals(expectedInterface, evidence?.interfaceName)
+            assertEquals(expectedGateway, evidence?.gateway)
         }
     }
 
@@ -38,8 +38,8 @@ class EvidenceParserTest {
             assertNull(evidence) { "Expected null for failed/malformed command" }
         } else {
             assertNotNull(evidence) { "Expected parsed evidence" }
-            assertEquals(expectedSsid, evidence.ssid)
-            assertEquals(expectedBssid, evidence.bssid)
+            assertEquals(expectedSsid, evidence?.ssid)
+            assertEquals(expectedBssid, evidence?.bssid)
         }
     }
 
@@ -54,62 +54,64 @@ class EvidenceParserTest {
             assertNull(evidence) { "Expected null for failed/malformed command" }
         } else {
             assertNotNull(evidence) { "Expected parsed evidence" }
-            assertEquals(capability.packageName, evidence.packageName)
-            assertEquals(expectedVersionName, evidence.versionName)
-            assertEquals(expectedVersionCode, evidence.versionCode)
-            assertEquals(expectedInstaller, evidence.installerPackageName)
-            assertEquals(expectedPermissions.toSet(), evidence.permissions.toSet())
+            assertEquals(capability.packageName, evidence?.packageName)
+            assertEquals(expectedVersionName, evidence?.versionName)
+            assertEquals(expectedVersionCode, evidence?.versionCode)
+            assertEquals(expectedInstaller, evidence?.installerPackageName)
+            assertEquals(expectedPermissions.toSet(), evidence?.permissions?.toSet())
         }
     }
 
-    companion object {
+companion object {
+        private fun args(vararg args: Any?): Arguments = Arguments.of(*args)
+
         @JvmStatic
         fun defaultRouteCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
             // Valid route with interface and gateway
-            Arguments.of(
-                Capability.ReadDefaultRoute(),
+            args(
+                Capability.ReadDefaultRoute,
                 ShizukuExecutor.CommandResult(success = true, output = "default via 192.168.1.1 dev wlan0 proto dhcp", error = "", exitCode = 0, executionTimeMs = 10),
                 "wlan0", "192.168.1.1"
             ),
             // Valid route with different interface
-            Arguments.of(
-                Capability.ReadDefaultRoute(),
+            args(
+                Capability.ReadDefaultRoute,
                 ShizukuExecutor.CommandResult(success = true, output = "default via 10.0.0.1 dev eth0 metric 100", error = "", exitCode = 0, executionTimeMs = 10),
                 "eth0", "10.0.0.1"
             ),
             // Missing gateway
-            Arguments.of(
-                Capability.ReadDefaultRoute(),
+            args(
+                Capability.ReadDefaultRoute,
                 ShizukuExecutor.CommandResult(success = true, output = "default dev wlan0 proto static", error = "", exitCode = 0, executionTimeMs = 10),
                 "wlan0", null
             ),
             // Missing interface
-            Arguments.of(
-                Capability.ReadDefaultRoute(),
+            args(
+                Capability.ReadDefaultRoute,
                 ShizukuExecutor.CommandResult(success = true, output = "default via 192.168.1.1 metric 50", error = "", exitCode = 0, executionTimeMs = 10),
                 null, "192.168.1.1"
             ),
             // Empty output (success but no default route)
-            Arguments.of(
-                Capability.ReadDefaultRoute(),
+            args(
+                Capability.ReadDefaultRoute,
                 ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
                 null, null
             ),
             // Command failed
-            Arguments.of(
-                Capability.ReadDefaultRoute(),
+            args(
+                Capability.ReadDefaultRoute,
                 ShizukuExecutor.CommandResult(success = false, output = "", error = "PERMISSION_DENIED", exitCode = -1, executionTimeMs = 10),
                 null, null
             ),
             // Malformed output
-            Arguments.of(
-                Capability.ReadDefaultRoute(),
+            args(
+                Capability.ReadDefaultRoute,
                 ShizukuExecutor.CommandResult(success = true, output = "not a route line", error = "", exitCode = 0, executionTimeMs = 10),
                 null, null
             ),
             // Multiple routes - first default used
-            Arguments.of(
-                Capability.ReadDefaultRoute(),
+            args(
+                Capability.ReadDefaultRoute,
                 ShizukuExecutor.CommandResult(success = true, output = "default via 192.168.1.1 dev wlan0\n192.168.2.0/24 dev eth0", error = "", exitCode = 0, executionTimeMs = 10),
                 "wlan0", "192.168.1.1"
             )
@@ -118,44 +120,44 @@ class EvidenceParserTest {
         @JvmStatic
         fun wifiInfoCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
             // Both SSID and BSSID present
-            Arguments.of(
-                Capability.ReadWifiInfo(),
+            args(
+                Capability.ReadWifiInfo,
                 ShizukuExecutor.CommandResult(success = true, output = "SSID: MyWiFi\nBSSID: aa:bb:cc:dd:ee:ff\nRSSI: -45", error = "", exitCode = 0, executionTimeMs = 10),
                 "MyWiFi", "aa:bb:cc:dd:ee:ff"
             ),
             // SSID only
-            Arguments.of(
-                Capability.ReadWifiInfo(),
+            args(
+                Capability.ReadWifiInfo,
                 ShizukuExecutor.CommandResult(success = true, output = "SSID: GuestNetwork\nRSSI: -60", error = "", exitCode = 0, executionTimeMs = 10),
                 "GuestNetwork", null
             ),
             // BSSID only
-            Arguments.of(
-                Capability.ReadWifiInfo(),
+            args(
+                Capability.ReadWifiInfo,
                 ShizukuExecutor.CommandResult(success = true, output = "BSSID: 11:22:33:44:55:66\nRSSI: -50", error = "", exitCode = 0, executionTimeMs = 10),
                 null, "11:22:33:44:55:66"
             ),
             // Empty output (success but no wifi info)
-            Arguments.of(
-                Capability.ReadWifiInfo(),
+            args(
+                Capability.ReadWifiInfo,
                 ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
                 null, null
             ),
             // Command failed
-            Arguments.of(
-                Capability.ReadWifiInfo(),
+            args(
+                Capability.ReadWifiInfo,
                 ShizukuExecutor.CommandResult(success = false, output = "", error = "PERMISSION_DENIED", exitCode = -1, executionTimeMs = 10),
                 null, null
             ),
             // Malformed output
-            Arguments.of(
-                Capability.ReadWifiInfo(),
+            args(
+                Capability.ReadWifiInfo,
                 ShizukuExecutor.CommandResult(success = true, output = "unknown format", error = "", exitCode = 0, executionTimeMs = 10),
                 null, null
             ),
             // Extra whitespace
-            Arguments.of(
-                Capability.ReadWifiInfo(),
+            args(
+                Capability.ReadWifiInfo,
                 ShizukuExecutor.CommandResult(success = true, output = "  SSID:  My Network  \n  BSSID:  aa:bb:cc:dd:ee:ff  ", error = "", exitCode = 0, executionTimeMs = 10),
                 "My Network", "aa:bb:cc:dd:ee:ff"
             )
@@ -164,7 +166,7 @@ class EvidenceParserTest {
         @JvmStatic
         fun packageDetailsCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
             // Complete package details
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.example.app"),
                 ShizukuExecutor.CommandResult(success = true, output = """
                     package com.example.app
@@ -178,29 +180,29 @@ class EvidenceParserTest {
                 listOf("android.permission.INTERNET", "android.permission.ACCESS_FINE_LOCATION")
             ),
             // Missing versionName
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.example.app"),
                 ShizukuExecutor.CommandResult(success = true, output = """
                     package com.example.app
                     versionCode=456
                     installerPackageName=com.google.android.feedback
                 """.trimIndent(), error = "", exitCode = 0, executionTimeMs = 50),
-                null, 456L, "com.google.android.feedback",
-                emptyList()
+                null as String?, 456L, "com.google.android.feedback",
+                emptyList<String>()
             ),
             // Missing installer
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.example.app"),
                 ShizukuExecutor.CommandResult(success = true, output = """
                     package com.example.app
                     versionCode=789
                     versionName=2.0.0
                 """.trimIndent(), error = "", exitCode = 0, executionTimeMs = 50),
-                "2.0.0", 789L, null,
-                emptyList()
+                "2.0.0", 789L, null as String?,
+                emptyList<String>()
             ),
             // Multiple permissions
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.bank.app"),
                 ShizukuExecutor.CommandResult(success = true, output = """
                     package com.bank.app
@@ -210,51 +212,51 @@ class EvidenceParserTest {
                     android.permission.READ_SMS: granted=true
                     android.permission.READ_CONTACTS: granted=true
                 """.trimIndent(), error = "", exitCode = 0, executionTimeMs = 50),
-                "1.0.0", 100L, null,
+                "1.0.0", 100L, null as String?,
                 listOf("android.permission.SEND_SMS", "android.permission.READ_SMS", "android.permission.READ_CONTACTS")
             ),
             // No permissions
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.simple.app"),
                 ShizukuExecutor.CommandResult(success = true, output = """
                     package com.simple.app
                     versionCode=1
                     versionName=1.0
                 """.trimIndent(), error = "", exitCode = 0, executionTimeMs = 50),
-                "1.0", 1L, null,
-                emptyList()
+                "1.0", 1L, null as String?,
+                emptyList<String>()
             ),
             // Malformed versionCode
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.example.app"),
                 ShizukuExecutor.CommandResult(success = true, output = """
                     package com.example.app
                     versionCode=not_a_number
                     versionName=1.0
                 """.trimIndent(), error = "", exitCode = 0, executionTimeMs = 50),
-                "1.0", null, null,
-                emptyList()
+                "1.0", null as Long?, null as String?,
+                emptyList<String>()
             ),
             // Command failed
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.example.app"),
                 ShizukuExecutor.CommandResult(success = false, output = "", error = "PACKAGE_NOT_FOUND", exitCode = -1, executionTimeMs = 10),
-                null, null, null,
-                emptyList()
+                null as String?, null as Long?, null as String?,
+                emptyList<String>()
             ),
             // Empty output (success but no package info)
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.example.app"),
                 ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
-                null, null, null,
-                emptyList()
+                null as String?, null as Long?, null as String?,
+                emptyList<String>()
             ),
             // Command failed with error output
-            Arguments.of(
+            args(
                 Capability.ReadPackageDetails("com.example.app"),
                 ShizukuExecutor.CommandResult(success = false, output = "error", error = "PERMISSION_DENIED", exitCode = -1, executionTimeMs = 10),
-                null, null, null,
-                emptyList()
+                null as String?, null as Long?, null as String?,
+                emptyList<String>()
             )
         )
     }
