@@ -24,10 +24,47 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.core.ShizukuExecutor
 import kotlinx.coroutines.launch
 
 enum class AppStatus { WORKING, DISABLED, SLEEPING }
 data class AppInfo(val packageName: String, val status: AppStatus)
+
+/**
+ * Pure, testable logic for the Apps tab sync.
+ * Queries enabled/disabled packages via the correct `pm list packages -e/-d` flags
+ * and groups results into RUNNING / DISABLED. There is no data source for a
+ * FROZEN (suspended) state, so no fake FROZEN section is produced.
+ */
+internal object AppManagerSync {
+    fun packageQueries(): List<Capability> = listOf(
+        Capability.QueryPackages("-e"),
+        Capability.QueryPackages("-d")
+    )
+
+    fun buildAppInfo(enabledOutput: String, disabledOutput: String): List<AppInfo> {
+        val enabled = parsePackageLines(enabledOutput, AppStatus.WORKING)
+        val disabled = parsePackageLines(disabledOutput, AppStatus.DISABLED)
+        return (enabled + disabled).sortedBy { it.packageName }
+    }
+
+    private fun parsePackageLines(output: String, status: AppStatus): List<AppInfo> =
+        output.split("\n")
+            .filter { it.startsWith("package:") }
+            .map { AppInfo(it.removePrefix("package:").trim(), status) }
+
+    suspend fun refresh(executor: suspend (Capability) -> ShizukuExecutor.CommandResult): List<AppInfo> {
+        val queries = packageQueries()
+        val enabledRes = executor(queries[0])
+        val disabledRes = executor(queries[1])
+        return buildAppInfo(enabledRes.output, disabledRes.output)
+    }
+
+    fun groupByStatus(packages: List<AppInfo>): Map<String, List<AppInfo>> = mapOf(
+        "RUNNING" to packages.filter { it.status == AppStatus.WORKING },
+        "DISABLED" to packages.filter { it.status == AppStatus.DISABLED }
+    )
+}
 
 @Composable
 fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutineScope()) {
@@ -38,7 +75,6 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
     
     val expandedSections = remember { mutableStateMapOf(
         "RUNNING" to true,
-        "FROZEN" to false,
         "DISABLED" to false
     )}
 
@@ -52,29 +88,23 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
             selectedPackages.clear()
             GlobalLog.log("SCANNING_LOCAL_PACKAGES...", "warn", "APPS")
             
-            val enabledRes = CapabilityExecutor.execute(Capability.QueryPackages("e"))
-            val disabledRes = CapabilityExecutor.execute(Capability.QueryPackages("d"))
-            
-            if (!enabledRes.isSuccessful) {
-                GlobalLog.log("ENABLED_SYNC_ERR: ${enabledRes.error}", "crit", "APPS")
+            val queries = AppManagerSync.packageQueries()
+            val result = AppManagerSync.refresh { capability ->
+                val res = CapabilityExecutor.execute(capability)
+                if (!res.isSuccessful) {
+                    val which = if (queries.indexOf(capability) == 0) "ENABLED" else "DISABLED"
+                    GlobalLog.log("${which}_SYNC_ERR: ${res.error}", "crit", "APPS")
+                }
+                res
             }
-            if (!disabledRes.isSuccessful) {
-                GlobalLog.log("DISABLED_SYNC_ERR: ${disabledRes.error}", "crit", "APPS")
-            }
-
-            val enabledList = enabledRes.output.split("\n")
-                .filter { it.startsWith("package:") }
-                .map { AppInfo(it.removePrefix("package:").trim(), AppStatus.WORKING) }
-                
-            val disabledList = disabledRes.output.split("\n")
-                .filter { it.startsWith("package:") }
-                .map { AppInfo(it.removePrefix("package:").trim(), AppStatus.DISABLED) }
             
-            packages = (enabledList + disabledList).sortedBy { it.packageName }
+            packages = result
             GlobalLog.log("SYNC_COMPLETE: FOUND ${packages.size} PACKAGES", if (packages.isNotEmpty()) "ok" else "warn", "APPS")
             isLoading = false
         }
     }
+
+    LaunchedEffect(Unit) { refresh() }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Search & Refresh Row
@@ -149,15 +179,12 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
             }
         }
 
-        val grouped = mapOf(
-            "RUNNING" to packages.filter { it.status == AppStatus.WORKING && it.packageName.contains(filter, true) },
-            "FROZEN" to packages.filter { it.status == AppStatus.SLEEPING && it.packageName.contains(filter, true) },
-            "DISABLED" to packages.filter { it.status == AppStatus.DISABLED && it.packageName.contains(filter, true) }
-        )
+        val grouped = AppManagerSync.groupByStatus(packages).mapValues { (_, list) ->
+            list.filter { it.packageName.contains(filter, true) }
+        }
         
         val descriptions = mapOf(
             "RUNNING" to "Active background processes and foreground services.",
-            "FROZEN" to "Apps currently suspended to save battery and resources.",
             "DISABLED" to "Packages completely deactivated at the system level."
         )
 
@@ -168,8 +195,7 @@ fun AppManagerScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutin
                         val isExpanded = expandedSections[groupName] == true || filter.isNotEmpty()
                         val color = when (groupName) {
                             "RUNNING" -> CyberAccent2
-                            "DISABLED" -> CyberWarning
-                            else -> CyberAccent2
+                            else -> CyberWarning
                         }
                         
                         AppSectionHeader(groupName, list.size, descriptions[groupName] ?: "", color, isExpanded) {
