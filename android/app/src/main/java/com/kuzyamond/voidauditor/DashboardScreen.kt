@@ -14,13 +14,14 @@ import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.PolicyEngine
 import com.kuzyamond.voidauditor.core.USFPipeline
 import com.kuzyamond.voidauditor.core.EvidenceResult
-import com.kuzyamond.voidauditor.core.FeaturesEvidence
-import com.kuzyamond.voidauditor.core.UserIdentityEvidence
-import com.kuzyamond.voidauditor.core.SettingEvidence
-import com.kuzyamond.voidauditor.core.DangerousPermissionsEvidence
-import com.kuzyamond.voidauditor.core.ServiceDumpEvidence
-import com.kuzyamond.voidauditor.core.AppOpsEvidence
-import com.kuzyamond.voidauditor.core.SystemPropEvidence
+import com.kuzyamond.voidauditor.core.evidence.FeaturesEvidence
+import com.kuzyamond.voidauditor.core.evidence.UserIdentityEvidence
+import com.kuzyamond.voidauditor.core.evidence.SettingEvidence
+import com.kuzyamond.voidauditor.core.evidence.DangerousPermissionsEvidence
+import com.kuzyamond.voidauditor.core.evidence.ServiceDumpEvidence
+import com.kuzyamond.voidauditor.core.evidence.AppOpsEvidence
+import com.kuzyamond.voidauditor.core.evidence.SystemPropEvidence
+import com.kuzyamond.voidauditor.core.evidence.ServiceStateEvidence
 import com.kuzyamond.voidauditor.core.Capability.RemediationIntent
 import kotlinx.coroutines.launch
 
@@ -99,7 +100,7 @@ fun DashboardScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCoroutine
                             GlobalLog.log("ANALYZING BT_HISTORY...", "warn", "AUDIT")
                             val result = CapabilityExecutor.execute(USFPipeline.Context(), Capability.ReadServiceState("bluetooth_manager"))
                             if (result.commandResult.isSuccessful) {
-                                val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? ServiceDumpEvidence
+                                val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? ServiceStateEvidence
                                 GlobalLog.log("BT_ACTIVATION_LOG:\n${evidence?.output ?: result.commandResult.output}", "ok", "AUDIT")
                             } else GlobalLog.log("ERR: ${result.commandResult.error}", "crit", "AUDIT")
                         }
