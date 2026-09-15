@@ -7,12 +7,12 @@ import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
-import com.kuzyamond.voidauditor.core.CacheDirectoriesEvidence
-import com.kuzyamond.voidauditor.core.PackageCountEvidence
-import com.kuzyamond.voidauditor.core.DirectorySizeEvidence
-import com.kuzyamond.voidauditor.core.FileCountEvidence
-import com.kuzyamond.voidauditor.core.LastModifiedEvidence
 import com.kuzyamond.voidauditor.core.EvidenceResult
+import com.kuzyamond.voidauditor.core.evidence.CacheDirectoriesEvidence
+import com.kuzyamond.voidauditor.core.evidence.PackageCountEvidence
+import com.kuzyamond.voidauditor.core.evidence.DirectorySizeEvidence
+import com.kuzyamond.voidauditor.core.evidence.FileCountEvidence
+import com.kuzyamond.voidauditor.core.evidence.LastModifiedEvidence
 import com.kuzyamond.voidauditor.core.RiskLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -83,7 +83,7 @@ object CacheScanner {
         stats
     }
 
-    private suspend fun discoverCacheDirs(capability: CacheCapability): List<String> = withContext(Dispatchers.IO) {
+    internal suspend fun discoverCacheDirs(capability: CacheCapability): List<String> = withContext(Dispatchers.IO) {
         val roots = when (capability) {
             CacheCapability.QUICK,
             CacheCapability.FULL -> listOf("/data/data", "/sdcard/Android/data")
@@ -100,7 +100,7 @@ object CacheScanner {
             pipelineContext, Capability.DiscoverCacheDirectories(roots, maxDepth)
         )
         val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? CacheDirectoriesEvidence
-        val paths = evidence?.paths ?: result.commandResult.output.lines()
+        val paths = evidence?.paths?.takeIf { it.isNotEmpty() } ?: result.commandResult.output.lines()
             .filter { it.isNotBlank() }
             .distinctBy { raw ->
                 raw.replace("/data/user/0/", "/data/data/")

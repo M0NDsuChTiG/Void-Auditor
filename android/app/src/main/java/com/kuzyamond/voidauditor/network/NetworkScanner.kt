@@ -4,8 +4,8 @@ import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
-import com.kuzyamond.voidauditor.core.ARPTableEvidence
-import com.kuzyamond.voidauditor.core.PingSweepEvidence
+import com.kuzyamond.voidauditor.core.evidence.ARPTableEvidence
+import com.kuzyamond.voidauditor.core.evidence.PingSweepEvidence
 import com.kuzyamond.voidauditor.core.EvidenceResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope

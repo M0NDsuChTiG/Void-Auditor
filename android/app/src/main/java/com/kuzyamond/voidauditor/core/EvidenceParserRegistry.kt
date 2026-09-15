@@ -1,5 +1,6 @@
 package com.kuzyamond.voidauditor.core
 
+import com.kuzyamond.voidauditor.core.evidence.*
 import java.util.regex.Pattern
 
 private val DANGEROUS_PERMISSION_REGEX = Pattern.compile(
@@ -45,6 +46,9 @@ class DefaultEvidenceParser : CapabilityEvidenceParser {
         "ReadDirectorySize" to DirectorySizeParser(),
         "ReadFileCount" to FileCountParser(),
         "ReadLastModified" to LastModifiedParser(),
+        "ReadSystemProp" to SystemPropParser(),
+        "ReadAppOps" to AppOpsParser(),
+        "ReadServiceState" to ServiceStateParser(),
     ))
 
     override fun parse(
@@ -119,11 +123,10 @@ class PackageDetailsParser : CapabilityEvidenceParser {
         val versionName = fieldValue(output, "versionName")
         val versionCode = fieldValue(output, "versionCode")?.toLongOrNull()
         val installer = fieldValue(output, "installerPackageName")
-        val permissions = DANGEROUS_PERMISSION_REGEX.matcher(output)
-            .results()
-            .map { it.group() }
-            .distinct()
-            .toList()
+        val permissions = buildList {
+            val matcher = DANGEROUS_PERMISSION_REGEX.matcher(output)
+            while (matcher.find()) add(matcher.group())
+        }.distinct()
         return EvidenceResult.Parsed(
             capabilityId = capability.description,
             evidence = PackageDetailsEvidence(
@@ -401,6 +404,56 @@ class LastModifiedParser : CapabilityEvidenceParser {
             evidence = LastModifiedEvidence(
                 capturedAt = System.currentTimeMillis(),
                 timestamp = timestamp
+            )
+        )
+    }
+}
+
+class SystemPropParser : CapabilityEvidenceParser {
+    override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): EvidenceResult? {
+        val cap = capability as? Capability.ReadSystemProp ?: return null
+        if (!result.isSuccessful) return null
+        val value = result.output.trim().takeIf { it.isNotBlank() }
+        return EvidenceResult.Parsed(
+            capabilityId = capability.description,
+            evidence = SystemPropEvidence(
+                capturedAt = System.currentTimeMillis(),
+                prop = cap.prop,
+                value = value
+            )
+        )
+    }
+}
+
+class AppOpsParser : CapabilityEvidenceParser {
+    override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): EvidenceResult? {
+        val cap = capability as? Capability.ReadAppOps ?: return null
+        if (!result.isSuccessful) return null
+        val output = result.output.trim().takeIf { it.isNotBlank() }
+            ?: return null
+        return EvidenceResult.Parsed(
+            capabilityId = capability.description,
+            evidence = AppOpsEvidence(
+                capturedAt = System.currentTimeMillis(),
+                op = cap.op,
+                output = output
+            )
+        )
+    }
+}
+
+class ServiceStateParser : CapabilityEvidenceParser {
+    override fun parse(capability: Capability, result: ShizukuExecutor.CommandResult): EvidenceResult? {
+        val cap = capability as? Capability.ReadServiceState ?: return null
+        if (!result.isSuccessful) return null
+        val output = result.output.trim().takeIf { it.isNotBlank() }
+            ?: return null
+        return EvidenceResult.Parsed(
+            capabilityId = capability.description,
+            evidence = ServiceStateEvidence(
+                capturedAt = System.currentTimeMillis(),
+                service = cap.service,
+                output = output
             )
         )
     }

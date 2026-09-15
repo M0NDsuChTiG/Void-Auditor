@@ -48,10 +48,10 @@ import com.kuzyamond.voidauditor.core.ai.extractProposalJson
 import com.kuzyamond.voidauditor.core.ai.proposalToCapability
 import com.kuzyamond.voidauditor.core.EvidenceResult
 import com.kuzyamond.voidauditor.core.USFPipeline
-import com.kuzyamond.voidauditor.core.PackageDetailsEvidence
-import com.kuzyamond.voidauditor.core.DangerousPermissionsEvidence
-import com.kuzyamond.voidauditor.core.UserIdentityEvidence
-import com.kuzyamond.voidauditor.core.FeaturesEvidence
+import com.kuzyamond.voidauditor.core.evidence.PackageDetailsEvidence
+import com.kuzyamond.voidauditor.core.evidence.DangerousPermissionsEvidence
+import com.kuzyamond.voidauditor.core.evidence.UserIdentityEvidence
+import com.kuzyamond.voidauditor.core.evidence.FeaturesEvidence
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStreamWriter

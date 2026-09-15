@@ -1,5 +1,6 @@
 package com.kuzyamond.voidauditor.core
 
+import com.kuzyamond.voidauditor.core.evidence.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -12,6 +13,9 @@ class EvidenceParserTest {
     private val defaultRouteParser = DefaultRouteParser()
     private val wifiInfoParser = WifiInfoParser()
     private val packageDetailsParser = PackageDetailsParser()
+    private val systemPropParser = SystemPropParser()
+    private val appOpsParser = AppOpsParser()
+    private val serviceStateParser = ServiceStateParser()
 
     // --- DefaultRouteParser tests ---
 
@@ -62,7 +66,52 @@ class EvidenceParserTest {
         }
     }
 
-companion object {
+    // --- SystemPropParser tests ---
+
+    @ParameterizedTest
+    @MethodSource("systemPropCases")
+    fun testSystemPropParser(capability: Capability.ReadSystemProp, result: ShizukuExecutor.CommandResult, expectedProp: String?, expectedValue: String?) {
+        val evidence = systemPropParser.parse(capability, result) as? SystemPropEvidence
+        if (expectedValue == null) {
+            assertNull(evidence) { "Expected null for failed/malformed command" }
+        } else {
+            assertNotNull(evidence) { "Expected parsed evidence" }
+            assertEquals(expectedProp, evidence?.prop)
+            assertEquals(expectedValue, evidence?.value)
+        }
+    }
+
+    // --- AppOpsParser tests ---
+
+    @ParameterizedTest
+    @MethodSource("appOpsCases")
+    fun testAppOpsParser(capability: Capability.ReadAppOps, result: ShizukuExecutor.CommandResult, expectedOp: String?, expectedOutput: String?) {
+        val evidence = appOpsParser.parse(capability, result) as? AppOpsEvidence
+        if (expectedOutput == null) {
+            assertNull(evidence) { "Expected null for failed/malformed command" }
+        } else {
+            assertNotNull(evidence) { "Expected parsed evidence" }
+            assertEquals(expectedOp, evidence?.op)
+            assertEquals(expectedOutput, evidence?.output)
+        }
+    }
+
+    // --- ServiceStateParser tests ---
+
+    @ParameterizedTest
+    @MethodSource("serviceStateCases")
+    fun testServiceStateParser(capability: Capability.ReadServiceState, result: ShizukuExecutor.CommandResult, expectedService: String?, expectedOutput: String?) {
+        val evidence = serviceStateParser.parse(capability, result) as? ServiceStateEvidence
+        if (expectedOutput == null) {
+            assertNull(evidence) { "Expected null for failed/malformed command" }
+        } else {
+            assertNotNull(evidence) { "Expected parsed evidence" }
+            assertEquals(expectedService, evidence?.service)
+            assertEquals(expectedOutput, evidence?.output)
+        }
+    }
+
+    companion object {
         private fun args(vararg args: Any?): Arguments = Arguments.of(*args)
 
         @JvmStatic
@@ -257,6 +306,95 @@ companion object {
                 ShizukuExecutor.CommandResult(success = false, output = "error", error = "PERMISSION_DENIED", exitCode = -1, executionTimeMs = 10),
                 null as String?, null as Long?, null as String?,
                 emptyList<String>()
+            )
+        )
+
+        // --- SystemPropParser cases ---
+
+        @JvmStatic
+        fun systemPropCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
+            // Valid property with value
+            args(
+                Capability.ReadSystemProp("ro.build.type"),
+                ShizukuExecutor.CommandResult(success = true, output = "user", error = "", exitCode = 0, executionTimeMs = 10),
+                "ro.build.type", "user"
+            ),
+            // Different property
+            args(
+                Capability.ReadSystemProp("ro.debuggable"),
+                ShizukuExecutor.CommandResult(success = true, output = "0", error = "", exitCode = 0, executionTimeMs = 10),
+                "ro.debuggable", "0"
+            ),
+            // Empty output (property not set)
+            args(
+                Capability.ReadSystemProp("ro.unknown.prop"),
+                ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
+                null as String?, null as String?
+            ),
+            // Command failed
+            args(
+                Capability.ReadSystemProp("ro.build.type"),
+                ShizukuExecutor.CommandResult(success = false, output = "", error = "PERMISSION_DENIED", exitCode = -1, executionTimeMs = 10),
+                null as String?, null as String?
+            )
+        )
+
+        // --- AppOpsParser cases ---
+
+        @JvmStatic
+        fun appOpsCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
+            // Allowed operation
+            args(
+                Capability.ReadAppOps("BLUETOOTH_SCAN"),
+                ShizukuExecutor.CommandResult(success = true, output = "allow", error = "", exitCode = 0, executionTimeMs = 10),
+                "BLUETOOTH_SCAN", "allow"
+            ),
+            // Denied operation
+            args(
+                Capability.ReadAppOps("SMS"),
+                ShizukuExecutor.CommandResult(success = true, output = "deny", error = "", exitCode = 0, executionTimeMs = 10),
+                "SMS", "deny"
+            ),
+            // Empty output (success but no result)
+            args(
+                Capability.ReadAppOps("CAMERA"),
+                ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
+                null as String?, null as String?
+            ),
+            // Command failed
+            args(
+                Capability.ReadAppOps("BLUETOOTH_SCAN"),
+                ShizukuExecutor.CommandResult(success = false, output = "", error = "PERMISSION_DENIED", exitCode = -1, executionTimeMs = 10),
+                null as String?, null as String?
+            )
+        )
+
+        // --- ServiceStateParser cases ---
+
+        @JvmStatic
+        fun serviceStateCases(): java.util.stream.Stream<Arguments> = java.util.stream.Stream.of(
+            // Valid service dump
+            args(
+                Capability.ReadServiceState("bluetooth_manager"),
+                ShizukuExecutor.CommandResult(success = true, output = """
+                    Service bluetooth_manager:
+                      Client 0: "com.android.bluetooth" r0
+                      Client 1: "com.android.settings" r1
+                """.trimIndent(), error = "", exitCode = 0, executionTimeMs = 50),
+                "bluetooth_manager",
+                "Service bluetooth_manager:\n  Client 0: \"com.android.bluetooth\" r0\n  Client 1: \"com.android.settings\" r1"
+            ),
+            // Empty output
+            args(
+                Capability.ReadServiceState("unknown_service"),
+                ShizukuExecutor.CommandResult(success = true, output = "", error = "", exitCode = 0, executionTimeMs = 10),
+                null as String?, null as String?
+            ),
+            // Command failed
+            args(
+                Capability.ReadServiceState("bluetooth_manager"),
+                ShizukuExecutor.CommandResult(success = false, output = "", error = "SERVICE_NOT_FOUND", exitCode = -1, executionTimeMs = 10),
+                null as String?, null as String?
             )
         )
     }

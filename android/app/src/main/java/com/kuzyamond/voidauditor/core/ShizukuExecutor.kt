@@ -44,6 +44,7 @@ object ShizukuExecutor {
     ): CommandResult = withContext(Dispatchers.IO) {
         val startTime = System.currentTimeMillis()
         logListener?.invoke("CMD", command.trim())
+        logListener?.invoke("DEBUG_FULL_CMD", command) // Добавим для трассировки
 
         val result = try {
             ShizukuManager.executeCommand(command)

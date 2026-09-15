@@ -1,5 +1,6 @@
 package com.kuzyamond.voidauditor.core
 
+import com.kuzyamond.voidauditor.core.evidence.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

@@ -248,12 +248,14 @@ fun PermissionAuditScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCor
             scanTotal = 0
             val pipelineContext = USFPipeline.Context(actor = ActorType.SCRIPT, source = "permission_audit")
 
-            val scopeLabel = if (includeSystem) "ALL" else "3RD-PARTY"
-            GlobalLog.log("PERM_AUDIT: listing packages ($scopeLabel)...", "warn", "PERMS")
+            val listStartTime = System.currentTimeMillis()
             val listRes = CapabilityExecutor.execute(
                 pipelineContext,
                 Capability.QueryPackages(filter = if (includeSystem) "" else "-3")
             )
+            val listEndTime = System.currentTimeMillis()
+            GlobalLog.log("PERM_AUDIT: Discovery took ${listEndTime - listStartTime}ms", "info", "PERMS")
+
             val pkgs = listRes.commandResult.output.lines()
                 .mapNotNull { it.removePrefix("package:").trim().takeIf { p -> p.isNotEmpty() } }
             // Для ALL-режима помечаем системные пакеты (SYS-тег), чтобы CRITICAL
@@ -271,14 +273,20 @@ fun PermissionAuditScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCor
 
             val semaphore = Semaphore(4)
             val done = AtomicInteger(0)
+            var totalBytes = 0L
+            val collectionStartTime = System.currentTimeMillis()
             val results = coroutineScope {
                 pkgs.map { pkg ->
                     async {
                         semaphore.withPermit {
+                            val startTime = System.currentTimeMillis()
                             val out = withTimeoutOrNull(15_000) {
                                 CapabilityExecutor.execute(pipelineContext, Capability.DumpService(service = "package $pkg"))
                                     .commandResult.output
                             } ?: ""
+                            val endTime = System.currentTimeMillis()
+                            totalBytes += out.length // Оценка байт через длину строки
+                            
                             val n = done.incrementAndGet()
                             scanDone = n
                             if (n % 20 == 0 || n == scanTotal) {
@@ -289,15 +297,19 @@ fun PermissionAuditScreen(scope: kotlinx.coroutines.CoroutineScope = rememberCor
                     }
                 }.awaitAll()
             }
+            val collectionEndTime = System.currentTimeMillis()
+            GlobalLog.log("PERM_AUDIT: Dumpsys collection took ${collectionEndTime - collectionStartTime}ms for ${totalBytes} bytes", "info", "PERMS")
 
             // Сбор завершён: показываем честный прогресс-этап парсинга.
             scanDone = scanTotal
             GlobalLog.log("PERM_AUDIT: parsing ${results.size} dumpsys outputs (off main thread)...", "info", "PERMS")
-            // Тяжёлая агрегация (regex по полным дампам на каждый пакет) — НЕ на главном
-            // потоке: раньше ~95с блокировки UI при уже собранных 371/371.
+            
+            val parsingStartTime = System.currentTimeMillis()
             apps = withContext(Dispatchers.Default) {
                 PermissionAuditEngine.buildAudits(results, systemSet)
             }
+            val parsingEndTime = System.currentTimeMillis()
+            GlobalLog.log("PERM_AUDIT: Parsing took ${parsingEndTime - parsingStartTime}ms", "info", "PERMS")
 
             val high = apps.count { it.risk == AuditRisk.HIGH || it.risk == AuditRisk.CRITICAL }
             GlobalLog.log(

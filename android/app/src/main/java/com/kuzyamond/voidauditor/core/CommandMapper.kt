@@ -52,13 +52,9 @@ object CommandMapper {
                 is Capability.CacheCapability.UserCache -> "pm trim-caches 200M"
             }
             is Capability.PingSweep -> buildString {
-                append("for ip in ")
+                append("printf '%s\\n' ")
                 append(cap.targets.joinToString(" "))
-                append("; do (ping -c 1 -W 1 \"")
-                append('$')
-                append("ip\" >/dev/null 2>&1 && echo \"")
-                append('$')
-                append("ip\") & done; wait")
+                append(" | xargs -P 16 -I {} sh -c 'ping -c 1 -W 1 \"$1\" >/dev/null 2>&1 && echo \"$1\"' _ {}")
             }
 
             // ── REMEDIATION tier (risk 70+) ───────────────────────

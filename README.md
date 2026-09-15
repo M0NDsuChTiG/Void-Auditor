@@ -59,19 +59,19 @@ It uses the [Shizuku](https://shizuku.rikka.app/) API for shell-level capabiliti
 
 ## Download
 
-[![Download APK](https://img.shields.io/badge/Download-v1.4.3_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-v1.4.5_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
 
-**Latest release:** [v1.4.3](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.3)
+**Latest release:** [v1.4.5](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.5)
 
 ```text
-Asset: Void-Auditor-v1.4.3.apk
-sha256: 87aa672200646d29ce92a0b7ecbd21866025822bd1b91054192f9607176fee6f
+Asset: Void-Auditor-v1.4.5.apk
+sha256: 945cc087897f483ff701194acb020fba0e3b45a33395f524a4e0c1b2dab9cf3c
 ```
 
 Or install from a PC:
 
 ```bash
-adb install -r Void-Auditor-v1.4.3.apk
+adb install -r Void-Auditor-v1.4.5.apk
 ```
 
 ---
@@ -110,6 +110,11 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 ---
 
 ## Release notes (recent)
+
+### v1.4.5
+
+- **Cache scan / purge regression fix** — restored `find ... -name "cache" -type d` matching after the raw-string escaping change regressed it (`37e78a1`, `CommandMapper.kt`). Locked with `CacheCommandEscapingTest`.
+- **API 26 compatibility fix** — `EvidenceParserRegistry.kt` rewritten without `buildList` for the `matcher.find()` loop, closing an Android lint `NewApi` error that broke the release build on `minSdk 26`.
 
 ### v1.4.3
 

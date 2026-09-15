@@ -5,11 +5,11 @@ import com.kuzyamond.voidauditor.core.ActorType
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
-import com.kuzyamond.voidauditor.core.DiskUsageEvidence
-import com.kuzyamond.voidauditor.core.DirectorySizeEvidence
-import com.kuzyamond.voidauditor.core.FileCountEvidence
-import com.kuzyamond.voidauditor.core.LastModifiedEvidence
 import com.kuzyamond.voidauditor.core.EvidenceResult
+import com.kuzyamond.voidauditor.core.evidence.DiskUsageEvidence
+import com.kuzyamond.voidauditor.core.evidence.DirectorySizeEvidence
+import com.kuzyamond.voidauditor.core.evidence.FileCountEvidence
+import com.kuzyamond.voidauditor.core.evidence.LastModifiedEvidence
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

@@ -1,11 +1,13 @@
 package com.kuzyamond.voidauditor.core
 
+import com.kuzyamond.voidauditor.core.evidence.Evidence
+
 sealed interface EvidenceResult {
     val capabilityId: String
 
     data class Parsed(
         override val capabilityId: String,
-        val evidence: CapabilityEvidence
+        val evidence: Evidence
     ) : EvidenceResult
 
     data class NotApplicable(

@@ -44,4 +44,22 @@ class CacheCommandEscapingTest {
         )
         assertEquals("du -sb \"/data/data/com.example/cache\" 2>/dev/null | cut -f1", cmd)
     }
+
+    @Test
+    fun pingSweepCommandProducesExactBytes() {
+        val cmd = CapabilityExecutor.capabilityToCommand(
+            Capability.PingSweep(listOf("13.13.213.111", "13.13.213.117"))
+        )
+        // Kotlin "\n" is a real newline — this must reach sh exactly as shown.
+        // \$1: Kotlin string literal backslash-dollar to emit a literal $1 to the shell.
+        val expected = "printf '%s\\n' 13.13.213.111 13.13.213.117 | xargs -P 16 -I {} sh -c " +
+            "'ping -c 1 -W 1 \"\$1\" >/dev/null 2>&1 && echo \"\$1\"' _ {}"
+        assertEquals("PingSweep command bytes must be exact", expected, cmd)
+
+        // Must not leak interpolation artefacts into the shell. Note: the command's
+        // printf format is `%s\n` (backslash+n); `\${`/`$`-brace interpolation and a
+        // *real* printf newline are the artefacts to reject, not that byte pair.
+        assertFalse("no dollar-brace artefacts: $cmd", cmd.contains("\${"))
+        assertFalse("no raw LF in printf format: $cmd", cmd.contains("'%s\n'"))
+    }
 }

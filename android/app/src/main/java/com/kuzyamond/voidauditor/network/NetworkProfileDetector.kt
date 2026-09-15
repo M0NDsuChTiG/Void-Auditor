@@ -5,9 +5,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
-import com.kuzyamond.voidauditor.core.DefaultRouteEvidence
+import com.kuzyamond.voidauditor.core.evidence.DefaultRouteEvidence
 import com.kuzyamond.voidauditor.core.EvidenceResult
-import com.kuzyamond.voidauditor.core.WifiEvidence
+import com.kuzyamond.voidauditor.core.evidence.WifiEvidence
 import com.kuzyamond.voidauditor.core.USFPipeline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

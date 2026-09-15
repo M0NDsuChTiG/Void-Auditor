@@ -113,6 +113,9 @@ batch_install.sh
 dev_helper.sh
 run_me.sh
 
+# --- Flutter SDK checkout (local toolchain, not project code) ---
+flutter/
+
 # --- Freebuff workspace (keep settings.json, exclude DB) ---
 .freebuff/*.db
 .freebuff/*.db-shm

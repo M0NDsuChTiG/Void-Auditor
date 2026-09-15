@@ -120,7 +120,7 @@ echo "==========================================="
 echo "   AUDIT COMPLETE"
 echo "==========================================="""), "AUDIT"),
 
-            ScriptPreset("CLEANER_ANALYZER", sh("""#!/bin/bash
+            ScriptPreset("CLEANER_ANALYZER", sh("""#!/bin/sh
 echo "==========================================="
 echo "   ANDROID CLEANER ANALYZER"
 echo "   Date: {D}(date)"
@@ -132,17 +132,17 @@ echo ""
 echo "[2] DANGEROUS PERMS CHECK"
 for perm in READ_CONTACTS READ_SMS RECORD_AUDIO CAMERA SYSTEM_ALERT_WINDOW READ_PHONE_STATE; do
   echo "--- {D}perm ---"
-  dumpsys package | grep -E "android.permission.{D}perm" -B 8 | grep "Package"
+  dumpsys package | grep "android.permission.{D}perm" -B 8 | grep "Package"
 done
 echo ""
 echo "[3] ACCESSIBILITY (HIGH RISK)"
 settings get secure enabled_accessibility_services
 echo ""
 echo "[4] DRAW OVERLAY"
-dumpsys package | grep -E "android.permission.SYSTEM_ALERT_WINDOW" -B 10 | grep "Package"
+dumpsys package | grep "android.permission.SYSTEM_ALERT_WINDOW" -B 10 | grep "Package"
 echo ""
 echo "[5] BOOT_AUTOSTART"
-dumpsys package | grep -E "BOOT_COMPLETED" -B 6
+dumpsys package | grep "BOOT_COMPLETED" -B 6
 echo ""
 echo "[6] RECOMMENDATIONS"
 echo "  HIGH: AppManager (Accessibility ON)"
@@ -212,24 +212,17 @@ for pkg in com.funnycat.virustotal tech.lolli.toolbox cl.coders.faketraveler com
 done
 echo "==========================================="""), "CONTROL"),
 
-            ScriptPreset("CLEAN_ALL_CACHE", sh("""#!/bin/bash
+            ScriptPreset("CLEAN_ALL_CACHE", sh("""#!/bin/sh
 echo "Cleaning all app caches..."
-for pkg in {D}(pm list packages | cut -d: -f2); do
+pm list packages | cut -d: -f2 | while read pkg; do
   pm clear --cache-only "{D}pkg" 2>/dev/null || true
 done
 echo "Cache cleanup complete"""), "CLEANUP"),
 
-            ScriptPreset("FREEZE_BLOATWARE", sh("""#!/bin/bash
-BLOAT=(
-  com.funnycat.virustotal
-  tech.lolli.toolbox
-  cl.coders.faketraveler
-  com.garyodernichts.downgrader
-  com.src.android.app.camera.sticker
-  com.sec.android.app.DataCreate
-)
+            ScriptPreset("FREEZE_BLOATWARE", sh("""#!/bin/sh
+BLOAT="com.funnycat.virustotal tech.lolli.toolbox cl.coders.faketraveler com.garyodernichts.downgrader com.src.android.app.camera.sticker com.sec.android.app.DataCreate"
 echo "Freezing bloatware/suspicious apps..."
-for pkg in "{D}BLOAT[@]"; do
+for pkg in {D}BLOAT; do
   if pm list packages | grep -q "{D}pkg"; then
     pm disable-user --user 0 "{D}pkg" && echo "  FROZEN: {D}pkg" || echo "  FAIL: {D}pkg"
   else
