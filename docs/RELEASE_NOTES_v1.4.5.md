@@ -1,10 +1,8 @@
 # VOID Auditor v1.4.5
 
-> **Publication status (2026-09-22).** A git tag `v1.4.5` exists at commit `e69a897`, but **no
-> GitHub Release and no APK asset are published yet**, so `releases/latest` still resolves to
-> v1.4.3 and there is no downloadable `Void-Auditor-v1.4.5.apk`. The network-discovery change
-> documented below is currently **uncommitted** (working tree) and is therefore **not contained in
-> tag `e69a897`**. It was built and validated from a **locally built** `v1.4.5` APK.
+> **Publication status (2026-09-22).** **Published.** Git tag `v1.4.5` → commit `1aa11fc` (contains
+> everything below); GitHub Release with asset `Void-Auditor-v1.4.5.apk` is live
+> (sha256 `2ce50b92df1b8d20685df2ab4d8f728a56bfda9a83d01cd5b98db2b83c256e35`).
 
 ## Summary
 

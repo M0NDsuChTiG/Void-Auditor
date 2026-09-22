@@ -59,21 +59,19 @@ It uses the [Shizuku](https://shizuku.rikka.app/) API for shell-level capabiliti
 
 ## Download
 
-[![Download APK](https://img.shields.io/badge/Download-APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-v1.4.5_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
 
-**Latest published release:** [v1.4.3](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.3)
+**Latest release:** [v1.4.5](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.5)
 
 ```text
-Asset: Void-Auditor-v1.4.3.apk
-sha256: 87aa672200646d29ce92a0b7ecbd21866025822bd1b91054192f9607176fee6f
+Asset: Void-Auditor-v1.4.5.apk
+sha256: 2ce50b92df1b8d20685df2ab4d8f728a56bfda9a83d01cd5b98db2b83c256e35
 ```
-
-> **v1.4.5 status:** a git tag `v1.4.5` exists (commit `e69a897`), but **no GitHub Release or APK asset is published yet**, so no `Void-Auditor-v1.4.5.apk` download exists. No v1.4.5 asset link is provided until the release is published — see [Release notes](#release-notes-recent).
 
 Or install from a PC:
 
 ```bash
-adb install -r Void-Auditor-v1.4.3.apk
+adb install -r Void-Auditor-v1.4.5.apk
 ```
 
 ---
@@ -115,7 +113,7 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 
 ### v1.4.5
 
-> **Status:** git tag `v1.4.5` (`e69a897`) is pushed, but **no GitHub Release / APK asset is published**. The NET_SCAN change below is currently **uncommitted** (working tree) and is therefore **not contained in tag `e69a897`**; it was validated from a locally built `v1.4.5` APK (versionName `1.4.5`, versionCode `9`).
+> **Status (2026-09-22):** released as **v1.4.5** with the APK asset published on the [release page](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.5). The tag points to `1aa11fc`, which contains everything below.
 
 **Observed failure — NET_SCAN discovery did not start.** Attribution is **INFERENCE / UNKNOWN**, not established FACT: the old path used one batched `PingSweep` (xargs) and derived alive hosts from `PingSweepEvidence` (**FACT**, from git history), but that a fast-failing batch produced an empty alive set and blocked the port phase is **INFERENCE** drawn from the `Exit: -1 | ~52 ms` log signature, and the exact stderr / SELinux cause is **UNKNOWN**. See [docs/README_TECH.md](docs/README_TECH.md) §9.
 

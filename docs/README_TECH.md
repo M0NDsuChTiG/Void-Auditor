@@ -189,16 +189,15 @@ Exact file set evolves; treat this as a map, not a frozen tree.
 ## 8. Releases
 
 - GitHub Releases: https://github.com/M0NDsuChTiG/Void-Auditor/releases  
-- **Latest published release:** **v1.4.3** (has an APK asset).
-- **Tag `v1.4.5`** exists (commit `e69a897`) but has **no GitHub Release / APK asset** yet — do not link a `v1.4.5` asset.
+- **Latest published release:** **v1.4.5** (APK asset published, sha256 in README).
 - Always prefer the **Assets** APK + published **sha256** over random mirrors  
 
 ---
 
 ## 9. v1.4.5 — Network Discovery Reliability
 
-Scope: the subnet-discovery phase of NET_SCAN (`network/NetworkScanner.kt`). Device proof was obtained
-from a locally built `v1.4.5` APK; the change is currently **uncommitted** and therefore not part of tag `e69a897`.
+Scope: the subnet-discovery phase of NET_SCAN (`network/NetworkScanner.kt`). Released in tag
+`v1.4.5` (commit `1aa11fc`). Device proof was obtained from the released `v1.4.5` APK.
 
 ### Previous behavior
 

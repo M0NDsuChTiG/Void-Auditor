@@ -60,21 +60,19 @@
 
 ## Загрузка
 
-[![Скачать APK](https://img.shields.io/badge/Download-APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+[![Скачать APK](https://img.shields.io/badge/Download-v1.4.5_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
 
-**Последний опубликованный релиз:** [v1.4.3](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.3)
+**Последний релиз:** [v1.4.5](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.5)
 
 ```text
-Asset: Void-Auditor-v1.4.3.apk
-sha256: 87aa672200646d29ce92a0b7ecbd21866025822bd1b91054192f9607176fee6f
+Asset: Void-Auditor-v1.4.5.apk
+sha256: 2ce50b92df1b8d20685df2ab4d8f728a56bfda9a83d01cd5b98db2b83c256e35
 ```
-
-> **Статус v1.4.5:** git-тег `v1.4.5` существует (коммит `e69a897`), но **GitHub Release и APK-ассет ещё не опубликованы**, поэтому скачать `Void-Auditor-v1.4.5.apk` нельзя. Ссылка на ассет v1.4.5 не добавляется до публикации релиза — см. [История версий](#история-версий).
 
 Или установка с ПК:
 
 ```bash
-adb install -r Void-Auditor-v1.4.3.apk
+adb install -r Void-Auditor-v1.4.5.apk
 ```
 
 ---
@@ -116,7 +114,7 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<версия>.apk
 
 ### v1.4.5
 
-> **Статус:** git-тег `v1.4.5` (`e69a897`) запушен, но **GitHub Release / APK-ассет не опубликованы**. Изменение NET_SCAN ниже сейчас **не закоммичено** (working tree) и поэтому **не входит в тег `e69a897`**; оно проверено на локально собранном APK `v1.4.5` (versionName `1.4.5`, versionCode `9`).
+> **Статус (2026-09-22):** опубликован как релиз **v1.4.5** с APK-ассетом на [странице релиза](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.5). Тег указывает на `1aa11fc`, который содержит всё перечисленное ниже.
 
 **Наблюдаемый сбой — обнаружение NET_SCAN не стартовало.** Причина квалифицируется как **INFERENCE / UNKNOWN**, а не установленный FACT: старый путь использовал один батч `PingSweep` (xargs) и выводил живые хосты из `PingSweepEvidence` (**FACT**, по истории git), но то, что быстро падающий батч давал пустое множество живых хостов и блокировал фазу портов — это **INFERENCE** из сигнатуры лога `Exit: -1 | ~52 мс`, а точная причина (stderr / SELinux) остаётся **UNKNOWN**. См. [docs/README_TECH.md](docs/README_TECH.md) §9.
 
