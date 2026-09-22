@@ -39,6 +39,19 @@ object NetworkProfileDetector {
         return ipInt in startInt..endInt
     }
 
+    fun resolveScanScope(identity: NetworkIdentity): ScanScope? {
+        if (!identity.isConnected) return null
+        if (identity.interfaceName.isBlank()) return null
+        if (identity.prefix !in 4..30) return null
+        if (ipv4ToInt(identity.ipv4) == null) return null
+        return ScanScope(
+            localIp = identity.ipv4,
+            prefix = identity.prefix,
+            network = identity.network,
+            broadcast = identity.broadcast
+        )
+    }
+
     private fun ByteArray.toInt(): Int {
         return ((this[0].toInt() and 0xFF) shl 24) or
                 ((this[1].toInt() and 0xFF) shl 16) or

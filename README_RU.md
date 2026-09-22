@@ -24,7 +24,7 @@
 |--------|-------------|
 | **Security Dashboard** | Риск-скоринг 0–100, находки по ADB Wi‑Fi, Accessibility, SELinux, оверлеям, банковским приложениям |
 | **Cache Cleaner** | Скан внешнего кэша, dry-run, 3-факторное подтверждение (`PURGE`), честный баннер `EXTERNAL_CACHE_ONLY` |
-| **NET_SCAN** | Поиск хостов подсети: один Shizuku-батч параллельных пингов (~3с для /24), MAC через `/proc/net/arp`, общие порты |
+| **NET_SCAN** | Поиск хостов подсети: ping **по каждому хосту** (`PingIp`, ограничение параллелизма 32, изоляция сбоев), MAC через `/proc/net/arp`, общие порты |
 | **WIFI_ADB** | Честный статус через `getprop`; enable-путь проверяет активность порта или сообщает `SETPROP_FAILED` / `VERIFY_FAILED` |
 | **AI Forensics** | Gemini только как советник: Intent Proposal → Policy Engine → подтверждение человеком |
 | **Banking Deep Scan** | Разрешения, WebView, deep links, постоянные сервисы финансовых пакетов |
@@ -60,14 +60,16 @@
 
 ## Загрузка
 
-[![Скачать APK](https://img.shields.io/badge/Download-v1.4.3_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+[![Скачать APK](https://img.shields.io/badge/Download-APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
 
-**Последний релиз:** [v1.4.3](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.3)
+**Последний опубликованный релиз:** [v1.4.3](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.3)
 
 ```text
 Asset: Void-Auditor-v1.4.3.apk
 sha256: 87aa672200646d29ce92a0b7ecbd21866025822bd1b91054192f9607176fee6f
 ```
+
+> **Статус v1.4.5:** git-тег `v1.4.5` существует (коммит `e69a897`), но **GitHub Release и APK-ассет ещё не опубликованы**, поэтому скачать `Void-Auditor-v1.4.5.apk` нельзя. Ссылка на ассет v1.4.5 не добавляется до публикации релиза — см. [История версий](#история-версий).
 
 Или установка с ПК:
 
@@ -111,6 +113,41 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<версия>.apk
 ---
 
 ## История версий
+
+### v1.4.5
+
+> **Статус:** git-тег `v1.4.5` (`e69a897`) запушен, но **GitHub Release / APK-ассет не опубликованы**. Изменение NET_SCAN ниже сейчас **не закоммичено** (working tree) и поэтому **не входит в тег `e69a897`**; оно проверено на локально собранном APK `v1.4.5` (versionName `1.4.5`, versionCode `9`).
+
+**Наблюдаемый сбой — обнаружение NET_SCAN не стартовало.** Причина квалифицируется как **INFERENCE / UNKNOWN**, а не установленный FACT: старый путь использовал один батч `PingSweep` (xargs) и выводил живые хосты из `PingSweepEvidence` (**FACT**, по истории git), но то, что быстро падающий батч давал пустое множество живых хостов и блокировал фазу портов — это **INFERENCE** из сигнатуры лога `Exit: -1 | ~52 мс`, а точная причина (stderr / SELinux) остаётся **UNKNOWN**. См. [docs/README_TECH.md](docs/README_TECH.md) §9.
+
+**Исправлено**
+- **Регрессия скана/очистки кэша** — восстановлено сопоставление `find ... -name "cache" -type d` после того, как изменение raw-строк сломало его (`37e78a1`, `CommandMapper.kt`). Закреплено тестом `CacheCommandEscapingTest`.
+- **Совместимость с API 26** — `EvidenceParserRegistry.kt` переписан без `buildList` в цикле `matcher.find()`, закрывая Android lint `NewApi`, ломавший release-сборку на `minSdk 26`.
+
+**Улучшено**
+- Обнаружение теперь делает **по одному `Capability.PingIp` на хост** вместо одного xargs-батча: ограниченный параллелизм (`Semaphore(32)`, `Dispatchers.IO`), `withTimeout(60_000)`, изоляция сбоя каждого хоста и внешний guard, который отдаёт пустой список вместо падения всего скана.
+- Состояние завершения определено чётко: блок прогресса исчезает, а CANCEL возвращается к кнопке Refresh после завершения воркеров.
+
+**Архитектура**
+- Определение живого хоста использует **результат raw-команды** (`commandResult.isSuccessful`), а не typed evidence; `PingIpParser` намеренно не регистрируется.
+- Исполнение остаётся внутри границы capabilities (`NetworkScanner → CapabilityExecutor → ShizukuExecutor`), IPv4 валидируется до любой shell-интерполяции.
+
+**Тестирование**
+- Новый `NetworkScannerDiscoveryTest` — юнит-тесты шва per-host discovery (`discoverAliveIps` / `pingHostAlive`): правило живости (`success && exitCode == 0`), изоляция сбоев, ограниченный параллелизм (suspension-уровень `Semaphore(32)`), деградация по таймауту фазы, проброс отмены, IPv4-гейт.
+- `NetworkScannerTest` покрывает `isValidIpv4` / `generateTargets`; новые `NetworkIdentityTest` / `NetworkProfileDetectorTest` — вывод подсети/scope.
+- E2E на устройстве остаётся сквозным доказательством; юнит-тесты теперь закрепляют саму логику discovery.
+
+**Проверка на реальном устройстве**
+- 254 цели × 2 фазы обнаружения = 508 пингов; в завершённом прогоне **0** сигнатур fast-fail (`Exit: -1 | ≤100 мс`).
+- Итоговый UI: `Found 5 host(s)`, отрисованы все 5 карточек хостов, блок прогресса исчез, вернулся Refresh, карточки ошибок нет, воркеры простаивают (`isScanning=false`).
+
+**Наблюдения по безопасности** (только наблюдаемая экспозиция — без вердикта о компрометации)
+- На одном просканированном хосте наблюдалась экспозиция ADB на TCP/5555; шлюз отрисовал `53: DNS` и `64374: SSH-2.0-dropbear`. Ни один хост не помечен как вредоносный, компрометация не заявляется.
+
+**Известные ограничения**
+- Без root внутренний кэш приложений остаётся частично невидимым (`EXTERNAL_CACHE_ONLY`).
+- Порт-скан — полный TCP-connect скан с до 4 повторных проходов; скан всех 65 535 портов на нескольких хостах занимает десятки минут.
+- v1.4.5 не вводит крупной новой пользовательской функции — это релиз надёжности и архитектуры.
 
 ### v1.4.3
 
@@ -176,6 +213,7 @@ AI-путь:
 | [README_TECH.md](docs/README_TECH.md) | Техническая документация — архитектура, capabilities, PolicyEngine, Shizuku-слой, AI governance |
 | [PERMISSION_AUDIT_REPORT.md](docs/PERMISSION_AUDIT_REPORT.md) | Отчёт кампании минимизации разрешений — 7 third-party приложений, баллы риска до/после, отзывы по фактам использования (`pm revoke` / `appops`) |
 | [VOID_Auditor_Report_NET_SCAN.md](docs/VOID_Auditor_Report_NET_SCAN.md) | Отчёт по NET_SCAN — замеры надёжности порт-скана (параллельность 1–256, потери SYN-очереди), баннеры сервисов, полный скан 65535 портов |
+| [RELEASE_NOTES_v1.4.5.md](docs/RELEASE_NOTES_v1.4.5.md) | Release notes v1.4.5 — фикс обнаружения NET_SCAN (per-host `PingIp`), FACT / INFERENCE / UNKNOWN, проверка на устройстве, статус публикации |
 
 ---
 

@@ -61,6 +61,20 @@ class NetworkScannerTest {
     }
 
     @Test
+    fun `generateTargets produces 2 hosts for valid 30-bit subnet`() {
+        val targets = runBlocking { NetworkScanner.generateTargets("192.168.1.0", 30) }
+        assertEquals(2, targets.size)
+        assertEquals("192.168.1.1", targets[0].ip)
+        assertEquals("192.168.1.2", targets[1].ip)
+    }
+
+    @Test
+    fun `generateTargets produces no hosts for 31-bit subnet`() {
+        val targets = runBlocking { NetworkScanner.generateTargets("192.168.1.0", 31) }
+        assertTrue("Диапазон хостов для /31 пуст (2^1 - 2 = 0)", targets.isEmpty())
+    }
+
+    @Test
     fun `scanHosts ignores targets with invalid ips`() {
         val targets = listOf(
             ScanTarget(ip = "192.168.1.5"),

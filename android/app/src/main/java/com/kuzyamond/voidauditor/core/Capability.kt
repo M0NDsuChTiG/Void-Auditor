@@ -34,6 +34,8 @@ sealed class Capability(override val description: String, override val riskScore
     data class ExecuteClean(val capability: CacheCapability) : Capability("Execute clean: ${capability.description}", 60)
     data class PingSweep(val targets: List<String>) : Capability("Ping sweep: ${targets.size} hosts", 30)
 
+    data class PingIp(val ip: String) : Capability("Ping host: $ip", 30)
+
     // REMEDIATION tier (risk 70+)
     sealed class RemediationIntent(override val description: String, override val riskScore: Int) : Capability(description, riskScore) {
         data object EnableFirewall : RemediationIntent("Enable system firewall", 80)

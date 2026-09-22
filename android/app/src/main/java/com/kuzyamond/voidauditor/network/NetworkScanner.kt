@@ -5,9 +5,11 @@ import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
 import com.kuzyamond.voidauditor.core.USFPipeline
 import com.kuzyamond.voidauditor.core.evidence.ARPTableEvidence
-import com.kuzyamond.voidauditor.core.evidence.PingSweepEvidence
 import com.kuzyamond.voidauditor.core.EvidenceResult
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -21,6 +23,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.sync.Semaphore
 
 object NetworkScanner {
 
@@ -28,6 +31,10 @@ object NetworkScanner {
 
     val COMMON_PORTS = listOf(22, 53, 80, 443, 445, 5555, 8080, 8443, 9090, 3389, 5900)
     val FULL_PORTS: List<Int> = (1..65535).toList()
+
+    // Discovery phase: per-host Capability.PingIp with bounded concurrency and a phase-level timeout.
+    internal const val DISCOVERY_CONCURRENCY = 32
+    internal const val DISCOVERY_TIMEOUT_MS = 60_000L
 
     // Сканирование портов: 256 одновременных SYN переполняют очередь роутера
     // (netfilter backlog) — реально открытые порты теряются (замер на CPE:
@@ -98,15 +105,10 @@ object NetworkScanner {
         if (validTargets.isEmpty()) return emptyList()
         onProgress(1, validTargets.size)
 
-        val aliveIps = try {
-            withTimeout(45_000) {
-                val result = CapabilityExecutor.execute(pipelineContext, Capability.PingSweep(validTargets.map { it.ip }))
-                val evidence = (result.evidence as? EvidenceResult.Parsed)?.evidence as? PingSweepEvidence
-                if (evidence == null) emptyList() else evidence.aliveHosts
-            }
-        } catch (_: Exception) {
-            emptyList()
-        }
+        // Per-host ping через Capability.PingIp (вместо xargs PingSweep): на unrooted
+        // устройстве (Shizuku) xargs-конвейер падал fast-fail, и скан не доходил до портов.
+        // Логика живости вынесена в discoverAliveIps — тестируемый шов с инъекцией probe.
+        val aliveIps = discoverAliveIps(validTargets)
         onProgress(validTargets.size, validTargets.size)
 
         return withContext(Dispatchers.IO) {
@@ -122,6 +124,82 @@ object NetworkScanner {
                     isAlive = true
                 )
             }
+        }
+    }
+
+    /**
+     * Per-host discovery sweep. A host is alive iff [probe] returns true for it.
+     *
+     * Contract (covered by NetworkScannerDiscoveryTest):
+     *  - bounded concurrency: at most [concurrency] probes in flight;
+     *  - failure isolation: a probe that throws excludes only that host;
+     *  - cancellation: a cancelled caller propagates cancellation;
+     *  - phase timeout: when the whole sweep exceeds [timeoutMs], degrade to emptyList;
+     *  - [CapabilityExecutor] is only touched by the default probe — production
+     *    execution stays inside the capability boundary.
+     */
+    internal suspend fun discoverAliveIps(
+        targets: List<ScanTarget>,
+        probe: suspend (String) -> Boolean = { ip -> pingHostAlive(ip) },
+        timeoutMs: Long = DISCOVERY_TIMEOUT_MS,
+        concurrency: Int = DISCOVERY_CONCURRENCY,
+        ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    ): List<String> {
+        if (targets.isEmpty()) return emptyList()
+        return try {
+            withTimeout(timeoutMs) {
+                withContext(ioDispatcher) {
+                    // Suspension-level cap: at most [concurrency] probes in flight.
+                    // acquire() suspends waiters — no blocked threads, no races.
+                    val semaphore = Semaphore(concurrency)
+                    val alive = Collections.synchronizedList(mutableListOf<String>())
+                    coroutineScope {
+                        targets.forEach { target ->
+                            launch {
+                                semaphore.acquire()
+                                try {
+                                    if (probe(target.ip)) alive.add(target.ip)
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (_: Exception) {
+                                    // failure isolation: a broken probe/host excludes only that host
+                                } finally {
+                                    semaphore.release()
+                                }
+                            }
+                        }
+                    }
+                    alive.toList()
+                }
+            }
+        } catch (_: TimeoutCancellationException) {
+            emptyList()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Production probe: one [Capability.PingIp] per host; alive iff the raw
+     * command succeeded (success && exitCode == 0). Typed evidence is deliberately
+     * not used (PingIpParser is not registered). [execute] is injectable for unit
+     * tests — production default routes through the capability boundary.
+     */
+    internal suspend fun pingHostAlive(
+        ip: String,
+        execute: suspend (Capability.PingIp) -> USFPipeline.Result? = {
+            CapabilityExecutor.execute(pipelineContext, it)
+        }
+    ): Boolean {
+        return try {
+            val result = execute(Capability.PingIp(ip))
+            result?.commandResult?.isSuccessful == true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            false
         }
     }
 

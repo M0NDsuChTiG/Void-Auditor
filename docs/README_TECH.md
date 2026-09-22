@@ -1,6 +1,6 @@
 # VOID Auditor — Technical Documentation
 
-> English technical overview · aligned with **v1.4.3**  
+> English technical overview · aligned with **v1.4.5**
 > For the project landing README see [README.md](../README.md). Russian short doc: [README_RU.md](../README_RU.md).
 
 ---
@@ -70,7 +70,8 @@ AI never runs arbitrary shell strings directly.
 ### C. NET_SCAN
 
 - Resolves current subnet from device routing / interface context
-- **One Shizuku invocation**: parallel ping batch for the /24 (≈3s vs hundreds of sequential IPCs)
+- **Per-host discovery** (`Capability.PingIp`, one host per call): bounded concurrency (`Semaphore(32)`, `Dispatchers.IO`), `withTimeout(60_000)`, per-host failure isolation — replaces the previous single batched `PingSweep` (xargs) path
+- Alive-host decision uses the raw `CommandResult` (`isSuccessful`); typed evidence is not required (`PingIpParser` is not registered)
 - Live hosts enriched with **MAC** via `cat /proc/net/arp` through Shizuku (avoids app SELinux deny on `/proc/net/arp`)
 - Optional TCP probes on common ports (e.g. 22, 80, 443, 5555, …) for live hosts only
 
@@ -150,13 +151,13 @@ cd Void-Auditor/android
 Typical output:
 
 ```text
-android/app/build/outputs/apk/debug/Void-Auditor-v1.4.3.apk
+android/app/build/outputs/apk/debug/Void-Auditor-v1.4.5.apk
 ```
 
 Install:
 
 ```bash
-adb install -r app/build/outputs/apk/debug/Void-Auditor-v1.4.3.apk
+adb install -r app/build/outputs/apk/debug/Void-Auditor-v1.4.5.apk
 ```
 
 **Requirements on device:** Android 8.0+, Shizuku v13+ started, permission granted to VOID Auditor.
@@ -179,18 +180,88 @@ Exact file set evolves; treat this as a map, not a frozen tree.
 
 ---
 
+### Testing
+
+- New `NetworkScannerDiscoveryTest` unit-tests the discovery seam (`discoverAliveIps` / `pingHostAlive`):
+  the alive rule (`success && exitCode == 0`), failure isolation, bounded concurrency,
+  phase-timeout degradation, cancellation propagation, and the IPv4 gate.
+
 ## 8. Releases
 
 - GitHub Releases: https://github.com/M0NDsuChTiG/Void-Auditor/releases  
-- Latest tag example: **v1.4.3** (Permission Audit module, capacitor cleanup)  
+- **Latest published release:** **v1.4.3** (has an APK asset).
+- **Tag `v1.4.5`** exists (commit `e69a897`) but has **no GitHub Release / APK asset** yet — do not link a `v1.4.5` asset.
 - Always prefer the **Assets** APK + published **sha256** over random mirrors  
 
 ---
 
-## 9. Related links
+## 9. v1.4.5 — Network Discovery Reliability
+
+Scope: the subnet-discovery phase of NET_SCAN (`network/NetworkScanner.kt`). Device proof was obtained
+from a locally built `v1.4.5` APK; the change is currently **uncommitted** and therefore not part of tag `e69a897`.
+
+### Previous behavior
+
+- Discovery called `CapabilityExecutor.execute(..., Capability.PingSweep(targets))` — a **single** xargs
+  batch over the whole /24 — under `withTimeout(45_000)`.
+- Alive hosts were taken from typed evidence (`... as? PingSweepEvidence`); a `null` cast produced an empty alive list.
+
+### Observed failure
+
+- Log entries with the xargs fast-fail signature `Exit: -1 | ~52 ms` (28 occurrences, timestamps
+  00:28–13:40:42) — all **before** the fixed APK install (`lastUpdateTime 13:40:52`).
+- In the affected runs discovery returned 0 alive hosts and the port phase never started.
+
+### Root cause
+
+- **FACT:** the current code creates no `PingSweep` call at runtime; the scan uses per-host `PingIp`.
+  The historical batch failed fast (`Exit: -1`, ~52 ms).
+- **INFERENCE:** the batched xargs pipeline's child `sh` could not run `ping` under the Shizuku shell
+  context, so every target exited non-zero within milliseconds; with no usable alive set the scan
+  stopped at discovery.
+- **UNKNOWN:** the exact stderr / SELinux context that produced the failure was not captured, so the
+  mechanism is inferred from the exit-code/timing signature, not proven.
+
+### Implementation
+
+- `Capability.PingIp(ip)` added; `CommandMapper` maps it to `ping -c 1 -W 1 "<ip>" >/dev/null 2>&1 && echo "<ip>"`.
+- `NetworkScanner.scanHosts` launches one coroutine per validated target.
+
+### Concurrency model
+
+- Suspension-level `Semaphore(32)` gate; `withContext(Dispatchers.IO)`; results collected in a synchronized list.
+
+### Cancellation
+
+- The whole phase is wrapped in `withTimeout(60_000)`; an exception/timeout degrades to `emptyList()`.
+
+### Failure isolation
+
+- Each host runs in `try/catch`; a failed or unreachable host is skipped without aborting the scan.
+
+### Evidence handling
+
+- The alive decision uses `result.commandResult.isSuccessful` (raw result); typed evidence is not used
+  and `PingIpParser` is intentionally not registered.
+
+### Runtime validation
+
+- 254 targets × 2 phases = 508 pings; **0** fast-fail (`Exit: -1 | ≤100 ms`).
+- **Result:** `Found 5 host(s)`; the progress block was removed and Refresh restored in the final UI;
+  all 5 host cards rendered; process idle (`isScanning=false`).
+
+### Known limitations
+
+- Results are only as complete as the network allows (SYN filtering, probe loss).
+- A full 65 535-port pass with up to 4 retries takes tens of minutes per host.
+- Timings were measured on one lab device; other vendors / SELinux configurations are not covered.
+
+---
+
+## 10. Related links
 
 - [README.md](../README.md) — English project README  
-- [README_RU.md](../README_RU.md) — Russian technical notes (may lag; this file tracks v1.4.3)  
+- [README_RU.md](../README_RU.md) — Russian technical notes (may lag; this file tracks v1.4.5)
 - [SECURITY.md](../SECURITY.md) — vulnerability reporting  
 - [Landing](https://m0ndsuchtig.github.io/Void-Auditor/) — Pages site (EN default)  
 - Screenshots: [`screenshots/`](../screenshots/)  
@@ -198,7 +269,7 @@ Exact file set evolves; treat this as a map, not a frozen tree.
 
 ---
 
-## 10. License
+## 11. License
 
 MIT — see [LICENSE](../LICENSE).
 

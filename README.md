@@ -23,7 +23,7 @@ It uses the [Shizuku](https://shizuku.rikka.app/) API for shell-level capabiliti
 |--------|-------------|
 | **Security Dashboard** | Risk score 0–100, findings for ADB Wi‑Fi, Accessibility, SELinux, overlays, banking apps |
 | **Cache Cleaner** | Scan external cache, dry-run, 3-factor confirm (`PURGE`), selective purge, honest `EXTERNAL_CACHE_ONLY` banner |
-| **NET_SCAN** | Subnet host discovery: one Shizuku batch of parallel pings (~3s for /24), MAC via `/proc/net/arp`, common ports |
+| **NET_SCAN** | Subnet host discovery: **per-host** ping (`PingIp`, bounded concurrency 32, isolated per-host failures), MAC via `/proc/net/arp`, common-port probes |
 | **WIFI_ADB** | Honest status via `getprop`; enable path verifies port is active or reports `SETPROP_FAILED` / `VERIFY_FAILED` |
 | **AI Forensics** | Gemini as advisor only: Intent Proposal → Policy Engine → human confirmation |
 | **Banking Deep Scan** | Permissions, WebView, deep links, persistent services on finance-related packages |
@@ -59,19 +59,21 @@ It uses the [Shizuku](https://shizuku.rikka.app/) API for shell-level capabiliti
 
 ## Download
 
-[![Download APK](https://img.shields.io/badge/Download-v1.4.5_APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-APK-34A853?style=for-the-badge&logo=android&logoColor=white)](https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest)
 
-**Latest release:** [v1.4.5](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.5)
+**Latest published release:** [v1.4.3](https://github.com/M0NDsuChTiG/Void-Auditor/releases/tag/v1.4.3)
 
 ```text
-Asset: Void-Auditor-v1.4.5.apk
-sha256: 945cc087897f483ff701194acb020fba0e3b45a33395f524a4e0c1b2dab9cf3c
+Asset: Void-Auditor-v1.4.3.apk
+sha256: 87aa672200646d29ce92a0b7ecbd21866025822bd1b91054192f9607176fee6f
 ```
+
+> **v1.4.5 status:** a git tag `v1.4.5` exists (commit `e69a897`), but **no GitHub Release or APK asset is published yet**, so no `Void-Auditor-v1.4.5.apk` download exists. No v1.4.5 asset link is provided until the release is published — see [Release notes](#release-notes-recent).
 
 Or install from a PC:
 
 ```bash
-adb install -r Void-Auditor-v1.4.5.apk
+adb install -r Void-Auditor-v1.4.3.apk
 ```
 
 ---
@@ -113,8 +115,38 @@ android/app/build/outputs/apk/debug/Void-Auditor-v<version>.apk
 
 ### v1.4.5
 
-- **Cache scan / purge regression fix** — restored `find ... -name "cache" -type d` matching after the raw-string escaping change regressed it (`37e78a1`, `CommandMapper.kt`). Locked with `CacheCommandEscapingTest`.
-- **API 26 compatibility fix** — `EvidenceParserRegistry.kt` rewritten without `buildList` for the `matcher.find()` loop, closing an Android lint `NewApi` error that broke the release build on `minSdk 26`.
+> **Status:** git tag `v1.4.5` (`e69a897`) is pushed, but **no GitHub Release / APK asset is published**. The NET_SCAN change below is currently **uncommitted** (working tree) and is therefore **not contained in tag `e69a897`**; it was validated from a locally built `v1.4.5` APK (versionName `1.4.5`, versionCode `9`).
+
+**Observed failure — NET_SCAN discovery did not start.** Attribution is **INFERENCE / UNKNOWN**, not established FACT: the old path used one batched `PingSweep` (xargs) and derived alive hosts from `PingSweepEvidence` (**FACT**, from git history), but that a fast-failing batch produced an empty alive set and blocked the port phase is **INFERENCE** drawn from the `Exit: -1 | ~52 ms` log signature, and the exact stderr / SELinux cause is **UNKNOWN**. See [docs/README_TECH.md](docs/README_TECH.md) §9.
+
+**Fixed**
+- **Cache scan / purge regression** — restored `find ... -name "cache" -type d` matching after the raw-string escaping change regressed it (`37e78a1`, `CommandMapper.kt`). Locked with `CacheCommandEscapingTest`.
+- **API 26 compatibility** — `EvidenceParserRegistry.kt` rewritten without `buildList` for the `matcher.find()` loop, closing an Android lint `NewApi` error that broke the release build on `minSdk 26`.
+
+**Improved**
+- Discovery now issues **one `Capability.PingIp` per host** instead of a single xargs batch: bounded concurrency (`Semaphore(32)`, `Dispatchers.IO`), `withTimeout(60_000)`, per-host failure isolation, and an outer guard that degrades to an empty list instead of aborting the scan.
+- Completion state is well-defined: the progress block disappears and CANCEL returns to a Refresh action once workers finish.
+
+**Architecture**
+- Alive-host detection uses the **raw command result** (`commandResult.isSuccessful`), not typed evidence; `PingIpParser` is intentionally not registered.
+- Execution stays inside the capability boundary (`NetworkScanner → CapabilityExecutor → ShizukuExecutor`), with IPv4 validation before any shell interpolation.
+
+**Testing**
+- New `NetworkScannerDiscoveryTest` — unit-tests the per-host discovery seam (`discoverAliveIps` / `pingHostAlive`): the alive rule (`success && exitCode == 0`), failure isolation, bounded concurrency (suspension-level `Semaphore(32)`), phase-timeout degradation, cancellation propagation, and the IPv4 gate.
+- `NetworkScannerTest` covers `isValidIpv4` / `generateTargets`; new `NetworkIdentityTest` / `NetworkProfileDetectorTest` cover subnet/scope derivation.
+- Real-device E2E remains the end-to-end proof; unit tests now pin the discovery logic itself.
+
+**Real-device validation**
+- 254 targets × 2 discovery phases = 508 pings; **0** fast-fail (`Exit: -1 | ≤100 ms`) signatures in the completed run.
+- Final UI: `Found 5 host(s)`, all 5 host cards rendered, progress block gone, Refresh restored, no error card, worker threads idle (`isScanning=false`).
+
+**Security observations** (observed exposure only — no compromise verdict)
+- ADB exposure was observed on TCP/5555 for one scanned host; a gateway rendered `53: DNS` and `64374: SSH-2.0-dropbear`. No host is labeled malicious and no compromise is claimed.
+
+**Known limitations**
+- No root: internal app caches remain partially invisible (`EXTERNAL_CACHE_ONLY`).
+- The port scan is a full-TCP connect scan with up to 4 retry passes; scanning all 65 535 ports across several hosts takes tens of minutes.
+- v1.4.5 does not introduce a major new user-facing feature — it is a reliability / architecture release.
 
 ### v1.4.3
 
@@ -193,6 +225,7 @@ See the [`screenshots/`](screenshots/) folder in the repository.
 | [README_TECH.md](docs/README_TECH.md) | Technical documentation — architecture, capabilities, PolicyEngine, Shizuku layer, AI governance |
 | [PERMISSION_AUDIT_REPORT.md](docs/PERMISSION_AUDIT_REPORT.md) | Permission minimization campaign report — 7 third-party apps, before/after risk scores, evidence-based revocations via `pm revoke` / `appops` |
 | [VOID_Auditor_Report_NET_SCAN.md](docs/VOID_Auditor_Report_NET_SCAN.md) | NET_SCAN field report — port-scan reliability measurements (parallelism 1–256, SYN-queue loss), service banners, full 65535-port scan results |
+| [RELEASE_NOTES_v1.4.5.md](docs/RELEASE_NOTES_v1.4.5.md) | Release notes v1.4.5 — NET_SCAN discovery fix (per-host `PingIp`), FACT / INFERENCE / UNKNOWN root cause, real-device validation, publication status |
 
 ---
 

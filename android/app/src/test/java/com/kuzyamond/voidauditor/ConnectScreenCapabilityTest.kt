@@ -2,6 +2,7 @@ package com.kuzyamond.voidauditor
 
 import com.kuzyamond.voidauditor.core.Capability
 import com.kuzyamond.voidauditor.core.CapabilityExecutor
+import com.kuzyamond.voidauditor.network.NetworkScanner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -85,6 +86,58 @@ class ConnectScreenCapabilityTest {
                 "capabilityToCommand returned null for ${cap::class.simpleName}",
                 cmd.isNullOrEmpty()
             )
+        }
+    }
+
+    // ── Network Discovery: PingIp / PingSweep (Stage 3) ─────────
+    // scanHosts теперь ходит per-host через Capability.PingIp (вместо xargs
+    // PingSweep) — см. NetworkScanner.scanHosts. Тут проверяется точная форма
+    // команды, генерируемой CommandMapper, и riskScore.
+
+    @Test
+    fun `PingIp command is correct`() {
+        val cmd = CapabilityExecutor.capabilityToCommand(Capability.PingIp("192.168.1.100"))
+        assertEquals(
+            "ping -c 1 -W 1 \"192.168.1.100\" >/dev/null 2>&1 && echo \"192.168.1.100\"",
+            cmd
+        )
+    }
+
+    @Test
+    fun `PingSweep command is correct`() {
+        val cmd = CapabilityExecutor.capabilityToCommand(
+            Capability.PingSweep(listOf("192.168.1.1", "192.168.1.2"))
+        )
+        assertEquals(
+            "printf '%s\\n' 192.168.1.1 192.168.1.2 | xargs -P 16 -I {} sh -c 'ping -c 1 -W 1 \"\$1\" >/dev/null 2>&1 && echo \"\$1\"' _ {}",
+            cmd
+        )
+    }
+
+    @Test
+    fun `PingIp and PingSweep have risk score 30`() {
+        assertEquals(30, Capability.PingIp("192.168.1.1").riskScore)
+        assertEquals(30, Capability.PingSweep(listOf("192.168.1.1")).riskScore)
+    }
+
+    @Test
+    fun `PingIp injection payload is rejected by the isValidIpv4 gate`() {
+        // CommandMapper интерполирует IP без валидации — единственная защита на
+        // пути сканирования это isValidIpv4-фильтр в NetworkScanner.scanHosts
+        // (до создания Capability.PingIp). Убеждаемся, что гейт отклоняет любые
+        // инъекции, способные сломать "ping -c 1 -W 1 \"<ip>\" ...".
+        val malicious = listOf(
+            "192.168.1.1;rm -rf /",
+            "192.168.1.1;touch /sdcard/pwned",
+            "192.168.1.1\$(whoami)",
+            "192.168.1.1`id`",
+            "192.168.1.1/24",
+            "192.168.1.999",
+            "\"192.168.1.1\"",
+            "192.168.1.1 && echo pwned"
+        )
+        for (input in malicious) {
+            assertFalse("Должен быть отклонён гейтом: $input", NetworkScanner.isValidIpv4(input))
         }
     }
 }

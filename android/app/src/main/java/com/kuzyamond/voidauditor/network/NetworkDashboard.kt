@@ -72,8 +72,24 @@ fun NetworkDashboardScreen(
             scanProgress = 0f
             progressText = ""
             try {
-                val ip = profile?.localIp ?: "192.168.1.1"
-                val targets = scanner.generateTargets(ip, profile?.subnetMask ?: 24)
+                val profile = profile
+                if (profile == null) {
+                    error = "LAN discovery unavailable"
+                    return@launch
+                }
+                val identity = NetworkIdentity(
+                    interfaceName = profile.interfaceName,
+                    ipv4 = profile.localIp,
+                    prefix = profile.subnetMask,
+                    gateway = profile.gatewayIp,
+                    isConnected = profile.mode != NetworkMode.OFFLINE
+                )
+                val scope = NetworkProfileDetector.resolveScanScope(identity)
+                if (scope == null) {
+                    error = "LAN discovery unavailable"
+                    return@launch
+                }
+                val targets = scanner.generateTargets(scope.localIp, scope.prefix)
                 val partialHosts = mutableListOf<HostInfo>()
                 val hosts = scanner.scanHostsWithPorts(
                     targets = targets,

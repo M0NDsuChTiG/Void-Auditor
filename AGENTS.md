@@ -14,7 +14,7 @@ Current repository baseline:
 `main`
 
 Current documented application version:
-`v1.4.3`
+`v1.4.5`
 
 VOID Auditor is an Android security-audit, device-management and lightweight-forensics application using the Shizuku API.
 
@@ -47,7 +47,7 @@ Security and auditability take priority over convenience.
 
 The repository is the source of truth.
 
-The current documented baseline is `v1.4.3`.
+The current documented baseline is `v1.4.5`.
 
 Do not assume that historical project descriptions, previous conversations or old documentation represent the current implementation.
 

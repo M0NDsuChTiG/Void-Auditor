@@ -26,8 +26,8 @@ object CommandMapper {
             is Capability.ReadARPTable -> "cat /proc/net/arp"
             is Capability.ReadAppOps -> "appops query-op ${cap.op} allow"
             is Capability.ReadSetting -> "settings get ${cap.namespace} ${cap.key}"
-            is Capability.ReadDefaultRoute -> "ip route show default"
-            is Capability.ReadWifiInfo -> "cmd wifi get-wifi-info 2>/dev/null"
+            is Capability.ReadDefaultRoute -> "ip route show table all"
+            is Capability.ReadWifiInfo -> "cmd wifi get-wifi-info 2>/dev/null || true"
             is Capability.ReadServiceState -> "dumpsys ${cap.service}"
             is Capability.DiscoverCacheDirectories -> buildString {
                 cap.roots.forEachIndexed { i, root ->
@@ -56,6 +56,7 @@ object CommandMapper {
                 append(cap.targets.joinToString(" "))
                 append(" | xargs -P 16 -I {} sh -c 'ping -c 1 -W 1 \"$1\" >/dev/null 2>&1 && echo \"$1\"' _ {}")
             }
+            is Capability.PingIp -> "ping -c 1 -W 1 \"${cap.ip}\" >/dev/null 2>&1 && echo \"${cap.ip}\""
 
             // ── REMEDIATION tier (risk 70+) ───────────────────────
             is Capability.RemediationIntent -> when (cap) {
