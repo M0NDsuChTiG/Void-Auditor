@@ -30,10 +30,32 @@
 - [ ] Пуш в `main` → воркфлоу **Android Build** (JDK 21, assembleDebug → test → lint) и **Pages**
 - [ ] Проверка: `https://github.com/M0NDsuChTiG/Void-Auditor/actions` — оба **completed / success**
 
-> ⚠️ **Известный блокер (2026-08):** «The job was not started because your account is locked
-> due to a billing issue» — раннеры не стартуют, если у аккаунта GitHub проблемы с биллингом.
-> Это **не** проблема кода: локально всё собирается. Чинится в GitHub → Settings → Billing.
-> Pages-деплой при этом работает.
+> ⚠️ **Известный блокер (2026-08, расследовано 2026-09-22):** «The job was not started because
+> your account is locked due to a billing issue».
+>
+> **Расследование (API GitHub, 2026-09-22):** это **не проблема кода** и не разовый сбой.
+> Android Build — 31 прогон с 2026-06-20 (создание репо), **успешных 0**; Docs Links — 7 прогонов,
+> успешных 0. Каждый упавший job: длительность ~2–3 с, **steps = []** (ни один шаг не стартовал),
+> раннер не назначался. При этом GitHub-managed `pages build and deployment` успешно деплоится
+> всё это время (включая v1.4.5). Вывод: блокировка **на уровне аккаунта** (Actions-раннеры
+> отказываются стартовать), бесплатный personal-аккаунт, без организаций.
+>
+> **Путь починки:**
+> 1. GitHub → **Settings → Billing and plans** → проверить статус платежей: погасить
+>    past-due / убрать неудачную платёжную карту (typical unlock).
+> 2. Если задолженности нет — это support-hold: тикет на **github.com/support**
+>    (категория Account/Billing, текст «Actions jobs fail instantly with 'account is locked
+>    due to a billing issue' on a free personal account, no orgs, nothing owed»).
+> 3. После разблокировки: **Re-run jobs** на упавшем прогоне — пушить заново не нужно.
+>
+> **Верификация починки:** job получает раннер `ubuntu-latest` и начинает исполнять шаги
+> (Checkout → JDK 21 → …); Android Build занимает несколько минут.
+>
+> **После разблокировки:** оба воркфлоу ни разу не выполнялись реально — первый настоящий
+> прогон может вскрыть собственные проблемы конфигурации/ссылок; чинить по факту.
+>
+> **Пока блокер не снят:** релизы собираются локально (v1.4.5 опубликован так; sha256
+> сверены). CI здесь — проверка, а не источник сборки.
 
 ## 3. Публикация
 
