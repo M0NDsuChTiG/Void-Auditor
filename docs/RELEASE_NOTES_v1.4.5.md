@@ -109,8 +109,9 @@ scanner reliability, execution architecture, and runtime validation.
 
 - No data migration is required.
 - Cache and WIFI_ADB behavior is unchanged; the NET_SCAN discovery path is now per-host.
-- Because no v1.4.5 APK asset is published, install v1.4.3 or build from source until the release is
-  published.
+- The `Void-Auditor-v1.4.5.apk` asset is published on the release page
+  (sha256 `2ce50b92df1b8d20685df2ab4d8f728a56bfda9a83d01cd5b98db2b83c256e35`); install it directly or
+  from a PC with `adb install -r Void-Auditor-v1.4.5.apk`.
 
 ## Verification evidence
 
