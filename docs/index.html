@@ -1,1010 +1,649 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="theme-color" content="#0A0F0A" />
-  <meta name="description" content="VOID Auditor — Zero Trust Android forensics toolkit. Shizuku, Cache Cleaner, NET_SCAN, AI governance. No root required." />
-  <title>VOID Auditor — CyberHack Edition</title>
-  <style>
-    :root {
-      --bg: #0A0F0A;
-      --surface: #121712;
-      --border: #1a3a1a;
-      --accent: #39FF14;
-      --muted: #8b949e;
-      --text: #c9d1d9;
-      --danger: #ff4466;
-      --warn: #ffaa00;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      min-height: 100vh;
-    }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .container { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VOID Auditor — open-source Zero Trust mobile forensics for Android. Shizuku, no root. Kotlin + Compose. AI advisory only.">
+    <meta property="og:title" content="VOID Auditor — Zero Trust Mobile Forensics">
+    <meta property="og:description" content="Android security toolkit without root. Shizuku, Policy Engine, EXTERNAL_CACHE_ONLY, AI proposals with human confirm.">
+    <meta property="og:url" content="https://m0ndsuchtig.github.io/Void-Auditor/">
+    <meta name="theme-color" content="#0a0a0a">
 
-    .topbar {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    .lang-btn {
-      font-family: 'JetBrains Mono', ui-monospace, monospace;
-      font-size: 0.75rem;
-      letter-spacing: 1px;
-      padding: 0.35rem 0.75rem;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--muted);
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .lang-btn.active {
-      color: var(--bg);
-      background: var(--accent);
-      border-color: var(--accent);
-      font-weight: 700;
-    }
-    .lang-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+    <title>VOID Auditor — Zero Trust Mobile Forensics Toolkit for Android</title>
+    
+    <!-- Typography: Roboto & Roboto Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'cursor-green': '#27f795',
+                        'hover-green': '#008060',
+                        'pure-white': '#ffffff',
+                        'void-black': '#000000',
+                        'console-black': '#0a0a0a',
+                        'panel-charcoal': '#151515',
+                        'card-graphite': '#262626',
+                        'border-smoke': '#353535',
+                        'muted-ash': '#8d8d8d',
+                        'tertiary-fog': '#999999',
+                        'highlight-mist': '#d9d9d9'
+                    },
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                        mono: ['Roboto Mono', 'monospace']
+                    },
+                    borderRadius: {
+                        'btn': '4px',
+                        'card': '8px',
+                        'tag': '4px'
+                    }
+                }
+            }
+        };
+    </script>
 
-    .hero {
-      text-align: center;
-      padding: 3rem 0 1.5rem;
-      position: relative;
-    }
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    }
-    .hero .version {
-      font-family: ui-monospace, monospace;
-      font-size: 0.85rem;
-      color: var(--accent);
-      opacity: 0.7;
-      letter-spacing: 2px;
-      margin-bottom: 0.5rem;
-    }
-    .hero h1 {
-      font-size: clamp(2rem, 6vw, 3rem);
-      font-weight: 900;
-      letter-spacing: 4px;
-      color: var(--accent);
-      text-transform: uppercase;
-      text-shadow: 0 0 20px rgba(57, 255, 20, 0.25);
-      margin-bottom: 0.5rem;
-    }
-    .hero .subtitle {
-      font-size: 1.1rem;
-      color: var(--muted);
-      max-width: 640px;
-      margin: 0 auto;
-    }
-    .badges {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin: 1.75rem 0;
-    }
-    .badge {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 0.3rem 0.8rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      color: var(--accent);
-      font-family: ui-monospace, monospace;
-      letter-spacing: 0.5px;
-    }
+    <style>
+        :root {
+            --color-cursor-green: #27f795;
+            --color-hover-green: #008060;
+            --color-console-black: #0a0a0a;
+            --color-panel-charcoal: #151515;
+            --color-card-graphite: #262626;
+            --color-border-smoke: #353535;
+            --color-muted-ash: #8d8d8d;
+        }
 
-    .download-section { text-align: center; margin: 2rem 0 2.5rem; }
-    .download-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      background: var(--accent);
-      color: var(--bg);
-      padding: 0.95rem 2.2rem;
-      border-radius: 4px;
-      font-size: 1.05rem;
-      font-weight: 700;
-      border: none;
-    }
-    .download-btn:hover { filter: brightness(1.08); text-decoration: none; }
-    .direct-apk {
-      display: inline-block;
-      margin-top: 0.85rem;
-      font-family: ui-monospace, monospace;
-      font-size: 0.8rem;
-      letter-spacing: 0.5px;
-      color: var(--accent);
-      border: 1px solid var(--border);
-      background: var(--surface);
-      padding: 0.45rem 1.1rem;
-      border-radius: 4px;
-    }
-    .direct-apk:hover { border-color: var(--accent); text-decoration: none; }
-    .clone {
-      margin-top: 1rem;
-      font-family: ui-monospace, monospace;
-      font-size: 0.8rem;
-      color: var(--muted);
-      word-break: break-all;
-    }
+        body {
+            background-color: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Roboto', sans-serif;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
 
-    .tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-      border-bottom: 1px solid var(--border);
-      margin: 2rem 0 1.25rem;
-      padding-bottom: 0.5rem;
-    }
-    .tab {
-      font-family: ui-monospace, monospace;
-      font-size: 0.8rem;
-      letter-spacing: 1px;
-      padding: 0.5rem 0.9rem;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--muted);
-      border-radius: 4px 4px 0 0;
-      cursor: pointer;
-    }
-    .tab:hover { color: var(--accent); }
-    .tab.active {
-      color: var(--accent);
-      border-color: var(--border);
-      border-bottom-color: var(--bg);
-      background: var(--surface);
-      font-weight: 700;
-    }
-    .panel { display: none; animation: fade 0.2s ease; }
-    .panel.active { display: block; }
-    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #353535;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #27f795;
+        }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1rem;
-    }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 1.25rem;
-      position: relative;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .card:hover { border-color: var(--accent); }
-    .card.expanded {
-      border-color: var(--accent);
-      box-shadow: 0 0 12px rgba(57, 255, 20, 0.12);
-    }
-    .card .icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
-    .card-heading { margin: 0; }
-    .card-toggle {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.4rem;
-      width: 100%;
-      padding: 0;
-      background: none;
-      border: none;
-      color: inherit;
-      font: inherit;
-      text-align: left;
-      cursor: pointer;
-    }
-    .card-toggle .card-title {
-      font-size: 0.95rem;
-      color: var(--accent);
-      font-family: ui-monospace, monospace;
-    }
-    .card-toggle .card-desc { font-size: 0.9rem; color: var(--muted); }
-    .card-toggle .card-more {
-      position: absolute;
-      top: 0.85rem;
-      right: 1rem;
-      font-family: ui-monospace, monospace;
-      font-size: 1.1rem;
-      line-height: 1;
-      color: var(--accent);
-    }
-    .card-detail {
-      margin-top: 0.85rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid var(--border);
-    }
-    .card-detail ul { list-style: none; margin: 0; }
-    .card-detail li {
-      padding: 0.25rem 0;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-    .card-detail li::before {
-      content: '▸ ';
-      color: var(--accent);
-      font-family: ui-monospace, monospace;
-    }
+        .blinking-cursor::after {
+            content: '█';
+            display: inline-block;
+            margin-left: 2px;
+            color: #27f795;
+            animation: blink 1s step-end infinite;
+        }
 
-    h2 {
-      font-family: ui-monospace, monospace;
-      font-size: 1rem;
-      letter-spacing: 2px;
-      color: var(--accent);
-      margin: 2rem 0 1rem;
-      text-align: center;
-    }
-    .feature-row {
-      position: relative;
-      padding: 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.9rem;
-    }
-    .feature-row.expanded { background: var(--surface); }
-    .feature-heading { margin: 0; }
-    .feature-toggle {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      width: 100%;
-      padding: 0.75rem 1rem;
-      background: none;
-      border: none;
-      color: inherit;
-      font: inherit;
-      text-align: left;
-      cursor: pointer;
-    }
-    .feature-toggle .name {
-      font-family: ui-monospace, monospace;
-      color: var(--accent);
-      min-width: 140px;
-    }
-    .feature-toggle .desc { color: var(--muted); flex: 1; }
-    .feature-toggle .feature-more {
-      font-family: ui-monospace, monospace;
-      color: var(--accent);
-      font-size: 1rem;
-      line-height: 1;
-    }
-    .feature-detail {
-      padding: 0 1rem 0.75rem 2.5rem;
-      font-size: 0.85rem;
-    }
-    .feature-detail ul { list-style: none; margin: 0; }
-    .feature-detail li {
-      padding: 0.2rem 0;
-      color: var(--muted);
-    }
-    .feature-detail li::before {
-      content: '▸ ';
-      color: var(--accent);
-      font-family: ui-monospace, monospace;
-    }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
 
-    .security-list {
-      list-style: none;
-      max-width: 640px;
-      margin: 0 auto;
-    }
-    .security-list li {
-      padding: 0.55rem 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.95rem;
-      color: var(--muted);
-    }
-    .security-list li::before {
-      content: '▸ ';
-      color: var(--accent);
-      font-family: ui-monospace, monospace;
-    }
-
-    .limits {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 3px solid var(--warn);
-      padding: 1rem 1.25rem;
-      border-radius: 4px;
-      margin: 1rem 0;
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
-
-    .footer {
-      text-align: center;
-      margin-top: 3rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--border);
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-    .footer a { margin: 0 0.35rem; }
-    .stack {
-      margin-top: 0.75rem;
-      font-family: ui-monospace, monospace;
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-
-    code, .mono {
-      font-family: ui-monospace, monospace;
-      font-size: 0.85em;
-      background: #0d140d;
-      padding: 0.1em 0.35em;
-      border-radius: 3px;
-    }
-
-    /* --- Accessibility --- */
-    .skip-link {
-      position: absolute;
-      top: -40px;
-      left: 0.5rem;
-      background: var(--accent);
-      color: var(--bg);
-      padding: 0.5rem 1rem;
-      border-radius: 0 0 4px 4px;
-      font-weight: 700;
-      z-index: 100;
-      text-decoration: none;
-    }
-    .skip-link:focus { top: 0; }
-    :focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
-    }
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
-    }
-  </style>
+        a:focus-visible, button:focus-visible {
+            outline: 2px solid #27f795;
+            outline-offset: 2px;
+        }
+    </style>
 </head>
-<body>
-<a href="#main" class="skip-link" data-i18n="skip">Skip to main content</a>
-<div class="container">
+<body class="bg-console-black text-pure-white antialiased min-h-screen flex flex-col justify-between selection:bg-cursor-green selection:text-console-black">
 
-  <div class="topbar">
-    <button type="button" class="lang-btn active" data-set-lang="en" id="btn-en" aria-pressed="true">EN</button>
-    <button type="button" class="lang-btn" data-set-lang="ru" id="btn-ru" aria-pressed="false">RU</button>
-  </div>
+    <header class="border-b border-border-smoke bg-console-black/95 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-[1200px] mx-auto px-4 h-16 flex items-center justify-between">
+            <a href="https://github.com/M0NDsuChTiG/Void-Auditor" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 font-mono text-pure-white font-bold text-sm tracking-tight hover:opacity-90 transition-opacity">
+                <div class="w-4 h-4 bg-cursor-green rounded-tag flex items-center justify-center text-console-black font-bold text-[10px]">
+                    &gt;
+                </div>
+                <span>VOID <span class="text-muted-ash">/ AUDITOR</span></span>
+            </a>
 
-  <main id="main" tabindex="-1">
-  <header class="hero">
-    <div class="version" data-i18n="version">CYBERHACK · v1.4.5</div>
-    <h1 data-i18n="title">VOID AUDITOR</h1>
-    <p class="subtitle" data-i18n="subtitle">
-      Zero Trust Android forensics toolkit — audit, cache purge, network scan, and AI-assisted analysis via Shizuku (no root).
-    </p>
-    <div class="badges">
-      <span class="badge">Shizuku API</span>
-      <span class="badge">Gemini AI (advisory)</span>
-      <span class="badge">Risk 0–100</span>
-      <span class="badge">minSdk 26</span>
-      <span class="badge">targetSdk 35</span>
-      <span class="badge">MIT</span>
-    </div>
-  </header>
+            <nav class="hidden md:flex items-center space-x-6 text-sm font-sans text-muted-ash">
+                <a href="#features" class="hover:text-pure-white transition-colors" data-i18n="nav_features">Modules</a>
+                <a href="#security-model" class="hover:text-pure-white transition-colors" data-i18n="nav_security">Security Model</a>
+                <a href="#demo" class="hover:text-pure-white transition-colors" data-i18n="nav_demo">Live Terminal</a>
+                <a href="#quickstart" class="hover:text-pure-white transition-colors" data-i18n="nav_install">Install & Build</a>
+                <a href="https://github.com/M0NDsuChTiG/Void-Auditor" target="_blank" rel="noopener noreferrer" class="hover:text-pure-white transition-colors font-mono text-xs text-cursor-green">[ GitHub ]</a>
+            </nav>
 
-  <div class="download-section">
-    <a class="download-btn" href="https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest" data-i18n="download">
-      Download APK (latest)
-    </a>
-    <a class="direct-apk" href="https://github.com/M0NDsuChTiG/Void-Auditor/releases/download/v1.4.5/Void-Auditor-v1.4.5.apk" data-i18n="direct_apk">
-      ⬇ Direct APK v1.4.5
-    </a>
-    <p class="clone" data-i18n="clone">
-      Or build: git clone https://github.com/M0NDsuChTiG/Void-Auditor.git && cd Void-Auditor/android && ./gradlew assembleDebug
-    </p>
-  </div>
+            <div class="flex items-center gap-3">
+                <div class="font-mono text-xs border border-border-smoke rounded-btn px-2 py-1 flex items-center gap-1 bg-panel-charcoal">
+                    <button id="lang-en" onclick="setLanguage('en')" class="text-cursor-green font-bold">EN</button>
+                    <span class="text-border-smoke">|</span>
+                    <button id="lang-ru" onclick="setLanguage('ru')" class="text-muted-ash hover:text-pure-white">RU</button>
+                </div>
 
-  <nav class="tabs" role="tablist" aria-label="Sections">
-    <button type="button" class="tab active" data-tab="features" id="tab-features" role="tab" aria-selected="true" aria-controls="panel-features" tabindex="0" data-i18n="tab_features">FEATURES</button>
-    <button type="button" class="tab" data-tab="matrix" id="tab-matrix" role="tab" aria-selected="false" aria-controls="panel-matrix" tabindex="-1" data-i18n="tab_matrix">MATRIX</button>
-    <button type="button" class="tab" data-tab="security" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" tabindex="-1" data-i18n="tab_security">SECURITY</button>
-    <button type="button" class="tab" data-tab="start" id="tab-start" role="tab" aria-selected="false" aria-controls="panel-start" tabindex="-1" data-i18n="tab_start">QUICK START</button>
-    <button type="button" class="tab" data-tab="limits" id="tab-limits" role="tab" aria-selected="false" aria-controls="panel-limits" tabindex="-1" data-i18n="tab_limits">LIMITS</button>
-  </nav>
+                <a href="https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest" target="_blank" rel="noopener noreferrer" class="hidden sm:inline-flex border border-border-smoke hover:border-cursor-green bg-transparent text-cursor-green hover:text-pure-white font-mono font-semibold text-xs py-2 px-3.5 rounded-btn transition-colors items-center gap-1">
+                    <span data-i18n="header_cta">[ Get APK ]</span>
+                </a>
 
-  <section id="panel-features" class="panel active" role="tabpanel" aria-labelledby="tab-features">
-    <h2 class="visually-hidden" data-i18n="tab_features">FEATURES</h2>
-    <div class="grid">
-      <div class="card">
-        <h3 class="card-heading">
-          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-1">
-            <span class="icon" aria-hidden="true">🛡️</span>
-            <span class="card-title" data-i18n="f1_t">Security Dashboard</span>
-            <span class="card-desc" data-i18n="f1_d">Risk Aggregator 0–100. Scans ADB Wi‑Fi, Accessibility, SELinux, overlays, banking apps. Suggests fix commands.</span>
-            <span class="card-more" aria-hidden="true">+</span>
-          </button>
-        </h3>
-        <div id="card-detail-1" class="card-detail" hidden>
-          <ul>
-            <li data-i18n="f1d1">Risk score 0–100 from 6+ checks: ADB Wi‑Fi, Accessibility services, SELinux, overlays, banking apps</li>
-            <li data-i18n="f1d2">Fix hints are offered as confirmable capabilities — never raw shell commands</li>
-            <li data-i18n="f1d3">Every check is written to TRACE together with the policy decision</li>
-          </ul>
+                <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden text-pure-white p-2 border border-border-smoke rounded-btn bg-panel-charcoal focus:outline-none" aria-label="Toggle navigation menu">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
         </div>
-      </div>
-      <div class="card">
-        <h3 class="card-heading">
-          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-2">
-            <span class="icon" aria-hidden="true">🧹</span>
-            <span class="card-title" data-i18n="f2_t">Cache Cleaner</span>
-            <span class="card-desc" data-i18n="f2_d">External cache scan, dry-run, 3-factor PURGE confirm, selective clean. Honest EXTERNAL_CACHE_ONLY when internal data needs root.</span>
-            <span class="card-more" aria-hidden="true">+</span>
-          </button>
-        </h3>
-        <div id="card-detail-2" class="card-detail" hidden>
-          <ul>
-            <li data-i18n="f2d1">Scans external cache of user apps; dry-run shows sizes before anything is removed</li>
-            <li data-i18n="f2d2">PURGE needs a typed phrase + explicit confirm (3-factor), with per-app selective clean</li>
-            <li data-i18n="f2d3">Honest EXTERNAL_CACHE_ONLY — internal /data/data without root is reported, never faked</li>
-          </ul>
+
+        <div id="mobile-menu" class="hidden md:hidden border-b border-border-smoke bg-panel-charcoal px-4 py-4 space-y-3 font-mono text-xs">
+            <a href="#features" onclick="toggleMobileMenu()" class="block text-muted-ash hover:text-pure-white transition-colors" data-i18n="nav_features">Modules</a>
+            <a href="#security-model" onclick="toggleMobileMenu()" class="block text-muted-ash hover:text-pure-white transition-colors" data-i18n="nav_security">Security Model</a>
+            <a href="#demo" onclick="toggleMobileMenu()" class="block text-muted-ash hover:text-pure-white transition-colors" data-i18n="nav_demo">Live Terminal</a>
+            <a href="#quickstart" onclick="toggleMobileMenu()" class="block text-muted-ash hover:text-pure-white transition-colors" data-i18n="nav_install">Install & Build</a>
+            <a href="https://github.com/M0NDsuChTiG/Void-Auditor" target="_blank" rel="noopener noreferrer" class="block text-cursor-green hover:underline">[ GitHub Repository ]</a>
+            <a href="https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest" target="_blank" rel="noopener noreferrer" class="block bg-cursor-green text-console-black text-center font-bold py-2 rounded-btn mt-2">
+                [ Download Latest APK ]
+            </a>
         </div>
-      </div>
-      <div class="card">
-        <h3 class="card-heading">
-          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-3">
-            <span class="icon" aria-hidden="true">🌐</span>
-            <span class="card-title" data-i18n="f3_t">NET_SCAN</span>
-            <span class="card-desc" data-i18n="f3_d">Subnet discovery: one Shizuku batch of parallel pings (~3s for /24). MAC via proc arp, common TCP ports on live hosts.</span>
-            <span class="card-more" aria-hidden="true">+</span>
-          </button>
-        </h3>
-        <div id="card-detail-3" class="card-detail" hidden>
-          <ul>
-            <li data-i18n="f3d1">Subnet discovery: one Shizuku batch of parallel pings — about 3 s per /24</li>
-            <li data-i18n="f3d2">MAC from /proc/net/arp with vendor lookup; common TCP ports on live hosts</li>
-            <li data-i18n="f3d3">Full 1–65535 scan with service detection and banners; cancellable from the UI</li>
-          </ul>
+    </header>
+
+    <main class="flex-grow">
+        <section class="py-12 md:py-16 px-4 text-center max-w-[1200px] mx-auto">
+            <div class="inline-flex flex-wrap items-center justify-center gap-2 mb-4">
+                <span class="font-mono text-xs text-cursor-green border border-border-smoke px-3 py-1 rounded-tag bg-panel-charcoal">
+                    [ Zero Trust Mobile Forensics Toolkit for Android ]
+                </span>
+                <span class="font-mono text-xs text-muted-ash border border-border-smoke px-3 py-1 rounded-tag bg-panel-charcoal">
+                    [ CYBERHACK · v1.4.5 ]
+                </span>
+            </div>
+
+            <h1 class="text-3xl sm:text-5xl md:text-[56px] font-bold font-sans tracking-tight leading-[1.13] text-pure-white mb-4 max-w-4xl mx-auto" id="hero-heading" data-i18n="hero_title">
+                Zero Trust Mobile Forensics Toolkit for Android
+            </h1>
+
+            <p class="text-muted-ash text-base md:text-[17px] leading-[1.5] max-w-2xl mx-auto mb-6 font-sans" data-i18n="hero_subtext">
+                An open-source security application written in Kotlin & Jetpack Compose. Powered by Shizuku for elevated Android system inspection without root. AI operates strictly as an advisory engine with mandatory policy and human confirmation before any action.
+            </p>
+
+            <div class="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 mb-8">
+                <a href="https://github.com/M0NDsuChTiG/Void-Auditor/releases/latest" target="_blank" rel="noopener noreferrer" class="bg-cursor-green hover:bg-hover-green text-console-black font-semibold text-base px-6 py-2.5 rounded-btn transition-colors w-full sm:w-auto text-center" data-i18n="hero_primary_cta">
+                    Download APK (GitHub Releases)
+                </a>
+                <a href="https://github.com/M0NDsuChTiG/Void-Auditor/releases/download/v1.4.5/Void-Auditor-v1.4.5.apk" target="_blank" rel="noopener noreferrer" class="border border-border-smoke hover:border-cursor-green bg-transparent text-cursor-green hover:text-pure-white font-mono font-semibold text-sm px-5 py-2.5 rounded-btn transition-colors w-full sm:w-auto text-center" data-i18n="hero_direct_apk">
+                    [ Direct APK v1.4.5 ]
+                </a>
+                <a href="https://github.com/M0NDsuChTiG/Void-Auditor" target="_blank" rel="noopener noreferrer" class="text-cursor-green hover:underline font-normal text-base px-4 py-2.5 flex items-center justify-center gap-1 transition-colors" data-i18n="hero_secondary_cta">
+                    View Source on GitHub &rarr;
+                </a>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-2 max-w-3xl mx-auto font-mono text-xs text-tertiary-fog">
+                <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ Kotlin + Jetpack Compose ]</span>
+                <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ Shizuku v13+ Required ]</span>
+                <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ minSdk 26 / targetSdk 35 ]</span>
+                <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ MIT License ]</span>
+                <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ com.kuzyamond.voidauditor ]</span>
+            </div>
+        </section>
+
+        <section class="border-y border-border-smoke bg-panel-charcoal py-3">
+            <div class="max-w-[1200px] mx-auto px-4 overflow-x-auto whitespace-nowrap scrollbar-none flex items-center justify-between gap-4 text-xs font-mono">
+                <span class="text-muted-ash font-bold uppercase tracking-wider" data-i18n="workflow_title">FORENSIC EXECUTION PIPELINE:</span>
+                <div class="flex items-center gap-2.5 text-muted-ash">
+                    <span class="text-cursor-green font-medium">[ Shizuku ]</span>
+                    <span class="text-border-smoke">|</span>
+                    <span>[ Auth ]</span>
+                    <span class="text-border-smoke">|</span>
+                    <span>[ Audit ]</span>
+                    <span class="text-border-smoke">|</span>
+                    <span class="text-cursor-green font-medium">[ Policy Engine ]</span>
+                    <span class="text-border-smoke">|</span>
+                    <span class="text-pure-white font-bold">[ Human Confirm ]</span>
+                    <span class="text-border-smoke">|</span>
+                    <span>[ Trace Log ]</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="py-12 md:py-16 px-4 max-w-[1200px] mx-auto">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <div class="font-mono text-xs text-cursor-green mb-1.5">[ Forensic Modules ]</div>
+                <h2 class="text-2xl md:text-3xl font-bold font-sans text-pure-white" data-i18n="features_title">Comprehensive On-Device Security Audit</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Card 1: Dashboard -->
+                <div class="bg-card-graphite p-6 rounded-card border border-border-smoke flex flex-col justify-between">
+                    <div>
+                        <div class="font-mono text-xs text-cursor-green mb-2.5">[ DASHBOARD ]</div>
+                        <h3 class="font-sans font-semibold text-lg text-pure-white mb-2" data-i18n="f1_title">Security Risk Dashboard</h3>
+                        <p class="text-muted-ash text-sm leading-relaxed mb-4" data-i18n="f1_desc">
+                            Calculates aggregate system risk (0–100) by evaluating Wi-Fi ADB status via getprop, granted Accessibility services, SELinux enforcement, overlay permissions, and banking package presence.
+                        </p>
+                    </div>
+                    <div class="font-mono text-xs text-tertiary-fog border-t border-border-smoke pt-3">
+                        Engine: 0–100 Risk Scale &amp; getprop ADB Verification
+                    </div>
+                </div>
+
+                <!-- Card 2: Permissions -->
+                <div class="bg-card-graphite p-6 rounded-card border border-border-smoke flex flex-col justify-between">
+                    <div>
+                        <div class="font-mono text-xs text-cursor-green mb-2.5">[ PERMS ]</div>
+                        <h3 class="font-sans font-semibold text-lg text-pure-white mb-2" data-i18n="f2_title">Permission & Package Inspector</h3>
+                        <p class="text-muted-ash text-sm leading-relaxed mb-4" data-i18n="f2_desc">
+                            Queries package states via Shizuku <span class="font-mono text-xs text-pure-white">dumpsys package</span>. Categorizes dangerous permissions, highlights SYSTEM components, and exports structured security reports.
+                        </p>
+                    </div>
+                    <div class="font-mono text-xs text-tertiary-fog border-t border-border-smoke pt-3">
+                        Source: dumpsys package &amp; System App Tagging
+                    </div>
+                </div>
+
+                <!-- Card 3: Cache Purge -->
+                <div class="bg-card-graphite p-6 rounded-card border border-border-smoke flex flex-col justify-between">
+                    <div>
+                        <div class="font-mono text-xs text-cursor-green mb-2.5">[ CACHE_PURGE ]</div>
+                        <h3 class="font-sans font-semibold text-lg text-pure-white mb-2" data-i18n="f3_title">External Cache Cleaner</h3>
+                        <p class="text-muted-ash text-sm leading-relaxed mb-4" data-i18n="f3_desc">
+                            Scans external cache directories with dry-run support, selective deletion, and 3-factor keyword confirmation ("PURGE"). <span class="text-pure-white font-mono text-xs">EXTERNAL_CACHE_ONLY</span>: internal <span class="font-mono text-xs text-tertiary-fog">/data/data</span> remains untouched without root.
+                        </p>
+                    </div>
+                    <div class="font-mono text-xs text-tertiary-fog border-t border-border-smoke pt-3">
+                        Scope: EXTERNAL_CACHE_ONLY
+                    </div>
+                </div>
+
+                <!-- Card 4: Net Scan + AI -->
+                <div class="bg-card-graphite p-6 rounded-card border border-border-smoke flex flex-col justify-between">
+                    <div>
+                        <div class="font-mono text-xs text-cursor-green mb-2.5">[ NET_SCAN + AI ]</div>
+                        <h3 class="font-sans font-semibold text-lg text-pure-white mb-2" data-i18n="f4_title">Subnet Network Scan &amp; AI Advisory</h3>
+                        <p class="text-muted-ash text-sm leading-relaxed mb-4" data-i18n="f4_desc">
+                            Performs parallel batch pings (~3s for /24) with ARP MAC parsing (<span class="font-mono text-xs text-pure-white">/proc/net/arp</span>). Integrates Gemini AI for advisor-only proposals and financial app deep scans governed by Policy Engine.
+                        </p>
+                    </div>
+                    <div class="font-mono text-xs text-tertiary-fog border-t border-border-smoke pt-3">
+                        Target: Local /24 ARP Ping &amp; Gemini Policy Engine
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex flex-col items-center gap-3">
+                <div class="font-mono text-xs text-muted-ash" data-i18n="features_also_label">Also included:</div>
+                <div class="flex flex-wrap items-center justify-center gap-2 max-w-3xl font-mono text-xs text-tertiary-fog">
+                    <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ WIFI_ADB · getprop + VERIFY_FAILED ]</span>
+                    <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ Banking Deep Scan ]</span>
+                    <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ Apps / Activities · confirm ]</span>
+                    <span class="border border-border-smoke rounded-tag px-2.5 py-1">[ TRACE Audit Trail ]</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="security-model" class="py-12 md:py-16 bg-panel-charcoal border-y border-border-smoke">
+            <div class="max-w-[1200px] mx-auto px-4">
+                <div class="max-w-3xl mb-8">
+                    <div class="font-mono text-xs text-cursor-green mb-1.5">[ Zero Trust Security Architecture ]</div>
+                    <h2 class="text-2xl md:text-3xl font-bold font-sans text-pure-white mb-3" data-i18n="sec_title">Strict Governance & Confirmation Tiers</h2>
+                    <p class="text-muted-ash text-sm leading-relaxed" data-i18n="sec_desc">
+                        VOID Auditor treats every execution intent as untrusted by default. Destructive operations (force-stop, app disable, data clear) require explicit human approval and pass through a structured security pipeline.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="border border-border-smoke p-5 rounded-card bg-console-black">
+                        <div class="font-mono text-xs text-cursor-green mb-1.5">[ GOVERNANCE_RULE_01 ]</div>
+                        <h3 class="text-base font-bold text-pure-white mb-1.5" data-i18n="rule1_title">Gemini AI is Advisor-Only</h3>
+                        <p class="text-muted-ash text-xs leading-relaxed" data-i18n="rule1_desc">
+                            Gemini proposes actions under Policy Engine oversight. AI never executes shell scripts directly; human confirmation is mandatory.
+                        </p>
+                    </div>
+
+                    <div class="border border-border-smoke p-5 rounded-card bg-console-black">
+                        <div class="font-mono text-xs text-cursor-green mb-1.5">[ GOVERNANCE_RULE_02 ]</div>
+                        <h3 class="text-base font-bold text-pure-white mb-1.5" data-i18n="rule2_title">Key Storage & App-Private Logs</h3>
+                        <p class="text-muted-ash text-xs leading-relaxed" data-i18n="rule2_desc">
+                            Gemini API keys are stored via EncryptedSharedPreferences. Audit trails (TRACE) log action, actor, risk level, and exit code in app-private storage.
+                        </p>
+                    </div>
+
+                    <div class="border border-border-smoke p-5 rounded-card bg-console-black">
+                        <div class="font-mono text-xs text-cursor-green mb-1.5">[ GOVERNANCE_RULE_03 ]</div>
+                        <h3 class="text-base font-bold text-pure-white mb-1.5" data-i18n="rule3_title">Biometric / Device Credential Gate</h3>
+                        <p class="text-muted-ash text-xs leading-relaxed" data-i18n="rule3_desc">
+                            Privileged features require optional BiometricPrompt or Keyguard device credentials (PIN/Pattern/Password) to block unauthorized local access.
+                        </p>
+                    </div>
+
+                    <div class="border border-border-smoke p-5 rounded-card bg-console-black">
+                        <div class="font-mono text-xs text-cursor-green mb-1.5">[ GOVERNANCE_RULE_04 ]</div>
+                        <h3 class="text-base font-bold text-pure-white mb-1.5" data-i18n="rule4_title">3-Factor Confirmation for Purges</h3>
+                        <p class="text-muted-ash text-xs leading-relaxed" data-i18n="rule4_desc">
+                            High-risk operations like cache wiping or app data clearing enforce dry-run verification, itemized selection, and explicit keyword typing ("PURGE").
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="demo" class="py-12 md:py-16 px-4 max-w-[1200px] mx-auto">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-2">
+                <div>
+                    <div class="font-mono text-xs text-cursor-green mb-1">[ Interactive Terminal Simulator ]</div>
+                    <h2 class="text-2xl md:text-3xl font-bold font-sans text-pure-white" data-i18n="demo_title">Honest Local Simulation</h2>
+                    <p class="text-xs font-mono text-tertiary-fog mt-1" data-i18n="demo_disclaimer">UI demo only · runs in the browser · no device data leaves this page</p>
+                </div>
+                <div class="font-mono text-xs text-muted-ash">
+                    Package: <span class="text-pure-white">com.kuzyamond.voidauditor</span>
+                </div>
+            </div>
+
+            <div class="bg-panel-charcoal border border-border-smoke rounded-card overflow-hidden">
+                <div class="bg-console-black px-4 py-3 border-b border-border-smoke flex flex-col sm:flex-row sm:items-center justify-between gap-2 font-mono text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cursor-green inline-block"></span>
+                        <span id="demo-module-title" class="text-pure-white font-medium">Shizuku System Audit</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="switchDemoTab('shizuku')" class="text-cursor-green hover:underline">[ Shizuku ]</button>
+                        <button onclick="switchDemoTab('wifi_adb')" class="text-muted-ash hover:text-pure-white">[ Wi-Fi ADB ]</button>
+                        <button onclick="switchDemoTab('cache')" class="text-muted-ash hover:text-pure-white">[ Cache Purge ]</button>
+                        <button onclick="switchDemoTab('ai_policy')" class="text-muted-ash hover:text-pure-white">[ AI Policy ]</button>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-console-black font-mono text-xs min-h-[260px] text-muted-ash leading-relaxed flex flex-col justify-between">
+                    <div id="terminal-output" class="space-y-1.5 overflow-y-auto max-h-[300px] pr-2">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <div class="pt-4 border-t border-border-smoke mt-4 flex items-center justify-between">
+                        <span class="text-tertiary-fog">Status: <span id="demo-status" class="text-cursor-green">IDLE</span></span>
+                        <button onclick="runDemoSimulation()" class="bg-cursor-green hover:bg-hover-green text-console-black font-mono font-bold py-1.5 px-4 rounded-btn transition-colors">
+                            [ RUN MODULE ]
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="quickstart" class="py-12 md:py-16 px-4 max-w-[1200px] mx-auto border-t border-border-smoke">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div>
+                    <div class="font-mono text-xs text-cursor-green mb-1.5">[ Environment Requirements ]</div>
+                    <h2 class="text-2xl font-bold font-sans text-pure-white mb-4" data-i18n="req_title">Target Specifications</h2>
+
+                    <ul class="space-y-3.5 font-mono text-xs text-muted-ash">
+                        <li class="flex items-start gap-3 border-b border-border-smoke pb-2.5">
+                            <span class="text-cursor-green font-bold">&gt;</span>
+                            <div>
+                                <span class="text-pure-white font-bold">Android Version:</span> Android 8.0+ (minSdk 26, targetSdk 35)
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3 border-b border-border-smoke pb-2.5">
+                            <span class="text-cursor-green font-bold">&gt;</span>
+                            <div>
+                                <span class="text-pure-white font-bold">Privilege Provider:</span> Shizuku v13+ (started &amp; permission granted)
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3 border-b border-border-smoke pb-2.5">
+                            <span class="text-cursor-green font-bold">&gt;</span>
+                            <div>
+                                <span class="text-pure-white font-bold">Optional AI Key:</span> Gemini API Key (stored in EncryptedSharedPreferences)
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3 pb-1">
+                            <span class="text-cursor-green font-bold">&gt;</span>
+                            <div>
+                                <span class="text-pure-white font-bold">Application ID:</span> <span class="text-cursor-green">com.kuzyamond.voidauditor</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="font-mono text-xs text-cursor-green mb-1.5">[ Developer Build Instructions ]</div>
+                    <h2 class="text-2xl font-bold font-sans text-pure-white mb-4" data-i18n="build_title">Compile from Source</h2>
+
+                    <div class="bg-panel-charcoal border border-border-smoke p-4 rounded-card font-mono text-xs text-highlight-mist space-y-2.5">
+                        <p class="text-tertiary-fog"># Clone official repository</p>
+                        <p class="text-pure-white">git clone https://github.com/M0NDsuChTiG/Void-Auditor.git</p>
+                        <p class="text-pure-white">cd Void-Auditor/android</p>
+                        <p class="text-tertiary-fog"># Assemble debug APK via Gradle</p>
+                        <p class="text-pure-white">./gradlew :app:assembleDebug</p>
+                        <p class="text-tertiary-fog"># Output location:</p>
+                        <p class="text-cursor-green">app/build/outputs/apk/debug/</p>
+                        <p class="text-muted-ash pt-2 border-t border-border-smoke/50" data-i18n="build_or_download">
+                            Or download directly: GitHub &rarr; Releases &rarr; latest
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-border-smoke py-8 bg-console-black font-mono text-xs text-muted-ash">
+        <div class="max-w-[1200px] mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <span class="text-cursor-green font-bold">&gt;</span>
+                <span class="text-pure-white font-bold">VOID / AUDITOR</span>
+                <span>— Open Source under MIT License</span>
+            </div>
+
+            <div class="flex items-center space-x-6 text-tertiary-fog">
+                <a href="https://github.com/M0NDsuChTiG/Void-Auditor" target="_blank" rel="noopener noreferrer" class="hover:text-pure-white transition-colors">Source Code</a>
+                <a href="https://github.com/M0NDsuChTiG/Void-Auditor/releases" target="_blank" rel="noopener noreferrer" class="hover:text-pure-white transition-colors">Releases</a>
+                <a href="https://t.me/EthicalHackingCS" target="_blank" rel="noopener noreferrer" class="hover:text-pure-white transition-colors">Telegram</a>
+            </div>
+
+            <div>
+                <span>&copy; M0NDsuChTiG. com.kuzyamond.voidauditor</span>
+            </div>
         </div>
-      </div>
-      <div class="card">
-        <h3 class="card-heading">
-          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-4">
-            <span class="icon" aria-hidden="true">🔌</span>
-            <span class="card-title" data-i18n="f4_t">WIFI_ADB</span>
-            <span class="card-desc" data-i18n="f4_d">Status from getprop only. Enable verifies the port is active or returns SETPROP_FAILED / VERIFY_FAILED — no fake “enabled”.</span>
-            <span class="card-more" aria-hidden="true">+</span>
-          </button>
-        </h3>
-        <div id="card-detail-4" class="card-detail" hidden>
-          <ul>
-            <li data-i18n="f4d1">Status is read only from getprop — no fake “enabled”</li>
-            <li data-i18n="f4d2">Enable verifies the port actually answers, otherwise SETPROP_FAILED / VERIFY_FAILED</li>
-            <li data-i18n="f4d3">Reports SELinux blocks on non-root devices honestly</li>
-          </ul>
-        </div>
-      </div>
-      <div class="card">
-        <h3 class="card-heading">
-          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-5">
-            <span class="icon" aria-hidden="true">🧠</span>
-            <span class="card-title" data-i18n="f5_t">AI Forensics</span>
-            <span class="card-desc" data-i18n="f5_d">Gemini as advisor: Intent Proposal → Policy Engine → human confirm. AI never runs shell directly.</span>
-            <span class="card-more" aria-hidden="true">+</span>
-          </button>
-        </h3>
-        <div id="card-detail-5" class="card-detail" hidden>
-          <ul>
-            <li data-i18n="f5d1">Gemini proposes Intent Proposals with whitelisted capabilityId — advisory only</li>
-            <li data-i18n="f5d2">Pipeline: sanitize → validate → human review → PolicyEngine → execute → audit</li>
-            <li data-i18n="f5d3">AI never runs shell directly; destructive operations are not in the whitelist</li>
-          </ul>
-        </div>
-      </div>
-      <div class="card">
-        <h3 class="card-heading">
-          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-6">
-            <span class="icon" aria-hidden="true">🏦</span>
-            <span class="card-title" data-i18n="f6_t">Banking Deep Scan</span>
-            <span class="card-desc" data-i18n="f6_d">Finance-related packages: dangerous permissions, WebView, deep links, persistent services.</span>
-            <span class="card-more" aria-hidden="true">+</span>
-          </button>
-        </h3>
-        <div id="card-detail-6" class="card-detail" hidden>
-          <ul>
-            <li data-i18n="f6d1">Finance packages: dangerous permissions (SMS, call log, contacts), WebView, deep links</li>
-            <li data-i18n="f6d2">Detects persistent background services and accessibility risk indicators</li>
-            <li data-i18n="f6d3">Results feed the risk score with a clear DETECTED / OK status</li>
-          </ul>
-        </div>
-      </div>
-      <div class="card">
-        <h3 class="card-heading">
-          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-7">
-            <span class="icon" aria-hidden="true">📦</span>
-            <span class="card-title" data-i18n="f7_t">Apps & Activities</span>
-            <span class="card-desc" data-i18n="f7_d">Force-stop, disable, clear data, activity launcher — destructive ops require confirmation.</span>
-            <span class="card-more" aria-hidden="true">+</span>
-          </button>
-        </h3>
-        <div id="card-detail-7" class="card-detail" hidden>
-          <ul>
-            <li data-i18n="f7d1">Per package: force-stop, disable, clear data, activity launcher</li>
-            <li data-i18n="f7d2">Destructive actions require explicit confirmation via risk-tiered dialogs</li>
-            <li data-i18n="f7d3">Package list with status: running / frozen / disabled</li>
-          </ul>
-        </div>
-      </div>
-      <div class="card">
-        <h3 class="card-heading">
-          <button type="button" class="card-toggle" aria-expanded="false" aria-controls="card-detail-8">
-            <span class="icon" aria-hidden="true">📜</span>
-            <span class="card-title" data-i18n="f8_t">Audit Trail</span>
-            <span class="card-desc" data-i18n="f8_d">TRACE timeline: who, what, risk, policy decision, exit code, duration.</span>
-            <span class="card-more" aria-hidden="true">+</span>
-          </button>
-        </h3>
-        <div id="card-detail-8" class="card-detail" hidden>
-          <ul>
-            <li data-i18n="f8d1">TRACE timeline: actor, capability, risk, policy decision, exit code, duration</li>
-            <li data-i18n="f8d2">Written to app-private storage; export via MediaStore when needed</li>
-            <li data-i18n="f8d3">ActorType distinguishes USER decisions from AI decisions</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
+    </footer>
 
-  <section id="panel-matrix" class="panel" role="tabpanel" aria-labelledby="tab-matrix" hidden>
-    <h2 data-i18n="matrix_h">FUNCTION MATRIX</h2>
-    <div class="feature-row">
-      <h3 class="feature-heading">
-        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-1">
-          <span class="name">Dashboard</span><span class="desc" data-i18n="m1">Risk score + auto fix hints</span>
-          <span class="feature-more" aria-hidden="true">+</span>
-        </button>
-      </h3>
-      <div id="matrix-detail-1" class="feature-detail" hidden>
-        <ul>
-          <li data-i18n="m1d1">Aggregates a 0–100 risk from device state checks</li>
-          <li data-i18n="m1d2">Each fix hint maps to a confirmable capability with a policy decision</li>
-          <li data-i18n="m1d3">State is retained across tab switches</li>
-        </ul>
-      </div>
-    </div>
-    <div class="feature-row">
-      <h3 class="feature-heading">
-        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-2">
-          <span class="name">Device Audit</span><span class="desc" data-i18n="m2">SELinux, ADB Wi‑Fi, Accessibility, packages</span>
-          <span class="feature-more" aria-hidden="true">+</span>
-        </button>
-      </h3>
-      <div id="matrix-detail-2" class="feature-detail" hidden>
-        <ul>
-          <li data-i18n="m2d1">Checks SELinux enforcing, ADB Wi‑Fi exposure, Accessibility services</li>
-          <li data-i18n="m2d2">Lists installed packages and key system properties</li>
-          <li data-i18n="m2d3">Battery / build / hardware fingerprint via dumpsys</li>
-        </ul>
-      </div>
-    </div>
-    <div class="feature-row">
-      <h3 class="feature-heading">
-        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-3">
-          <span class="name">Cache</span><span class="desc" data-i18n="m3">Scan / dry-run / PURGE phrase / rescan</span>
-          <span class="feature-more" aria-hidden="true">+</span>
-        </button>
-      </h3>
-      <div id="matrix-detail-3" class="feature-detail" hidden>
-        <ul>
-          <li data-i18n="m3d1">External cache scan with per-app sizes</li>
-          <li data-i18n="m3d2">Dry-run first; PURGE requires a typed phrase (3-factor confirm)</li>
-          <li data-i18n="m3d3">Selective clean + honest EXTERNAL_CACHE_ONLY without root</li>
-        </ul>
-      </div>
-    </div>
-    <div class="feature-row">
-      <h3 class="feature-heading">
-        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-4">
-          <span class="name">NET_SCAN</span><span class="desc" data-i18n="m4">Batch ping + MAC + ports</span>
-          <span class="feature-more" aria-hidden="true">+</span>
-        </button>
-      </h3>
-      <div id="matrix-detail-4" class="feature-detail" hidden>
-        <ul>
-          <li data-i18n="m4d1">One Shizuku batch ping for the whole subnet (~3 s per /24)</li>
-          <li data-i18n="m4d2">MAC via /proc/net/arp with vendor lookup</li>
-          <li data-i18n="m4d3">Common ports + full 1–65535 scan with service detection</li>
-        </ul>
-      </div>
-    </div>
-    <div class="feature-row">
-      <h3 class="feature-heading">
-        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-5">
-          <span class="name">AI</span><span class="desc" data-i18n="m5">Proposal only → policy → confirm</span>
-          <span class="feature-more" aria-hidden="true">+</span>
-        </button>
-      </h3>
-      <div id="matrix-detail-5" class="feature-detail" hidden>
-        <ul>
-          <li data-i18n="m5d1">Gemini emits PROPOSAL_JSON with a whitelisted capabilityId</li>
-          <li data-i18n="m5d2">Human review → PolicyEngine → CapabilityExecutor</li>
-          <li data-i18n="m5d3">Audited as ActorType.AI; no direct shell execution</li>
-        </ul>
-      </div>
-    </div>
-    <div class="feature-row">
-      <h3 class="feature-heading">
-        <button type="button" class="feature-toggle" aria-expanded="false" aria-controls="matrix-detail-6">
-          <span class="name">TRACE</span><span class="desc" data-i18n="m6">Structured forensic events</span>
-          <span class="feature-more" aria-hidden="true">+</span>
-        </button>
-      </h3>
-      <div id="matrix-detail-6" class="feature-detail" hidden>
-        <ul>
-          <li data-i18n="m6d1">Who, what, risk, policy decision, exit code, duration</li>
-          <li data-i18n="m6d2">App-private storage; export via MediaStore when needed</li>
-          <li data-i18n="m6d3">USER and AI actor types are distinguished</li>
-        </ul>
-      </div>
-    </div>
-  </section>
+    <script>
+        const I18N = {
+            en: {
+                nav_features: "Modules",
+                nav_security: "Security Model",
+                nav_demo: "Live Terminal",
+                nav_install: "Install & Build",
+                header_cta: "[ Get APK ]",
+                hero_title: "Zero Trust Mobile Forensics Toolkit for Android",
+                hero_subtext: "An open-source security application written in Kotlin & Jetpack Compose. Powered by Shizuku for elevated Android system inspection without root. AI operates strictly as an advisory engine with mandatory policy and human confirmation before any action.",
+                hero_primary_cta: "Download APK (GitHub Releases)",
+                hero_direct_apk: "[ Direct APK v1.4.5 ]",
+                hero_secondary_cta: "View Source on GitHub →",
+                workflow_title: "FORENSIC EXECUTION PIPELINE:",
+                features_title: "Comprehensive On-Device Security Audit",
+                features_also_label: "Also included:",
+                f1_title: "Security Risk Dashboard",
+                f1_desc: "Calculates aggregate system risk (0–100) by evaluating Wi-Fi ADB status via getprop, granted Accessibility services, SELinux enforcement, overlay permissions, and banking package presence.",
+                f2_title: "Permission & Package Inspector",
+                f2_desc: "Queries package states via Shizuku dumpsys package. Categorizes dangerous permissions, highlights SYSTEM components, and exports structured security reports.",
+                f3_title: "External Cache Cleaner",
+                f3_desc: "Scans external cache directories with dry-run support, selective deletion, and 3-factor keyword confirmation (\"PURGE\"). EXTERNAL_CACHE_ONLY: internal /data/data remains untouched without root.",
+                f4_title: "Subnet Network Scan & AI Advisory",
+                f4_desc: "Performs parallel batch pings (~3s for /24) with ARP MAC parsing (/proc/net/arp). Integrates Gemini AI for advisor-only proposals and financial app deep scans governed by Policy Engine.",
+                sec_title: "Strict Governance & Confirmation Tiers",
+                sec_desc: "VOID Auditor treats every execution intent as untrusted by default. Destructive operations (force-stop, app disable, data clear) require explicit human approval and pass through a structured security pipeline.",
+                rule1_title: "Gemini AI is Advisor-Only",
+                rule1_desc: "Gemini proposes actions under Policy Engine oversight. AI never executes shell scripts directly; human confirmation is mandatory.",
+                rule2_title: "Key Storage & App-Private Logs",
+                rule2_desc: "Gemini API keys are stored via EncryptedSharedPreferences. Audit trails (TRACE) log action, actor, risk level, and exit code in app-private storage.",
+                rule3_title: "Biometric / Device Credential Gate",
+                rule3_desc: "Privileged features require optional BiometricPrompt or Keyguard device credentials (PIN/Pattern/Password) to block unauthorized local access.",
+                rule4_title: "3-Factor Confirmation for Purges",
+                rule4_desc: "High-risk operations like cache wiping or app data clearing enforce dry-run verification, itemized selection, and explicit keyword typing (\"PURGE\").",
+                demo_title: "Honest Local Simulation",
+                demo_disclaimer: "UI demo only · runs in the browser · no device data leaves this page",
+                req_title: "Target Specifications",
+                build_title: "Compile from Source",
+                build_or_download: "Or download directly: GitHub → Releases → latest"
+            },
+            ru: {
+                nav_features: "Модули",
+                nav_security: "Модель безопасности",
+                nav_demo: "Терминал",
+                nav_install: "Сборка и Установка",
+                header_cta: "[ Скачать APK ]",
+                hero_title: "Zero Trust toolkit для мобильной форензики Android",
+                hero_subtext: "Open-source приложение на Kotlin и Jetpack Compose. Использует Shizuku для привилегированного аудита Android без root. ИИ работает исключительно как советник: обязательны проверки политик и подтверждение человеком перед любым действием.",
+                hero_primary_cta: "Скачать APK (GitHub Releases)",
+                hero_direct_apk: "[ APK v1.4.5 напрямую ]",
+                hero_secondary_cta: "Исходный код на GitHub →",
+                workflow_title: "ПОСЛЕДОВАТЕЛЬНОСТЬ ВЫПОЛНЕНИЯ:",
+                features_title: "Полный локальный аудит безопасности",
+                features_also_label: "Также в приложении:",
+                f1_title: "Дашборд рисков безопасности",
+                f1_desc: "Рассчитывает общий риск (0–100), анализируя статус Wi-Fi ADB через getprop, специальные возможности (Accessibility), SELinux, оверлеи и наличие банковских ПО.",
+                f2_title: "Инспектор разрешений и пакетов",
+                f2_desc: "Запрашивает состояние пакетов через Shizuku dumpsys package. Группирует опасные разрешения, подсвечивает системные компоненты и экспортирует отчеты.",
+                f3_title: "Очистка внешнего кэша",
+                f3_desc: "Сканирует внешний кэш с поддержкой dry-run, выборочным удалением и трехфакторным подтверждением (ввод «PURGE»). Честный EXTERNAL_CACHE_ONLY: /data/data недоступен без root.",
+                f4_title: "Сканирование сети и ИИ-советник",
+                f4_desc: "Выполняет параллельный пинг (~3 сек для /24) с ARP MAC-анализом (/proc/net/arp). Интегрирует Gemini AI для рекомендаций и аудита финансовых ПО под контролем Policy Engine.",
+                sec_title: "Строгое управление и уровни подтверждений",
+                sec_desc: "VOID Auditor считает любые намерения нетрастовыми по умолчанию. Разрушительные операции (остановка, отключение ПО, сброс данных) требуют подтверждения пользователем.",
+                rule1_title: "Gemini AI — только советник",
+                rule1_desc: "Gemini предлагает действия под контролем Policy Engine. ИИ никогда не выполняет shell напрямую; обязателен выбор пользователя.",
+                rule2_title: "Шифрование ключей и локальные логи",
+                rule2_desc: "Ключи Gemini API хранятся в EncryptedSharedPreferences. История (TRACE) фиксирует действия, уровень риска и код выхода во внутреннем хранилище.",
+                rule3_title: "Защита биометрией / PIN-кодом",
+                rule3_desc: "Привилегированные функции требуют биометрию или Keyguard (PIN/пароль) для защиты от несанкционированного локального доступа.",
+                rule4_title: "3-факторное подтверждение очистки",
+                rule4_desc: "Высокорисковые операции требуют проверки в режиме dry-run, выборочного списка и явного ввода ключевого слова («PURGE»).",
+                demo_title: "Локальная симуляция",
+                demo_disclaimer: "Только демо в браузере · данные устройства никуда не отправляются",
+                req_title: "Системные требования",
+                build_title: "Сборка из исходного кода",
+                build_or_download: "Или скачайте с GitHub → Releases → latest"
+            }
+        };
 
-  <section id="panel-security" class="panel" role="tabpanel" aria-labelledby="tab-security" hidden>
-    <h2 data-i18n="sec_h">PROTOCOLS</h2>
-    <ul class="security-list">
-      <li data-i18n="s1">Destructive actions require explicit confirmation</li>
-      <li data-i18n="s2">Gemini API keys in EncryptedSharedPreferences (AES-256-GCM)</li>
-      <li data-i18n="s3">Audit logs only in app-private storage</li>
-      <li data-i18n="s4">Optional biometric / PIN at launch</li>
-      <li data-i18n="s5">Capability System + Policy Engine + human gate</li>
-      <li data-i18n="s6">AI cannot execute shell or invent unrestricted intents</li>
-    </ul>
-  </section>
+        const DEMO_SCRIPTS = {
+            shizuku: {
+                title: "Shizuku System Audit",
+                lines: [
+                    "&gt; Binding Shizuku IPC binder service...",
+                    "[+] Shizuku v13+ privilege check: GRANTED (UID 2000)",
+                    "&gt; Invoking dumpsys package com.kuzyamond.voidauditor...",
+                    "[+] Parsing granted dangerous permissions...",
+                    "[-] SYSTEM_ALERT_WINDOW: NOT GRANTED",
+                    "[-] ACCESSIBILITY_SERVICE: DISABLED",
+                    "[!] Risk Score Calculated: 15/100 (LOW_RISK)"
+                ]
+            },
+            wifi_adb: {
+                title: "Wi-Fi ADB Status Check",
+                lines: [
+                    "&gt; Executing getprop service.adb.tcp.port...",
+                    "[+] Current property value: -1 (DISABLED)",
+                    "&gt; Attempting service enable intent...",
+                    "&gt; Setting property setprop service.adb.tcp.port 5555...",
+                    "[!] VERIFY_FAILED: Port 5555 not responding after setprop.",
+                    "[i] Vendor ROM policy restriction detected. System property write blocked."
+                ]
+            },
+            cache: {
+                title: "External Cache Scan",
+                lines: [
+                    "&gt; Initiating EXTERNAL_CACHE_ONLY scan...",
+                    "[i] Note: Internal /data/data inaccessible without root privilege.",
+                    "[+] Scanned /sdcard/Android/data/*/cache/...",
+                    "[i] Reclaimable size depends on device (EXTERNAL_CACHE_ONLY).",
+                    "&gt; Requiring 3-factor human confirmation...",
+                    "[!] Awaiting user input: type 'PURGE' to proceed."
+                ]
+            },
+            ai_policy: {
+                title: "Gemini Advisory & Policy Engine",
+                lines: [
+                    "&gt; Gemini Advisory Engine received system context.",
+                    "[+] Proposal generated: Revoke overlay permission for target package.",
+                    "&gt; Policy Engine Rule CHECK_AI_EXECUTION applied.",
+                    "[!] POLICY RULE ENFORCED: AI cannot execute shell commands directly.",
+                    "[+] Intent proposal dispatched to UI for human confirmation."
+                ]
+            }
+        };
 
-  <section id="panel-start" class="panel" role="tabpanel" aria-labelledby="tab-start" hidden>
-    <h2 data-i18n="start_h">QUICK START</h2>
-    <ul class="security-list">
-      <li data-i18n="q1">Install and start Shizuku (USB ADB or Wireless Debugging)</li>
-      <li data-i18n="q2">Install VOID Auditor → grant Shizuku permission</li>
-      <li data-i18n="q3">Optional: add Gemini API key in AI screen</li>
-      <li data-i18n="q4">Run Dashboard or CACHE scan; always dry-run before purge</li>
-      <li data-i18n="q5">CONN: check WIFI_ADB status · NET_SCAN: scan current subnet</li>
-    </ul>
-    <p style="text-align:center;margin-top:1.25rem;font-size:0.9rem;color:var(--muted)" data-i18n="req">
-      Requires Android 8.0+ · Shizuku v13+
-    </p>
-  </section>
+        let currentActiveTab = 'shizuku';
 
-  <section id="panel-limits" class="panel" role="tabpanel" aria-labelledby="tab-limits" hidden>
-    <h2 data-i18n="lim_h">KNOWN LIMITS</h2>
-    <div class="limits" data-i18n="lim1">
-      Internal /data/data cache is often invisible without root. The app shows EXTERNAL_CACHE_ONLY and may offer SYSTEM_TRIM — it does not pretend to see full internal cache.
-    </div>
-    <div class="limits" data-i18n="lim2">
-      ENABLE_WIFI_ADB via setprop is blocked by SELinux on many non-root devices. Failures are reported as SETPROP_FAILED or VERIFY_FAILED, never as a false “enabled”.
-    </div>
-    <div class="limits" data-i18n="lim3">
-      Authorized use only. You are responsible for compliance with local law and device owner consent.
-    </div>
-  </section>
-  </main>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
 
-  <footer class="footer">
-    <p>
-      <a href="https://github.com/M0NDsuChTiG/Void-Auditor">GitHub</a> ·
-      <a href="https://github.com/M0NDsuChTiG/Void-Auditor/blob/main/README.md">README</a> ·
-      <a href="https://github.com/M0NDsuChTiG/Void-Auditor/releases">Releases</a> ·
-      <a href="https://github.com/M0NDsuChTiG/Void-Auditor/blob/main/SECURITY.md">Security</a> ·
-      <a href="https://t.me/EthicalHackingCS">Telegram</a>
-    </p>
-    <p data-i18n="footer">VOID Auditor · CyberHack Edition · v1.4.5</p>
-    <p class="stack">Kotlin · Jetpack Compose · Shizuku 13 · Gemini · Material 3 · minSdk 26 · targetSdk 35</p>
-  </footer>
-</div>
+        function setLanguage(lang) {
+            const dict = I18N[lang];
+            if (!dict) return;
 
-<script>
-(function () {
-  var T = {
-    en: {
-      skip: "Skip to main content",
-      version: "CYBERHACK · v1.4.5",
-      title: "VOID AUDITOR",
-      subtitle: "Zero Trust Android forensics toolkit — audit, cache purge, network scan, and AI-assisted analysis via Shizuku (no root).",
-      download: "⬇ Download APK (latest)",
-      direct_apk: "⬇ Direct APK v1.4.5",
-      clone: "Or build: git clone https://github.com/M0NDsuChTiG/Void-Auditor.git && cd Void-Auditor/android && ./gradlew assembleDebug",
-      tab_features: "FEATURES",
-      tab_matrix: "MATRIX",
-      tab_security: "SECURITY",
-      tab_start: "QUICK START",
-      tab_limits: "LIMITS",
-      f1_t: "Security Dashboard", f1_d: "Risk Aggregator 0–100. Scans ADB Wi‑Fi, Accessibility, SELinux, overlays, banking apps. Suggests fix commands.",
-      f2_t: "Cache Cleaner", f2_d: "External cache scan, dry-run, 3-factor PURGE confirm, selective clean. Honest EXTERNAL_CACHE_ONLY when internal data needs root.",
-      f3_t: "NET_SCAN", f3_d: "Subnet discovery: one Shizuku batch of parallel pings (~3s for /24). MAC via proc arp, common TCP ports on live hosts.",
-      f4_t: "WIFI_ADB", f4_d: "Status from getprop only. Enable verifies the port is active or returns SETPROP_FAILED / VERIFY_FAILED — no fake “enabled”.",
-      f5_t: "AI Forensics", f5_d: "Gemini as advisor: Intent Proposal → Policy Engine → human confirm. AI never runs shell directly.",
-      f6_t: "Banking Deep Scan", f6_d: "Finance-related packages: dangerous permissions, WebView, deep links, persistent services.",
-      f7_t: "Apps & Activities", f7_d: "Force-stop, disable, clear data, activity launcher — destructive ops require confirmation.",
-      f8_t: "Audit Trail", f8_d: "TRACE timeline: who, what, risk, policy decision, exit code, duration.",
-      f1d1: "Risk score 0–100 from 6+ checks: ADB Wi‑Fi, Accessibility services, SELinux, overlays, banking apps",
-      f1d2: "Fix hints are offered as confirmable capabilities — never raw shell commands",
-      f1d3: "Every check is written to TRACE together with the policy decision",
-      f2d1: "Scans external cache of user apps; dry-run shows sizes before anything is removed",
-      f2d2: "PURGE needs a typed phrase + explicit confirm (3-factor), with per-app selective clean",
-      f2d3: "Honest EXTERNAL_CACHE_ONLY — internal /data/data without root is reported, never faked",
-      f3d1: "Subnet discovery: one Shizuku batch of parallel pings — about 3 s per /24",
-      f3d2: "MAC from /proc/net/arp with vendor lookup; common TCP ports on live hosts",
-      f3d3: "Full 1–65535 scan with service detection and banners; cancellable from the UI",
-      f4d1: "Status is read only from getprop — no fake “enabled”",
-      f4d2: "Enable verifies the port actually answers, otherwise SETPROP_FAILED / VERIFY_FAILED",
-      f4d3: "Reports SELinux blocks on non-root devices honestly",
-      f5d1: "Gemini proposes Intent Proposals with whitelisted capabilityId — advisory only",
-      f5d2: "Pipeline: sanitize → validate → human review → PolicyEngine → execute → audit",
-      f5d3: "AI never runs shell directly; destructive operations are not in the whitelist",
-      f6d1: "Finance packages: dangerous permissions (SMS, call log, contacts), WebView, deep links",
-      f6d2: "Detects persistent background services and accessibility risk indicators",
-      f6d3: "Results feed the risk score with a clear DETECTED / OK status",
-      f7d1: "Per package: force-stop, disable, clear data, activity launcher",
-      f7d2: "Destructive actions require explicit confirmation via risk-tiered dialogs",
-      f7d3: "Package list with status: running / frozen / disabled",
-      f8d1: "TRACE timeline: actor, capability, risk, policy decision, exit code, duration",
-      f8d2: "Written to app-private storage; export via MediaStore when needed",
-      f8d3: "ActorType distinguishes USER decisions from AI decisions",
-      matrix_h: "FUNCTION MATRIX",
-      m1: "Risk score + auto fix hints",
-      m2: "SELinux, ADB Wi‑Fi, Accessibility, packages",
-      m3: "Scan / dry-run / PURGE phrase / rescan",
-      m4: "Batch ping + MAC + ports",
-      m5: "Proposal only → policy → confirm",
-      m6: "Structured forensic events",
-      m1d1: "Aggregates a 0–100 risk from device state checks",
-      m1d2: "Each fix hint maps to a confirmable capability with a policy decision",
-      m1d3: "State is retained across tab switches",
-      m2d1: "Checks SELinux enforcing, ADB Wi‑Fi exposure, Accessibility services",
-      m2d2: "Lists installed packages and key system properties",
-      m2d3: "Battery / build / hardware fingerprint via dumpsys",
-      m3d1: "External cache scan with per-app sizes",
-      m3d2: "Dry-run first; PURGE requires a typed phrase (3-factor confirm)",
-      m3d3: "Selective clean + honest EXTERNAL_CACHE_ONLY without root",
-      m4d1: "One Shizuku batch ping for the whole subnet (~3 s per /24)",
-      m4d2: "MAC via /proc/net/arp with vendor lookup",
-      m4d3: "Common ports + full 1–65535 scan with service detection",
-      m5d1: "Gemini emits PROPOSAL_JSON with a whitelisted capabilityId",
-      m5d2: "Human review → PolicyEngine → CapabilityExecutor",
-      m5d3: "Audited as ActorType.AI; no direct shell execution",
-      m6d1: "Who, what, risk, policy decision, exit code, duration",
-      m6d2: "App-private storage; export via MediaStore when needed",
-      m6d3: "USER and AI actor types are distinguished",
-      sec_h: "PROTOCOLS",
-      s1: "Destructive actions require explicit confirmation",
-      s2: "Gemini API keys in EncryptedSharedPreferences (AES-256-GCM)",
-      s3: "Audit logs only in app-private storage",
-      s4: "Optional biometric / PIN at launch",
-      s5: "Capability System + Policy Engine + human gate",
-      s6: "AI cannot execute shell or invent unrestricted intents",
-      start_h: "QUICK START",
-      q1: "Install and start Shizuku (USB ADB or Wireless Debugging)",
-      q2: "Install VOID Auditor → grant Shizuku permission",
-      q3: "Optional: add Gemini API key in AI screen",
-      q4: "Run Dashboard or CACHE scan; always dry-run before purge",
-      q5: "CONN: check WIFI_ADB status · NET_SCAN: scan current subnet",
-      req: "Requires Android 8.0+ · Shizuku v13+",
-      lim_h: "KNOWN LIMITS",
-      lim1: "Internal /data/data cache is often invisible without root. The app shows EXTERNAL_CACHE_ONLY and may offer SYSTEM_TRIM — it does not pretend to see full internal cache.",
-      lim2: "ENABLE_WIFI_ADB via setprop is blocked by SELinux on many non-root devices. Failures are reported as SETPROP_FAILED or VERIFY_FAILED, never as a false “enabled”.",
-      lim3: "Authorized use only. You are responsible for compliance with local law and device owner consent.",
-      footer: "VOID Auditor · CyberHack Edition · v1.4.5"
-    },
-    ru: {
-      skip: "Перейти к содержимому",
-      version: "CYBERHACK · v1.4.5",
-      title: "VOID AUDITOR",
-      subtitle: "Zero Trust toolkit для Android-форензики: аудит, очистка кэша, сетевой скан и AI-анализ через Shizuku (без root).",
-      download: "⬇ Скачать APK (latest)",
-      direct_apk: "⬇ Прямой APK v1.4.5",
-      clone: "Или сборка: git clone https://github.com/M0NDsuChTiG/Void-Auditor.git && cd Void-Auditor/android && ./gradlew assembleDebug",
-      tab_features: "ФУНКЦИИ",
-      tab_matrix: "МАТРИЦА",
-      tab_security: "БЕЗОПАСНОСТЬ",
-      tab_start: "СТАРТ",
-      tab_limits: "ЛИМИТЫ",
-      f1_t: "Security Dashboard", f1_d: "Risk Aggregator 0–100. ADB Wi‑Fi, Accessibility, SELinux, overlay, банки. Подсказки по исправлению.",
-      f2_t: "Cache Cleaner", f2_d: "Скан external-кэша, dry-run, 3-факторный PURGE, выборочная очистка. Честный EXTERNAL_CACHE_ONLY без root.",
-      f3_t: "NET_SCAN", f3_d: "Обнаружение хостов в подсети: один batch ping через Shizuku (~3 с на /24). MAC и порты.",
-      f4_t: "WIFI_ADB", f4_d: "Статус только из getprop. Enable проверяет порт или отдаёт SETPROP_FAILED / VERIFY_FAILED — без фейкового enabled.",
-      f5_t: "AI Forensics", f5_d: "Gemini только advisor: Proposal → Policy → подтверждение. AI не выполняет shell.",
-      f6_t: "Banking Deep Scan", f6_d: "Финпакеты: опасные permission, WebView, deep links, сервисы.",
-      f7_t: "Apps & Activities", f7_d: "Force-stop, disable, clear, launcher — опасные действия с подтверждением.",
-      f8_t: "Audit Trail", f8_d: "TRACE: кто, что, риск, решение политики, exit code, время.",
-      f1d1: "Риск 0–100 по 6+ проверкам: ADB Wi‑Fi, службы Accessibility, SELinux, overlay, банковские приложения",
-      f1d2: "Подсказки по исправлению — как подтверждаемые capabilities, никогда raw shell",
-      f1d3: "Каждая проверка пишется в TRACE вместе с решением политики",
-      f2d1: "Сканирует external-кэш приложений; dry-run показывает размеры до удаления",
-      f2d2: "PURGE требует введённой фразы + явного подтверждения (3 фактора), выборочная очистка по приложениям",
-      f2d3: "Честный EXTERNAL_CACHE_ONLY — internal /data/data без root сообщается, а не выдумывается",
-      f3d1: "Обнаружение хостов: один batch параллельных ping через Shizuku — около 3 с на /24",
-      f3d2: "MAC из /proc/net/arp с определением вендора; основные TCP-порты на живых хостах",
-      f3d3: "Полный скан 1–65535 с определением сервисов и баннеров; отменяется из UI",
-      f4d1: "Статус читается только из getprop — без фейкового «enabled»",
-      f4d2: "Enable проверяет, что порт реально отвечает, иначе SETPROP_FAILED / VERIFY_FAILED",
-      f4d3: "Честно сообщает о блокировках SELinux на устройствах без root",
-      f5d1: "Gemini предлагает Intent Proposal только с whitelisted capabilityId — advisor",
-      f5d2: "Конвейер: санитайзинг → валидация → подтверждение → PolicyEngine → исполнение → аудит",
-      f5d3: "AI не выполняет shell напрямую; деструктивные операции вне whitelist",
-      f6d1: "Финпакеты: опасные permission (SMS, журнал звонков, контакты), WebView, deep links",
-      f6d2: "Детект постоянных фоновых сервисов и индикаторов accessibility-риска",
-      f6d3: "Результаты идут в риск-скор с явным статусом DETECTED / OK",
-      f7d1: "По пакету: force-stop, disable, clear data, запуск activity",
-      f7d2: "Опасные действия — только с явным подтверждением через диалоги по уровню риска",
-      f7d3: "Список пакетов со статусом: работает / заморожен / отключён",
-      f8d1: "TRACE-таймлайн: actor, capability, риск, решение политики, exit code, время",
-      f8d2: "Хранится только в private storage; экспорт через MediaStore при необходимости",
-      f8d3: "ActorType различает решения USER и AI",
-      matrix_h: "ФУНКЦИОНАЛЬНАЯ МАТРИЦА",
-      m1: "Risk score + подсказки",
-      m2: "SELinux, ADB Wi‑Fi, Accessibility, пакеты",
-      m3: "Scan / dry-run / фраза PURGE / rescan",
-      m4: "Batch ping + MAC + порты",
-      m5: "Только proposal → policy → confirm",
-      m6: "Структурированные forensic-события",
-      m1d1: "Собирает риск 0–100 из проверок состояния устройства",
-      m1d2: "Каждая подсказка — подтверждаемая capability с решением политики",
-      m1d3: "Состояние сохраняется между переключением вкладок",
-      m2d1: "Проверяет SELinux enforcing, экспонирование ADB Wi‑Fi, службы Accessibility",
-      m2d2: "Список установленных пакетов и ключевых системных свойств",
-      m2d3: "Отпечаток батареи / сборки / железа через dumpsys",
-      m3d1: "Скан external-кэша с размерами по приложениям",
-      m3d2: "Сначала dry-run; PURGE требует фразу (3-факторное подтверждение)",
-      m3d3: "Выборочная очистка + честный EXTERNAL_CACHE_ONLY без root",
-      m4d1: "Один batch ping через Shizuku на всю подсеть (~3 с на /24)",
-      m4d2: "MAC из /proc/net/arp с определением вендора",
-      m4d3: "Основные порты + полный скан 1–65535 с определением сервисов",
-      m5d1: "Gemini формирует PROPOSAL_JSON с whitelisted capabilityId",
-      m5d2: "Подтверждение человека → PolicyEngine → CapabilityExecutor",
-      m5d3: "Аудит как ActorType.AI; без прямого выполнения shell",
-      m6d1: "Кто, что, риск, решение политики, exit code, время",
-      m6d2: "Private storage; экспорт через MediaStore при необходимости",
-      m6d3: "Различаются actor-типы USER и AI",
-      sec_h: "ПРОТОКОЛЫ",
-      s1: "Деструктивные действия — только с подтверждением",
-      s2: "Ключи Gemini в EncryptedSharedPreferences (AES-256-GCM)",
-      s3: "Логи аудита только в private storage приложения",
-      s4: "Опционально биометрия / PIN при входе",
-      s5: "Capability + Policy Engine + human gate",
-      s6: "AI не выполняет shell и не создаёт неограниченные intent",
-      start_h: "БЫСТРЫЙ СТАРТ",
-      q1: "Установи и запусти Shizuku (USB ADB или Wireless Debugging)",
-      q2: "Установи VOID Auditor → выдай permission Shizuku",
-      q3: "Опционально: ключ Gemini на экране AI",
-      q4: "Dashboard или CACHE; перед purge всегда dry-run",
-      q5: "CONN: статус WIFI_ADB · NET_SCAN: скан подсети",
-      req: "Нужны Android 8.0+ · Shizuku v13+",
-      lim_h: "ИЗВЕСТНЫЕ ОГРАНИЧЕНИЯ",
-      lim1: "Internal /data/data часто недоступен без root. Показывается EXTERNAL_CACHE_ONLY и при необходимости SYSTEM_TRIM — без притворства полного доступа.",
-      lim2: "ENABLE_WIFI_ADB через setprop часто блокируется SELinux. Ошибки: SETPROP_FAILED / VERIFY_FAILED, не ложный «enabled».",
-      lim3: "Только авторизованное использование. Ответственность за закон и согласие владельца устройства — на пользователе.",
-      footer: "VOID Auditor · CyberHack Edition · v1.4.5"
-    }
-  };
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (dict[key]) {
+                    el.innerText = dict[key];
+                }
+            });
 
-  function applyLang(lang) {
-    var dict = T[lang] || T.en;
-    document.documentElement.lang = lang;
-    document.querySelectorAll("[data-i18n]").forEach(function (el) {
-      var k = el.getAttribute("data-i18n");
-      if (dict[k] != null) el.textContent = dict[k];
-    });
-    document.querySelectorAll(".lang-btn").forEach(function (b) {
-      var on = b.getAttribute("data-set-lang") === lang;
-      b.classList.toggle("active", on);
-      b.setAttribute("aria-pressed", on ? "true" : "false");
-    });
-    try { localStorage.setItem("void_lang", lang); } catch (e) {}
-  }
+            if (lang === 'en') {
+                document.getElementById('lang-en').className = 'text-cursor-green font-bold';
+                document.getElementById('lang-ru').className = 'text-muted-ash hover:text-pure-white';
+            } else {
+                document.getElementById('lang-ru').className = 'text-cursor-green font-bold';
+                document.getElementById('lang-en').className = 'text-muted-ash hover:text-pure-white';
+            }
+        }
 
-  function activateTab(id) {
-    document.querySelectorAll(".tab").forEach(function (t) {
-      var on = t.getAttribute("data-tab") === id;
-      t.classList.toggle("active", on);
-      t.setAttribute("aria-selected", on ? "true" : "false");
-      t.setAttribute("tabindex", on ? "0" : "-1");
-    });
-    document.querySelectorAll(".panel").forEach(function (p) {
-      var on = p.id === "panel-" + id;
-      p.classList.toggle("active", on);
-      p.hidden = !on;
-    });
-  }
+        function switchDemoTab(tabKey) {
+            if (DEMO_SCRIPTS[tabKey]) {
+                currentActiveTab = tabKey;
+                document.getElementById('demo-module-title').innerText = DEMO_SCRIPTS[tabKey].title;
+                runDemoSimulation();
+            }
+        }
 
-  // Keyboard navigation for the tablist (WAI-ARIA APG: arrow keys + Home/End, roving tabindex)
-  var tablistEl = document.querySelector(".tabs");
-  if (tablistEl) {
-    tablistEl.addEventListener("keydown", function (e) {
-      var tabs = Array.prototype.slice.call(tablistEl.querySelectorAll('[role="tab"]'));
-      var idx = tabs.indexOf(document.activeElement);
-      if (idx === -1) return;
-      var next = -1;
-      if (e.key === "ArrowRight") next = idx + 1;
-      else if (e.key === "ArrowLeft") next = idx - 1;
-      else if (e.key === "Home") next = 0;
-      else if (e.key === "End") next = tabs.length - 1;
-      else return;
-      e.preventDefault();
-      if (next < 0) next = tabs.length - 1;
-      if (next >= tabs.length) next = 0;
-      var t = tabs[next];
-      t.focus();
-      activateTab(t.getAttribute("data-tab"));
-    });
-  }
+        function runDemoSimulation() {
+            const output = document.getElementById('terminal-output');
+            const status = document.getElementById('demo-status');
+            const demo = DEMO_SCRIPTS[currentActiveTab];
 
-  document.querySelectorAll(".lang-btn").forEach(function (b) {
-    b.addEventListener("click", function () {
-      applyLang(b.getAttribute("data-set-lang"));
-    });
-  });
-  document.querySelectorAll(".tab").forEach(function (t) {
-    t.addEventListener("click", function () {
-      activateTab(t.getAttribute("data-tab"));
-    });
-  });
+            output.innerHTML = '';
+            status.innerText = 'RUNNING';
+            status.className = 'text-cursor-green blinking-cursor';
 
-  // Feature cards: click to expand details (accordion)
-  document.querySelectorAll(".card-toggle").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var expanded = btn.getAttribute("aria-expanded") === "true";
-      btn.setAttribute("aria-expanded", expanded ? "false" : "true");
-      var detail = document.getElementById(btn.getAttribute("aria-controls"));
-      if (detail) detail.hidden = expanded;
-      var card = btn.closest(".card");
-      if (card) card.classList.toggle("expanded", !expanded);
-      var more = btn.querySelector(".card-more");
-      if (more) more.textContent = expanded ? "+" : "−";
-    });
-  });
+            demo.lines.forEach((line, index) => {
+                setTimeout(() => {
+                    const p = document.createElement('p');
+                    if (line.startsWith('[!]')) {
+                        p.className = 'text-pure-white font-medium';
+                    } else if (line.startsWith('[+]')) {
+                        p.className = 'text-cursor-green';
+                    } else {
+                        p.className = 'text-muted-ash';
+                    }
+                    p.innerHTML = line;
+                    output.appendChild(p);
+                    output.scrollTop = output.scrollHeight;
 
-  // Matrix rows: click to expand details
-  document.querySelectorAll(".feature-toggle").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var expanded = btn.getAttribute("aria-expanded") === "true";
-      btn.setAttribute("aria-expanded", expanded ? "false" : "true");
-      var detail = document.getElementById(btn.getAttribute("aria-controls"));
-      if (detail) detail.hidden = expanded;
-      var row = btn.closest(".feature-row");
-      if (row) row.classList.toggle("expanded", !expanded);
-      var more = btn.querySelector(".feature-more");
-      if (more) more.textContent = expanded ? "+" : "−";
-    });
-  });
+                    if (index === demo.lines.length - 1) {
+                        status.innerText = 'COMPLETE';
+                        status.className = 'text-cursor-green';
+                    }
+                }, index * 250);
+            });
+        }
 
-  var initial = "en";
-  try {
-    var saved = localStorage.getItem("void_lang");
-    if (saved === "ru" || saved === "en") initial = saved;
-  } catch (e) {}
-  applyLang(initial);
-})();
-</script>
+        window.addEventListener('DOMContentLoaded', () => {
+            runDemoSimulation();
+        });
+    </script>
 </body>
 </html>
